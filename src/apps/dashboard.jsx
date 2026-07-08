@@ -21,11 +21,8 @@ import {
    DASHBOARD QG (version allegée) -- Bucolique Ferrières Musique Festival 2026
    Vue de synthèse : alertes SOS, logistique et balade en direct (Supabase),
    vigilance météo IRM, veille médias compacte, plan radio.
-   Les saisies se font dans les apps dédiées (Logistique / Balade) ;
-   la main courante urgences reste dans le formulaire Google + Sheet.
 --------------------------------------------------------------------- */
 
-/* ------------------------------ Supabase ------------------------------ */
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 const SB_HEADERS = {
   apikey: SUPABASE_ANON_KEY,
@@ -64,9 +61,6 @@ async function kvSet(key, value) {
 
 const CAPACITE_ETAPE = 300;
 
-/* ------------------------ Données de reference ------------------------ */
-
-// Vigilance météo IRM -- province de Liège (simulée, axée sur les échéances tactiques)
 const METEO_FALLBACK = {
   province: "Liege",
   codeActuel: "jaune",
@@ -86,7 +80,6 @@ const SEUILS_IRM = {
   rouge: "Suspension départs balade, évacuation selon zones.",
 };
 
-// Veille médias compacte (simulée)
 const MEDIA = { mentions24h: 486, variation: 14, sentiment: { positif: 68, neutre: 24, negatif: 8 } };
 
 const CANAUX_RADIO = [
@@ -108,8 +101,6 @@ const PHENOMENE_ICON = { orages: CloudLightning, vent: Wind, chaleur: Thermomete
 function pad(n) {
   return n.toString().padStart(2, "0");
 }
-
-/* ------------------------------ App ------------------------------ */
 
 export default function DashboardQG() {
   const [now, setNow] = useState(new Date());
@@ -166,7 +157,6 @@ export default function DashboardQG() {
     };
   }, []);
 
-  // Prise en compte d'un SOS participant
   async function prendreEnCompteSos(id) {
     const next = sosParticipants.map((s) =>
       s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s
@@ -208,7 +198,6 @@ export default function DashboardQG() {
 
   const METEO = meteoLive || METEO_FALLBACK;
 
-  // Agrégats
   const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue");
   const logBloquantes = logOuvertes.filter((m) => m.bloquant === "Oui" || (m.priorite || "").startsWith("P1"));
   const grpDehors = groupesBalade.filter((g) => g.position !== "p0" && g.position !== "ret");
@@ -352,7 +341,7 @@ export default function DashboardQG() {
                   {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
                   {s.gps && (
                     <a
-                      href={`http://maps.google.com/?q=${s.gps.lat},${s.gps.lon}`}
+                      href={`https://maps.google.com/?q=${s.gps.lat},${s.gps.lon}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-[11px] font-mono text-sky-300 hover:text-sky-200 mt-0.5 inline-block"
@@ -482,7 +471,7 @@ export default function DashboardQG() {
           </section>
         </div>
 
-        {/* Météo IRM Clarifiée */}
+        {/* Météo IRM */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
