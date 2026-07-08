@@ -68,15 +68,15 @@ const CAPACITE_ETAPE = 300;
 
 // Vigilance météo IRM -- province de Liège (simulée)
 const METEO_FALLBACK = {
-  province: "Liège",
+  province: "Liege",
   codeActuel: "jaune",
   phenomenes: ["orages", "vent"],
   maj: "il y a 12 min",
   timeline: [
-    { creneau: "Sam 15/08 après-midi (balade)", code: "vert", phenomene: "RAS" },
-    { creneau: "Sam 15/08 soirée (scènes)", code: "jaune", phenomene: "orages" },
-    { creneau: "Dim 16/08 matin (balade)", code: "vert", phenomene: "RAS" },
-    { creneau: "Dim 16/08 après-midi", code: "jaune", phenomene: "chaleur" },
+    { creneau: "Dans les 2 prochaines heures (+2h)", code: "vert", phenomene: "RAS" },
+    { creneau: "Dans les 4 prochaines heures (+4h)", code: "jaune", phenomene: "orages" },
+    { creneau: "Dans les 8 prochaines heures (+8h)", code: "jaune", phenomene: "vent" },
+    { creneau: "Dans les 12 prochaines heures (+12h)", code: "vert", phenomene: "RAS" },
   ],
 };
 
