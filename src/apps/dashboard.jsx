@@ -21,7 +21,7 @@ import {
 /* ---------------------------------------------------------------------
    DASHBOARD QG (version allegée) -- Bucolique Ferrières Musique Festival 2026
    Vue de synthèse : alertes SOS, logistique et balade en direct (Supabase),
-   vigilance météo IRM cliquable, veille médias compacte, plan radio.
+   vigilance météo IRM ciblée sur Ferrières, veille médias, plan radio.
 --------------------------------------------------------------------- */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
@@ -443,7 +443,7 @@ export default function DashboardQG() {
             </div>
           </section>
 
-          <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
                 <Footprints className="w-4 h-4 text-slate-500" /> BALADE
@@ -472,8 +472,8 @@ export default function DashboardQG() {
           </section>
         </div>
 
-        {/* Météo IRM cliquable */}
-        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+        {/* Météo IRM cliquable vers la page de Ferrières */}
+        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
               <CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM
@@ -507,11 +507,11 @@ export default function DashboardQG() {
               return (
                 <a
                   key={i}
-                  href="https://www.meteo.be/fr/meteo/avertissements/provincial"
+                  href="https://www.meteo.be/fr/ferrieres"
                   target="_blank"
                   rel="noreferrer"
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs rounded bg-white/[0.02] border border-white/5 p-2 hover:bg-white/[0.06] hover:border-white/20 transition-all group cursor-pointer"
-                  title="Cliquez pour ouvrir le site officiel de l'IRM"
+                  title="Cliquez pour ouvrir la météo locale de Ferrières"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full ${st.dot} shrink-0`} />
@@ -540,13 +540,13 @@ export default function DashboardQG() {
           )}
           <div className="text-[10px] text-slate-600 font-mono mt-2">
             Prov. {METEO.province} · maj {METEO.maj} ·{" "}
-            {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Cliquez sur un bloc pour ouvrir les avertissements de l'IRM"}
+            {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Cliquez sur une échéance pour ouvrir le radar de Ferrières"}
           </div>
         </section>
 
         {/* Veille Médias */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
               <Rss className="w-4 h-4 text-slate-500" /> MEDIAS
             </h2>
@@ -564,7 +564,7 @@ export default function DashboardQG() {
           </section>
 
           {/* Plan Radio */}
-          <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
               <Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO
             </h2>
@@ -579,7 +579,7 @@ export default function DashboardQG() {
           </section>
         </div>
 
-        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-3 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
+        <section className="bg-[#151b23] rounded-lg p-3 ring-1 ring-white/10 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
           <PhoneCall className="w-3.5 h-3.5" /> Urgence vitale : 112 en priorité, information immédiate QG (Canal PMR333).
         </section>
 
