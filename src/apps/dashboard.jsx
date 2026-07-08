@@ -298,3 +298,297 @@ export default function DashboardQG() {
                 <div className="text-[11px] font-mono text-red-200/60 mt-1">
                   {a.acquittePar ? `Acquittée par ${a.acquittePar} à ${a.heureAcquittement}` : `NON ACQUITTEE — traiter dans l'app ${a.source}`}
                 </div>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* SOS participants */}
+        {sosParticipants.length > 0 && (
+          <section className={`bg-[#151b23] rounded-lg p-4 ${sosPartNouveaux.length > 0 ? "ring-2 ring-red-400/60" : "ring-1 ring-white/10"}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+                <TriangleAlert className={`w-4 h-4 ${sosPartNouveaux.length > 0 ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
+                SOS PARTICIPANTS
+              </h2>
+              <span className={`font-mono text-xs ${sosPartNouveaux.length > 0 ? "text-red-300" : "text-slate-500"}`}>
+                {sosPartNouveaux.length} nouveau(x) · {sosParticipants.length} au total
+              </span>
+            </div>
+            <div className="space-y-2">
+              {sosParticipants.slice(0, 6).map((s) => (
+                <div
+                  key={s.id}
+                  className={`rounded-md px-3 py-2.5 ring-1 ${
+                    s.statut === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
+                    <span className="text-sm text-slate-100 font-medium">{s.motif}</span>
+                    <span className="text-[11px] text-slate-400">— {s.nom}{s.tel ? ` · ${s.tel}` : ""}</span>
+                    <span className="flex-1" />
+                    {s.statut === "nouveau" ? (
+                      <button
+                        onClick={() => prendreEnCompteSos(s.id)}
+                        className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20 transition-colors"
+                      >
+                        Prendre en compte
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-mono text-slate-500">pris en compte{s.heurePriseEnCompte ? ` à ${s.heurePriseEnCompte}` : ""}</span>
+                    )}
+                  </div>
+                  {s.surTrace && (
+                    <div className="text-xs text-slate-300 mt-1">
+                      <span className="font-mono text-amber-200">km {s.surTrace.km}</span> · {s.surTrace.segment}
+                      {s.surTrace.ecartMetres > 100 && (
+                        <span className="text-amber-300"> · ~{s.surTrace.ecartMetres} m hors sentier</span>
+                      )}
+                      <span className="text-slate-500"> · repère : {s.surTrace.reperePlusProche}</span>
+                    </div>
+                  )}
+                  {!s.surTrace && <div className="text-[11px] text-amber-300/90 mt-1">Sans GPS — voir description</div>}
+                  {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
+                  {s.gps && (
+                    <a
+                      href={`http://maps.google.com/?q=${s.gps.lat},${s.gps.lon}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] font-mono text-sky-300 hover:text-sky-200 mt-0.5 inline-block"
+                    >
+                      Ouvrir dans Google Maps ({s.gps.lat.toFixed(5)}, {s.gps.lon.toFixed(5)})
+                    </a>
+                  )}
+                </div>
+              ))}
+              {sosParticipants.length > 6 && (
+                <div className="text-[10px] font-mono text-slate-600 text-center">+ {sosParticipants.length - 6} plus ancien(s)</div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Engagement volante */}
+        <section className={`bg-[#151b23] rounded-lg p-4 ${consigne ? "ring-2 ring-amber-400/50" : "ring-1 ring-white/10"}`}>
+          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+            <Footprints className="w-4 h-4 text-slate-500" /> ENGAGEMENT VOLANTE
+          </h2>
+          {consigne ? (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm text-amber-200">
+                  Engagée vers <span className="font-semibold">{consigne.prv}</span>
+                  {consigne.message ? ` — ${consigne.message}` : ""}
+                </div>
+                <div className="text-[11px] font-mono text-slate-400 mt-1">
+                  Émise à {consigne.heure} ·{" "}
+                  {consigne.accusePar ? (
+                    <span className="text-emerald-300">accusée "bien reçu" à {consigne.heureAccuse}</span>
+                  ) : (
+                    <span className="text-amber-300 pulse-slow">en attente d'accusé</span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={leverConsigne}
+                className="shrink-0 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-white/25 text-slate-300 hover:text-white hover:ring-white/40"
+              >
+                Lever
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                className="bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+                value={prvChoisi}
+                onChange={(e) => setPrvChoisi(e.target.value)}
+              >
+                {PRVS.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <input
+                className="flex-1 min-w-[140px] bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+                value={msgConsigne}
+                onChange={(e) => setMsgConsigne(e.target.value)}
+                placeholder="Message (ex: SOS km 2,5 -- malaise)"
+              />
+              <button
+                onClick={engagerVolante}
+                className="text-xs font-mono px-3 py-2 rounded ring-1 ring-amber-400/50 bg-amber-400/15 text-amber-200 hover:bg-amber-400/25 transition-colors"
+              >
+                Engager
+              </button>
+            </div>
+          )}
+          <div className="text-[10px] text-slate-600 font-mono mt-2">
+            La consigne s'affiche dans l'app Volante avec guidage GPS vers le point choisi. Doubler à la radio (PMR4.1).
+          </div>
+        </section>
+
+        {/* Logistique + Balade en direct */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-slate-500" /> LOGISTIQUE
+              </h2>
+              <span className={`font-mono text-xs ${logBloquantes.length > 0 ? "text-red-300" : logOuvertes.length > 0 ? "text-amber-300" : "text-emerald-300"}`}>
+                {logOuvertes.length} ouverte(s){logBloquantes.length > 0 ? ` · ${logBloquantes.length} bloquante(s)` : ""}
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {logOuvertes.slice(0, 4).map((m) => (
+                <div key={m.id || m.ref} className="flex items-center gap-2 text-xs rounded bg-white/[0.03] ring-1 ring-white/10 px-2.5 py-2">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(m.priorite || "").startsWith("P1") ? "bg-red-400" : (m.priorite || "").startsWith("P2") ? "bg-amber-400" : "bg-sky-400"}`} />
+                  <span className="text-slate-200 flex-1 min-w-0 truncate">{m.nature}</span>
+                  <span className="text-[10px] text-slate-500 shrink-0">{m.attribueA || "—"}</span>
+                </div>
+              ))}
+              {logOuvertes.length === 0 && <div className="text-xs text-slate-500 text-center py-3">Rien d'ouvert.</div>}
+              {logOuvertes.length > 4 && (
+                <div className="text-[10px] font-mono text-slate-600 text-center">+ {logOuvertes.length - 4} autre(s) dans l'app Logistique</div>
+              )}
+            </div>
+          </section>
+
+          <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+                <Footprints className="w-4 h-4 text-slate-500" /> BALADE
+              </h2>
+              <span className="font-mono text-xs text-amber-300">{persDehors} sur le parcours</span>
+            </div>
+            <div className="space-y-1.5">
+              {["e1", "e2", "e3"].map((eid, idx) => {
+                const n = parEtape[eid];
+                const pct = Math.min(100, Math.round((n / CAPACITE_ETAPE) * 100));
+                const cls = pct >= 90 ? "bg-red-400" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
+                return (
+                  <div key={eid} className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-400 w-14 shrink-0">Etape {idx + 1}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className={`h-full ${cls}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-500 w-14 text-right shrink-0">{n}/{CAPACITE_ETAPE}</span>
+                  </div>
+                );
+              })}
+              <div className="text-[11px] text-slate-500 pt-1">
+                {grpDehors.length} groupe(s) dehors · {groupesBalade.filter((g) => g.position === "ret").length} rentré(s)
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Météo IRM Clarifiée */}
+        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+              <CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM
+            </h2>
+            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
+          </div>
+          <div className="space-y-2">
+            {METEO.timeline.map((t, i) => {
+              const traduirePhenomene = (p) => {
+                if (!p || p === "phenomene") return "Alerte Vigilance";
+                const memo = String(p).toLowerCase();
+                if (memo.includes("thunderstorm") || memo.includes("orage")) return "Orages violents";
+                if (memo.includes("wind") || memo.includes("vent")) return "Vent violent / Rafales";
+                if (memo.includes("rain") || memo.includes("pluie")) return "Pluie / Inondation";
+                if (memo.includes("snow") || memo.includes("neige")) return "Neige / Verglas";
+                if (memo.includes("heat") || memo.includes("chaleur")) return "Forte chaleur / Canicule";
+                return p;
+              };
+
+              const Icon = PHENOMENE_ICON[t.phenomene] || CircleDot;
+              const st = CODE_METEO[t.code] || CODE_METEO["vert"];
+
+              const texteCreneau = String(t.creneau)
+                .replace(/phenomene\s*·\s*/gi, "")
+                .replace(/mer\.\s*/gi, "Mer. ")
+                .replace(/jeu\.\s*/gi, "Jeu. ")
+                .replace(/ven\.\s*/gi, "Ven. ")
+                .replace(/sam\.\s*/gi, "Sam. ")
+                .replace(/dim\.\s*/gi, "Dim. ");
+
+              return (
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs rounded bg-white/[0.02] border border-white/5 p-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-1.5 h-1.5 rounded-full ${st.dot} shrink-0`} />
+                    <div className="min-w-0">
+                      <span className="text-slate-100 font-medium block">
+                        {traduirePhenomene(t.phenomene)}
+                      </span>
+                      <span className="text-slate-400 font-mono text-[11px] block mt-0.5">
+                        {texteCreneau}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                    <Icon className="w-3.5 h-3.5 text-slate-500" />
+                    <span className={`font-mono text-[10px] uppercase ${st.text} bg-white/[0.02] px-1.5 py-0.5 rounded border border-white/5`}>
+                      {st.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {METEO.codeActuel !== "vert" && (
+            <div className="text-[11px] text-slate-400 mt-3 pt-2 border-t border-white/10">{SEUILS_IRM[METEO.codeActuel]}</div>
+          )}
+          <div className="text-[10px] text-slate-600 font-mono mt-2">
+            Prov. {METEO.province} · maj {METEO.maj} ·{" "}
+            {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Échéances stratégiques (+2h / +4h / +8h / +12h)"}
+          </div>
+        </section>
+
+        {/* Veille Médias */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+              <Rss className="w-4 h-4 text-slate-500" /> MEDIAS
+            </h2>
+            <div className="flex h-2 w-full rounded-full overflow-hidden bg-white/10">
+              <div className="bg-emerald-400 h-full" style={{ width: `${MEDIA.sentiment.positif}%` }} />
+              <div className="bg-slate-500 h-full" style={{ width: `${MEDIA.sentiment.neutre}%` }} />
+              <div className="bg-red-400 h-full" style={{ width: `${MEDIA.sentiment.negatif}%` }} />
+            </div>
+            <div className="flex items-center gap-3 mt-2 text-[11px] font-mono text-slate-400">
+              <span className="flex items-center gap-1"><Smile className="w-3 h-3 text-emerald-300" />{MEDIA.sentiment.positif}%</span>
+              <span className="flex items-center gap-1"><Meh className="w-3 h-3 text-slate-400" />{MEDIA.sentiment.neutre}%</span>
+              <span className="flex items-center gap-1"><Frown className="w-3 h-3 text-red-300" />{MEDIA.sentiment.negatif}%</span>
+            </div>
+            <div className="text-[10px] text-slate-600 font-mono mt-2">Simulé · à connecter à un outil de veille</div>
+          </section>
+
+          {/* Plan Radio */}
+          <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+              <Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO
+            </h2>
+            <div className="grid grid-cols-1 gap-1.5">
+              {CANAUX_RADIO.map((c) => (
+                <div key={c.canal} className={`flex items-start gap-2 text-[11px] rounded px-2 py-1.5 ${c.canal === "PMR333" ? "bg-red-400/5 ring-1 ring-red-400/20" : "bg-white/[0.02]"}`}>
+                  <span className={`font-mono shrink-0 w-14 ${c.canal === "PMR333" ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
+                  <span className="text-slate-400">{c.usage}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-3 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
+          <PhoneCall className="w-3.5 h-3.5" /> Urgence vitale : 112 en priorité, information immédiate QG (Canal PMR333).
+        </section>
+
+        <div className="text-[10px] text-slate-600 font-mono text-center pt-1">
+          Synthèse en lecture seule · rafraîchissement auto 10 s · saisies dans les apps Logistique et Balade
+        </div>
+      </main>
+    </div>
+  );
+}
