@@ -220,12 +220,12 @@ export default function DashboardQG() {
       : "mineur";
   const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
 
-  const mc = CODE_METEO[METEO.codeActuel];
+  const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
 
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
