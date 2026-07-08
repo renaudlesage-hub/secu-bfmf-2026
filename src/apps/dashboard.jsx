@@ -26,9 +26,7 @@ import {
 --------------------------------------------------------------------- */
 
 /* ------------------------------ Supabase ------------------------------ */
-// A REMPLIR apres execution de supabase-setup.sql (Settings > API) :
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
-
 const SB_HEADERS = {
   apikey: SUPABASE_ANON_KEY,
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -51,6 +49,7 @@ const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
 const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
 const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
+const KEY_METEO = "bfmf2026-meteo";
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
@@ -68,7 +67,7 @@ const CAPACITE_ETAPE = 300;
 /* ------------------------ Donnees de reference ------------------------ */
 
 // Vigilance meteo IRM -- province de Liege (simulee, a connecter a meteo.be)
-const METEO = {
+const METEO_FALLBACK = {
   province: "Liege",
   codeActuel: "jaune",
   phenomenes: ["orages", "vent"],
@@ -119,6 +118,7 @@ export default function DashboardQG() {
   const [alertes, setAlertes] = useState([]);
   const [sosParticipants, setSosParticipants] = useState([]);
   const [consigne, setConsigne] = useState(null);
+  const [meteoLive, setMeteoLive] = useState(null);
   const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
@@ -132,19 +132,21 @@ export default function DashboardQG() {
     let stop = false;
     async function pull() {
       try {
-        const [mi, gr, aLog, aBal, sosP, co] = await Promise.all([
+        const [mi, gr, aLog, aBal, sosP, co, mto] = await Promise.all([
           kvGet(KEY_MISSIONS),
           kvGet(KEY_GROUPES),
           kvGet(KEY_ALERTE_LOG),
           kvGet(KEY_ALERTE_BAL),
           kvGet(KEY_SOS_PART),
           kvGet(KEY_CONSIGNE),
+          kvGet(KEY_METEO),
         ]);
         if (stop) return;
         setMissionsLog(Array.isArray(mi) ? mi : []);
         setGroupesBalade(Array.isArray(gr) ? gr : []);
         setSosParticipants(Array.isArray(sosP) ? sosP : []);
         setConsigne(co && co.active ? co : null);
+        setMeteoLive(mto && mto.live ? mto : null);
         setAlertes(
           [
             aLog && aLog.active ? { ...aLog, source: "Logistique" } : null,
@@ -203,6 +205,9 @@ export default function DashboardQG() {
     setConsigne(null);
     await kvSet(KEY_CONSIGNE, c);
   }
+
+  // Meteo : donnees IRM en direct (Edge Function) ou repli simule
+  const METEO = meteoLive || METEO_FALLBACK;
 
   // Agregats
   const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue");
@@ -347,24 +352,14 @@ export default function DashboardQG() {
                   {!s.surTrace && <div className="text-[11px] text-amber-300/90 mt-1">Sans GPS — voir description</div>}
                   {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
                   {s.gps && (
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <a
-                        href={`https://www.google.com/maps?q=${s.gps.lat},${s.gps.lon}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[11px] font-mono text-sky-300 hover:text-sky-200"
-                      >
-                        Google Maps ({s.gps.lat.toFixed(5)}, {s.gps.lon.toFixed(5)})
-                      </a>
-                      <a
-                        href={myMapsUrl(s.gps.lat, s.gps.lon)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[11px] font-mono text-amber-300 hover:text-amber-200"
-                      >
-                        Carte Buco (PRV, parcours)
-                      </a>
-                    </div>
+                    <a
+                      href={`https://www.google.com/maps?q=${s.gps.lat},${s.gps.lon}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] font-mono text-sky-300 hover:text-sky-200 mt-0.5 inline-block"
+                    >
+                      Ouvrir dans Google Maps ({s.gps.lat.toFixed(5)}, {s.gps.lon.toFixed(5)})
+                    </a>
                   )}
                 </div>
               ))}
@@ -514,7 +509,10 @@ export default function DashboardQG() {
             {METEO.codeActuel !== "vert" && (
               <div className="text-[11px] text-slate-400 mt-2 pt-2 border-t border-white/10">{SEUILS_IRM[METEO.codeActuel]}</div>
             )}
-            <div className="text-[10px] text-slate-600 font-mono mt-2">Prov. {METEO.province} · maj {METEO.maj} · a connecter a meteo.be</div>
+            <div className="text-[10px] text-slate-600 font-mono mt-2">
+              Prov. {METEO.province} · maj {METEO.maj} ·{" "}
+              {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Edge Function meteo-irm a deployer"}
+            </div>
           </section>
 
           <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
