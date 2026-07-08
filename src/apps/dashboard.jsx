@@ -15,12 +15,13 @@ import {
   Footprints,
   ClipboardList,
   PhoneCall,
+  ExternalLink,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
    DASHBOARD QG (version allegée) -- Bucolique Ferrières Musique Festival 2026
    Vue de synthèse : alertes SOS, logistique et balade en direct (Supabase),
-   vigilance météo IRM, veille médias compacte, plan radio.
+   vigilance météo IRM cliquable, veille médias compacte, plan radio.
 --------------------------------------------------------------------- */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
@@ -341,7 +342,7 @@ export default function DashboardQG() {
                   {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
                   {s.gps && (
                     <a
-                      href={`https://maps.google.com/?q=${s.gps.lat},${s.gps.lon}`}
+                      href={`https://www.google.com/maps/search/?api=1&query=${s.gps.lat},${s.gps.lon}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-[11px] font-mono text-sky-300 hover:text-sky-200 mt-0.5 inline-block"
@@ -471,7 +472,7 @@ export default function DashboardQG() {
           </section>
         </div>
 
-        {/* Météo IRM */}
+        {/* Météo IRM cliquable */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
@@ -504,12 +505,20 @@ export default function DashboardQG() {
                 .replace(/dim\.\s*/gi, "Dim. ");
 
               return (
-                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs rounded bg-white/[0.02] border border-white/5 p-2">
+                <a
+                  key={i}
+                  href="https://www.meteo.be/fr/meteo/avertissements/provincial"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs rounded bg-white/[0.02] border border-white/5 p-2 hover:bg-white/[0.06] hover:border-white/20 transition-all group cursor-pointer"
+                  title="Cliquez pour ouvrir le site officiel de l'IRM"
+                >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full ${st.dot} shrink-0`} />
                     <div className="min-w-0">
-                      <span className="text-slate-100 font-medium block">
+                      <span className="text-slate-100 font-medium flex items-center gap-1.5 group-hover:text-amber-300 transition-colors">
                         {traduirePhenomene(t.phenomene)}
+                        <ExternalLink className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </span>
                       <span className="text-slate-400 font-mono text-[11px] block mt-0.5">
                         {texteCreneau}
@@ -522,7 +531,7 @@ export default function DashboardQG() {
                       {st.label}
                     </span>
                   </div>
-                </div>
+                </a>
               );
             })}
           </div>
@@ -531,7 +540,7 @@ export default function DashboardQG() {
           )}
           <div className="text-[10px] text-slate-600 font-mono mt-2">
             Prov. {METEO.province} · maj {METEO.maj} ·{" "}
-            {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Échéances stratégiques (+2h / +4h / +8h / +12h)"}
+            {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Cliquez sur un bloc pour ouvrir les avertissements de l'IRM"}
           </div>
         </section>
 
