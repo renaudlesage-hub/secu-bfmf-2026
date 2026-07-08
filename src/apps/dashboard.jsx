@@ -18,10 +18,10 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (version allegee) -- Bucolique Ferrieres Musique Festival 2026
-   Vue de synthese : alertes SOS, logistique et balade en direct (Supabase),
-   vigilance meteo IRM, veille medias compacte, plan radio.
-   Les saisies se font dans les apps dediees (Logistique / Balade) ;
+   DASHBOARD QG (version allegée) -- Bucolique Ferrières Musique Festival 2026
+   Vue de synthèse : alertes SOS, logistique et balade en direct (Supabase),
+   vigilance météo IRM, veille médias compacte, plan radio.
+   Les saisies se font dans les apps dédiées (Logistique / Balade) ;
    la main courante urgences reste dans le formulaire Google + Sheet.
 --------------------------------------------------------------------- */
 
@@ -64,35 +64,35 @@ async function kvSet(key, value) {
 
 const CAPACITE_ETAPE = 300;
 
-/* ------------------------ Donnees de reference ------------------------ */
+/* ------------------------ Données de reference ------------------------ */
 
-// Vigilance meteo IRM -- province de Liege (simulee, a connecter a meteo.be)
+// Vigilance météo IRM -- province de Liège (simulée)
 const METEO_FALLBACK = {
-  province: "Liege",
+  province: "Liège",
   codeActuel: "jaune",
   phenomenes: ["orages", "vent"],
   maj: "il y a 12 min",
   timeline: [
-    { creneau: "Sam 15/08 apres-midi (balade)", code: "vert", phenomene: "RAS" },
-    { creneau: "Sam 15/08 soiree (scenes)", code: "jaune", phenomene: "orages" },
+    { creneau: "Sam 15/08 après-midi (balade)", code: "vert", phenomene: "RAS" },
+    { creneau: "Sam 15/08 soirée (scènes)", code: "jaune", phenomene: "orages" },
     { creneau: "Dim 16/08 matin (balade)", code: "vert", phenomene: "RAS" },
-    { creneau: "Dim 16/08 apres-midi", code: "jaune", phenomene: "chaleur" },
+    { creneau: "Dim 16/08 après-midi", code: "jaune", phenomene: "chaleur" },
   ],
 };
 
 const SEUILS_IRM = {
-  jaune: "Veille renforcee, briefing meteo QG.",
-  orange: "Securiser structures legeres, preparer evacuation.",
-  rouge: "Suspension departs balade, evacuation selon zones.",
+  jaune: "Veille renforcée, briefing météo QG.",
+  orange: "Sécuriser structures légères, préparer évacuation.",
+  rouge: "Suspension départs balade, évacuation selon zones.",
 };
 
-// Veille medias compacte (simulee, a connecter a un outil de social listening)
+// Veille médias compacte (simulée)
 const MEDIA = { mentions24h: 486, variation: 14, sentiment: { positif: 68, neutre: 24, negatif: 8 } };
 
 const CANAUX_RADIO = [
-  { canal: "PMR4.1", usage: "Coordination generale (QG, scenes, volante)" },
-  { canal: "PMR5", usage: "Benevoles parking et sanitaires" },
-  { canal: "PMR15", usage: "Securite privee" },
+  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, volante)" },
+  { canal: "PMR5", usage: "Bénévoles parking et sanitaires" },
+  { canal: "PMR15", usage: "Sécurité privée" },
   { canal: "PMR333", usage: "URGENCE exclusif" },
 ];
 
@@ -166,7 +166,7 @@ export default function DashboardQG() {
     };
   }, []);
 
-  // Prise en compte d'un SOS participant (ecrit dans Supabase)
+  // Prise en compte d'un SOS participant (écrit dans Supabase)
   async function prendreEnCompteSos(id) {
     const next = sosParticipants.map((s) =>
       s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s
@@ -206,10 +206,9 @@ export default function DashboardQG() {
     await kvSet(KEY_CONSIGNE, c);
   }
 
-  // Meteo : donnees IRM en direct (Edge Function) ou repli simule
   const METEO = meteoLive || METEO_FALLBACK;
 
-  // Agregats
+  // Agrégats
   const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue");
   const logBloquantes = logOuvertes.filter((m) => m.bloquant === "Oui" || (m.priorite || "").startsWith("P1"));
   const grpDehors = groupesBalade.filter((g) => g.position !== "p0" && g.position !== "ret");
@@ -236,7 +235,7 @@ export default function DashboardQG() {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
@@ -278,7 +277,7 @@ export default function DashboardQG() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-5 space-y-4">
         {sbError && (
           <div className="rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 text-amber-300 text-xs px-3 py-2">
-            Connexion Supabase indisponible — donnees Logistique / Balade potentiellement obsoletes.
+            Connexion Supabase indisponible — données Logistique / Balade potentiellement obsolètes.
           </div>
         )}
 
@@ -297,14 +296,14 @@ export default function DashboardQG() {
                   {a.details ? ` — ${a.details}` : ""}
                 </div>
                 <div className="text-[11px] font-mono text-red-200/60 mt-1">
-                  {a.acquittePar ? `Acquittee par ${a.acquittePar} a ${a.heureAcquittement}` : `NON ACQUITTEE — traiter dans l'app ${a.source}`}
+                  {a.acquittePar ? `Acquittée par ${a.acquittePar} à ${a.heureAcquittement}` : `NON ACQUITTEE — traiter dans l'app ${a.source}`}
                 </div>
               </div>
             </div>
           </div>
         ))}
 
-        {/* SOS participants (app publique parcours) */}
+        {/* SOS participants */}
         {sosParticipants.length > 0 && (
           <section className={`bg-[#151b23] rounded-lg p-4 ${sosPartNouveaux.length > 0 ? "ring-2 ring-red-400/60" : "ring-1 ring-white/10"}`}>
             <div className="flex items-center justify-between mb-3">
@@ -337,7 +336,7 @@ export default function DashboardQG() {
                         Prendre en compte
                       </button>
                     ) : (
-                      <span className="text-[11px] font-mono text-slate-500">pris en compte{s.heurePriseEnCompte ? ` a ${s.heurePriseEnCompte}` : ""}</span>
+                      <span className="text-[11px] font-mono text-slate-500">pris en compte{s.heurePriseEnCompte ? ` à ${s.heurePriseEnCompte}` : ""}</span>
                     )}
                   </div>
                   {s.surTrace && (
@@ -346,14 +345,14 @@ export default function DashboardQG() {
                       {s.surTrace.ecartMetres > 100 && (
                         <span className="text-amber-300"> · ~{s.surTrace.ecartMetres} m hors sentier</span>
                       )}
-                      <span className="text-slate-500"> · repere : {s.surTrace.reperePlusProche}</span>
+                      <span className="text-slate-500"> · repère : {s.surTrace.reperePlusProche}</span>
                     </div>
                   )}
                   {!s.surTrace && <div className="text-[11px] text-amber-300/90 mt-1">Sans GPS — voir description</div>}
                   {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
                   {s.gps && (
                     <a
-                      href={`https://www.google.com/maps?q=${s.gps.lat},${s.gps.lon}`}
+                      href={`https://maps.google.com/?q=${s.gps.lat},${s.gps.lon}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-[11px] font-mono text-sky-300 hover:text-sky-200 mt-0.5 inline-block"
@@ -379,15 +378,15 @@ export default function DashboardQG() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm text-amber-200">
-                  Engagee vers <span className="font-semibold">{consigne.prv}</span>
+                  Engagée vers <span className="font-semibold">{consigne.prv}</span>
                   {consigne.message ? ` — ${consigne.message}` : ""}
                 </div>
                 <div className="text-[11px] font-mono text-slate-400 mt-1">
-                  Emise a {consigne.heure} ·{" "}
+                  Émise à {consigne.heure} ·{" "}
                   {consigne.accusePar ? (
-                    <span className="text-emerald-300">accusee "bien recu" a {consigne.heureAccuse}</span>
+                    <span className="text-emerald-300">accusée "bien reçu" à {consigne.heureAccuse}</span>
                   ) : (
-                    <span className="text-amber-300 pulse-slow">en attente d'accuse</span>
+                    <span className="text-amber-300 pulse-slow">en attente d'accusé</span>
                   )}
                 </div>
               </div>
@@ -424,7 +423,7 @@ export default function DashboardQG() {
             </div>
           )}
           <div className="text-[10px] text-slate-600 font-mono mt-2">
-            La consigne s'affiche dans l'app Volante avec guidage GPS vers le point choisi. Doubler a la radio (PMR4.1).
+            La consigne s'affiche dans l'app Volante avec guidage GPS vers le point choisi. Doubler à la radio (PMR4.1).
           </div>
         </section>
 
@@ -477,13 +476,13 @@ export default function DashboardQG() {
                 );
               })}
               <div className="text-[11px] text-slate-500 pt-1">
-                {grpDehors.length} groupe(s) dehors · {groupesBalade.filter((g) => g.position === "ret").length} rentre(s)
+                {grpDehors.length} groupe(s) dehors · {groupesBalade.filter((g) => g.position === "ret").length} rentré(s)
               </div>
             </div>
           </section>
         </div>
 
-        {/* Meteo IRM + Medias compacts */}
+        {/* Météo IRM + Médias compacts */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
             <div className="flex items-center justify-between mb-3">
@@ -557,7 +556,7 @@ export default function DashboardQG() {
         </section>
 
         <div className="text-[10px] text-slate-600 font-mono text-center pt-1">
-          Synthese en lecture seule · rafraichissement auto 10 s · saisies dans les apps Logistique et Balade
+          Synthèse en lecture seule · rafraîchissement auto 10 s · saisies dans les apps Logistique et Balade
         </div>
       </main>
     </div>
