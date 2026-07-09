@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Natures d'urgence normalisées PC-OPS)
+   DASHBOARD QG (Natures d'urgence & Cartographie Complète des Repères)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -54,15 +54,30 @@ const KEY_SANITAIRE = "bfmf2026-sanitaire";
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
+// Base topo-géographique mise à jour avec l'ensemble des nouveaux repères du site
 const POINTS_GPS = {
-  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ / Plaine" },
-  "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Zone Ouest Sentier" },
-  "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Zone Sud Bois" },
-  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Zone Est Crête" },
-  "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Secteur Nord Retour" },
+  "Site grande scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Grande Scène" },
+  "Site petite scène": { lat: 50.3832, lon: 5.6219, km: 0, segment: "Plaine centrale — Petite Scène" },
+  "Site plaine": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Zone Public / Pelouse" },
+  "Site bar": { lat: 50.3836, lon: 5.6222, km: 0, segment: "Zone Débit de Boissons" },
+  "Site foodtrucks": { lat: 50.3831, lon: 5.6208, km: 0, segment: "Allée Restauration" },
+  "Site sanitaires": { lat: 50.3841, lon: 5.6211, km: 0, segment: "Blocs WC Publics" },
+  "Site backstage": { lat: 50.3842, lon: 5.6201, km: 0, segment: "Coulisses / Loges" },
+  "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie" },
+  "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public" },
+  "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes" },
+  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt" },
+  "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé Sud - Vers Étape 2" },
+  "Parcours Balade secteur C": { lat: 50.3823, lon: 5.6457, km: 3.5, segment: "Tracé Est Crête" },
+  "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Secteur Nord Retour P0" },
   "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
   "Etape 2": { lat: 50.37828, lon: 5.64549, km: 2.53, segment: "Ravitaillement 2" },
   "Etape 3": { lat: 50.38817, lon: 5.62891, km: 5.06, segment: "Ravitaillement 3" },
+  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
+  "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Balisage Secours #4" },
+  "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Balisage Secours #5" },
+  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Balisage Secours #6" },
+  "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
 };
 
 async function kvSet(key, value) {
@@ -118,9 +133,8 @@ export default function DashboardQG() {
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
 
-  // Initialisation par défaut sur le premier choix de ta liste
   const [formMotif, setFormMotif] = useState("médical");
-  const [formLieu, setFormLieu] = useState("Point 0");
+  const [formLieu, setFormLieu] = useState("Site grande scène");
   const [formNom, setFormNom] = useState("Radio-PC");
   const [formDetails, setFormDetails] = useState("");
 
@@ -286,7 +300,7 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
         
-        {/* PANNEAU DE SÉLECTION REPRENANT EXACTEMENT TES NATURES D'URGENCE */}
+        {/* COMPOSANT DE SÉLECTION COMPLET DES NATURES ET REPÈRES DU SITE */}
         <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
           <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide">
             <PlusCircle className="w-4 h-4" /> LANCER UNE ALERTE SOS MANUELLE (APPELS RADIO / TÉLÉPHONE)
@@ -318,7 +332,28 @@ export default function DashboardQG() {
                 className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
                 value={formLieu} onChange={(e) => setFormLieu(e.target.value)}
               >
-                {Object.keys(POINTS_GPS).map(k => <option key={k}>{k}</option>)}
+                <option value="Site grande scène">Site grande scène</option>
+                <option value="Site petite scène">Site petite scène</option>
+                <option value="Site plaine">Site plaine</option>
+                <option value="Site bar">Site bar</option>
+                <option value="Site foodtrucks">Site foodtrucks</option>
+                <option value="Site sanitaires">Site sanitaires</option>
+                <option value="Site backstage">Site backstage</option>
+                <option value="Site zone logistique">Site zone logistique</option>
+                <option value="Parking public">Parking public</option>
+                <option value="Parking artistes">Parking artistes</option>
+                <option value="Parcours Balade secteur A">Parcours Balade secteur A</option>
+                <option value="Parcours Balade secteur B">Parcours Balade secteur B</option>
+                <option value="Parcours Balade secteur C">Parcours Balade secteur C</option>
+                <option value="Parcours Balade secteur D">Parcours Balade secteur D</option>
+                <option value="Etape 1">Etape 1</option>
+                <option value="Etape 2">Etape 2</option>
+                <option value="Etape 3">Etape 3</option>
+                <option value="Point 0">Point 0</option>
+                <option value="PRV#4">PRV#4</option>
+                <option value="PRV#5">PRV#5</option>
+                <option value="PRV#6">PRV#6</option>
+                <option value="PRV#7">PRV#7</option>
               </select>
             </div>
             <div>
@@ -330,7 +365,7 @@ export default function DashboardQG() {
             </div>
             <div>
               <button type="submit" className="w-full py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-mono rounded tracking-wide transition-colors shadow">
-                INJECTER SOS TERRAIN
+                INJECTER SOS INTERRAIN
               </button>
             </div>
             <div className="sm:col-span-4">
