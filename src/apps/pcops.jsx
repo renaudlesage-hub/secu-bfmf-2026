@@ -15,10 +15,10 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
 /* ---------------------------------------------------------------------
    PC-OPS / AUTORITE -- BFMF 2026
-   Vue de situation EN LECTURE SEULE destinee aux autorites (commune,
-   discipline coordination) : evenements en cours consolides (SOS
-   participants, alertes equipes, urgences logistiques), statut,
-   localisation, gravite, et situation crowd management du parcours.
+   Vue de situation EN LECTURE SEULE destinée aux autorités (commune,
+   discipline coordination) : événements en cours consolidés (SOS
+   participants filtrés, alertes équipes, urgences logistiques), statut,
+   localisation, gravité, et situation crowd management du parcours.
    Aucune action possible depuis cette vue : l'engagement reste au QG.
 --------------------------------------------------------------------- */
 
@@ -118,24 +118,38 @@ export default function PcOps() {
   }, []);
 
   /* ------------------- Consolidation des evenements ------------------- */
-  // Un flux unique : SOS participants + alertes equipes + urgences logistiques
-
   const evenements = [];
 
-  sosPart.forEach((s) => {
+  // FILTRAGE STRICT : Écarte tous les SOS clôturés par le QG sous n'importe quelle nomenclature
+  const sosVisibles = sosPart.filter((s) => 
+    s.statut !== "cloture" && 
+    s.statut !== "clôture" && 
+    s.statut !== "cloturé" &&
+    s.statut !== "clos"
+  );
+
+  sosVisibles.forEach((s) => {
+    // Formatage dynamique du libellé selon l'avancement réel de la Volante sur le terrain
+    let texteStatut = "Nouveau — non pris en compte";
+    if (s.statut === "en route") texteStatut = `Volante en route (${s.heureEnRoute || ""})`;
+    else if (s.statut === "sur place") texteStatut = `Volante sur place (${s.heureArrivee || ""})`;
+    else if (s.statut === "prise en charge") texteStatut = `Victime prise en charge / Soins (${s.heurePriseEnCharge || ""})`;
+    else if (s.statut === "retour a la normale") texteStatut = `Incident géré — retour à la normale (${s.heureRetourNormale || ""})`;
+    else if (s.statut === "pris en compte") texteStatut = `Pris en compte par le QG (${s.heurePriseEnCompte || ""})`;
+
     evenements.push({
       id: s.id,
       heure: s.heure,
       type: "SOS participant",
       libelle: s.motif + (s.nom && s.nom !== "Anonyme" ? ` — ${s.nom}` : ""),
-      gravite: "critique",
+      gravite: s.statut === "retour a la normale" ? "modere" : "critique",
       localisation: s.surTrace
         ? `Parcours km ${s.surTrace.km} · ${s.surTrace.segment}`
         : "Position non geolocalisee (voir description)",
       km: s.surTrace ? s.surTrace.km : null,
       gps: s.gps || null,
-      statut: s.statut === "nouveau" ? "Nouveau — non pris en compte" : "Pris en compte par le QG" + (s.heurePriseEnCompte ? ` (${s.heurePriseEnCompte})` : ""),
-      actif: s.statut === "nouveau",
+      statut: texteStatut,
+      actif: s.statut === "nouveau" || s.statut === "en route" || s.statut === "sur place" || s.statut === "prise en charge",
       details: s.details,
     });
   });
@@ -182,7 +196,6 @@ export default function PcOps() {
   });
 
   /* --------------------------- Crowd management --------------------------- */
-
   const grpDehors = groupes.filter((g) => g.position !== "p0" && g.position !== "ret");
   const persDehors = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
   const persAttente = groupes.filter((g) => g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
@@ -191,6 +204,16 @@ export default function PcOps() {
   groupes.forEach((g) => {
     if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
   });
+
+  // Logique de saturation sémantique demandée : distinction explicite "DENSITE ELEVEE" et "COMPLET" (100% ou plus)
+  const etapesSaturees = ["e1", "e2", "e3"]
+    .map((eid, i) => {
+      const n = parEtape[eid];
+      const pct = n / CAPACITE_ETAPE;
+      const etatLabel = pct >= 1.0 ? "COMPLET" : "DENSITE ELEVEE";
+      return { nom: `Etape ${i + 1}`, n, pct, label: etatLabel };
+    })
+    .filter((e) => e.pct >= 0.72);
 
   const critiques = evenements.filter((e) => e.gravite === "critique" && e.actif).length;
   const niveau = critiques > 0 ? "critique" : evenements.some((e) => e.actif) || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
@@ -201,7 +224,7 @@ export default function PcOps() {
   return (
     <div className="min-h-screen bg-[#0d1117] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
@@ -264,18 +287,14 @@ export default function PcOps() {
             <Footprints className="w-4 h-4 text-slate-500" /> PARCOURS 6,5 KM — SITUATION
           </h2>
 
-          {/* Schema lineaire : reperes, groupes, SOS */}
           <div className="relative h-16 mb-2">
-            {/* ligne */}
             <div className="absolute top-8 left-0 right-0 h-1 bg-white/15 rounded-full" />
-            {/* reperes */}
             {REPERES.map((r, i) => (
               <div key={i} className="absolute top-5" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
                 <div className="w-2 h-2 rounded-full bg-slate-500 mx-auto mt-2" />
                 <div className="text-[9px] font-mono text-slate-500 text-center mt-1">{r.nom}</div>
               </div>
             ))}
-            {/* groupes */}
             {grpDehors.map((g) => {
               const km = POS_KM[g.position] ?? 0;
               return (
@@ -292,8 +311,8 @@ export default function PcOps() {
                 </div>
               );
             })}
-            {/* SOS geolocalises */}
-            {sosPart.filter((s) => s.surTrace && s.statut !== "clos").map((s) => (
+            {/* SOS geolocalises synchronises avec les sosVisibles non clotures */}
+            {sosVisibles.filter((s) => s.surTrace).map((s) => (
               <div
                 key={s.id}
                 className="absolute top-10"
@@ -309,17 +328,20 @@ export default function PcOps() {
             <span className="flex items-center gap-1"><TriangleAlert className="w-3 h-3 text-red-400" /> SOS participant</span>
           </div>
 
-          {/* Jauges etapes + bilan */}
+          {/* Jauges etapes dynamiques avec étiquette rouge COMPLET */}
           <div className="grid grid-cols-3 gap-2 mb-2">
             {["e1", "e2", "e3"].map((eid, idx) => {
               const n = parEtape[eid];
               const pct = Math.min(100, Math.round((n / CAPACITE_ETAPE) * 100));
-              const cls = pct >= 90 ? "bg-red-400" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
+              const cls = pct >= 100 ? "bg-red-500" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
               return (
                 <div key={eid} className="rounded bg-white/[0.03] ring-1 ring-white/10 p-2">
-                  <div className="text-[10px] font-mono text-slate-500">ETAPE {idx + 1}</div>
+                  <div className="text-[10px] font-mono text-slate-500 flex justify-between items-center">
+                    <span>ETAPE {idx + 1}</span>
+                    {pct >= 100 && <span className="text-[8px] font-bold text-red-400 uppercase tracking-wide">COMPLET</span>}
+                  </div>
                   <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden my-1">
-                    <div className={`h-full ${cls}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-full ${cls} ${pct >= 100 ? "pulse-slow" : ""}`} style={{ width: `${pct}%` }} />
                   </div>
                   <div className="text-[10px] font-mono text-slate-400">{n}/{CAPACITE_ETAPE}</div>
                 </div>
@@ -331,7 +353,29 @@ export default function PcOps() {
           </div>
         </section>
 
-        {/* Evenements en cours */}
+        {/* Bandeau d'alerte crowd ciblé si au moins une étape est complète */}
+        {etapesSaturees.length > 0 && (
+          <section className="rounded-lg ring-1 ring-amber-400/40 bg-amber-400/5 p-3.5">
+            <div className="font-display text-amber-200 text-sm tracking-wide flex items-center gap-2 mb-1.5">
+              <Footprints className="w-4 h-4" /> 
+              {etapesSaturees.some(e => e.pct >= 1) ? "CROWD — CAPACITE MAXIMALE ATTEINTE" : "CROWD — DENSITE ELEVEE"}
+            </div>
+            <div className="space-y-1">
+              {etapesSaturees.map((e) => (
+                <div key={e.nom} className="flex items-center justify-between text-xs text-slate-200 py-0.5">
+                  <div className="flex items-center gap-2">
+                    <span>{e.nom} : {e.n}/{CAPACITE_ETAPE} ({Math.round(e.pct * 100)}%)</span>
+                    {e.pct >= 1 && (
+                      <span className="text-[9px] font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded ring-1 ring-red-500/40 font-mono">COMPLET</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Evenements en cours consolidés et triés */}
         <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
             <TriangleAlert className="w-4 h-4 text-slate-500" /> EVENEMENTS EN COURS
@@ -344,7 +388,7 @@ export default function PcOps() {
               </div>
             )}
             {evenements.map((e) => {
-              const g = GRAV[e.gravite];
+              const g = GRAV[e.gravite] || GRAV["modere"];
               return (
                 <div key={e.id} className={`rounded-md px-3 py-2.5 ring-1 ${e.actif ? `${g.ring} ${g.bg}` : "ring-white/10 bg-white/[0.02]"}`}>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -370,39 +414,4 @@ export default function PcOps() {
                           href={myMapsUrl(e.gps.lat, e.gps.lon)}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-amber-300 hover:text-amber-200 inline-flex items-center gap-0.5 ml-1"
-                        >
-                          carte Buco <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      </>
-                    )}
-                  </div>
-                  {e.details && <div className="text-[11px] text-slate-500 italic mt-0.5">"{e.details}"</div>}
-                  <div className={`text-[11px] font-mono mt-1 ${e.actif ? "text-amber-300" : "text-slate-500"}`}>Statut : {e.statut}</div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="rounded-md ring-1 ring-white/10 bg-[#131a22] px-3 py-2.5 flex items-center gap-2 text-[11px] font-mono text-slate-400">
-          <PhoneCall className="w-3.5 h-3.5 shrink-0" />
-          Liaison QG festival : PMR4.1 (coordination) · PMR333 (urgence) · Vue en lecture seule — l'engagement des moyens reste au QG.
-        </div>
-
-        <div className="text-[10px] text-slate-600 font-mono text-center pb-2">
-          {maj ? `Derniere synchronisation : ${pad(maj.getHours())}:${pad(maj.getMinutes())}:${pad(maj.getSeconds())}` : "Synchronisation..."} · rafraichissement 10 s
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function Kpi({ label, value, accent }) {
-  return (
-    <div className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-3">
-      <div className="text-[10px] font-mono text-slate-500 tracking-wide uppercase">{label}</div>
-      <div className={`font-display text-2xl mt-0.5 ${accent}`}>{value}</div>
-    </div>
-  );
-}
+                          className="text-amber
