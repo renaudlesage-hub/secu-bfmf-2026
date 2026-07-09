@@ -16,12 +16,14 @@ import {
   ClipboardList,
   PhoneCall,
   ExternalLink,
+  CheckCircle,
+  Droplets,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (version allegée) -- Bucolique Ferrières Musique Festival 2026
-   Vue de synthèse : alertes SOS, logistique et balade en direct (Supabase),
-   vigilance météo IRM ciblée sur Ferrières, veille médias, plan radio.
+   DASHBOARD QG (version finale fusionnée) -- Bucolique Ferrières Musique Festival 2026
+   Vue de synthèse : alertes SOS (avec gestion de clôture), logistique, balade,
+   suivi sanitaire en temps réel, météo locale cliquable, médias et radio.
 --------------------------------------------------------------------- */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
@@ -48,6 +50,7 @@ const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
 const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
+const KEY_SANITAIRE = "bfmf2026-sanitaire";
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
@@ -111,6 +114,7 @@ export default function DashboardQG() {
   const [sosParticipants, setSosParticipants] = useState([]);
   const [consigne, setConsigne] = useState(null);
   const [meteoLive, setMeteoLive] = useState(null);
+  const [sanitaire, setSanitaire] = useState([]);
   const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
@@ -124,7 +128,7 @@ export default function DashboardQG() {
     let stop = false;
     async function pull() {
       try {
-        const [mi, gr, aLog, aBal, sosP, co, mto] = await Promise.all([
+        const [mi, gr, aLog, aBal, sosP, co, mto, san] = await Promise.all([
           kvGet(KEY_MISSIONS),
           kvGet(KEY_GROUPES),
           kvGet(KEY_ALERTE_LOG),
@@ -132,6 +136,7 @@ export default function DashboardQG() {
           kvGet(KEY_SOS_PART),
           kvGet(KEY_CONSIGNE),
           kvGet(KEY_METEO),
+          kvGet(KEY_SANITAIRE),
         ]);
         if (stop) return;
         setMissionsLog(Array.isArray(mi) ? mi : []);
@@ -139,6 +144,7 @@ export default function DashboardQG() {
         setSosParticipants(Array.isArray(sosP) ? sosP : []);
         setConsigne(co && co.active ? co : null);
         setMeteoLive(mto && mto.live ? mto : null);
+        setSanitaire(Array.isArray(san) ? san : []);
         setAlertes(
           [
             aLog && aLog.active ? { ...aLog, source: "Logistique" } : null,
@@ -158,9 +164,27 @@ export default function DashboardQG() {
     };
   }, []);
 
+  // Prise en compte d'un SOS participant
   async function prendreEnCompteSos(id) {
     const next = sosParticipants.map((s) =>
       s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s
+    );
+    setSosParticipants(next);
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
+        method: "POST",
+        headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify({ key: KEY_SOS_PART, value: next, updated_at: new Date().toISOString() }),
+      });
+    } catch (e) {
+      setSbError(true);
+    }
+  }
+
+  // Clôturer et faire disparaître un SOS résolu
+  async function cloturerSos(id) {
+    const next = sosParticipants.map((s) =>
+      s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s
     );
     setSosParticipants(next);
     try {
@@ -199,6 +223,7 @@ export default function DashboardQG() {
 
   const METEO = meteoLive || METEO_FALLBACK;
 
+  // Agrégats tactiques
   const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue");
   const logBloquantes = logOuvertes.filter((m) => m.bloquant === "Oui" || (m.priorite || "").startsWith("P1"));
   const grpDehors = groupesBalade.filter((g) => g.position !== "p0" && g.position !== "ret");
@@ -208,14 +233,25 @@ export default function DashboardQG() {
     if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
   });
   const etapeSaturee = Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9);
-  const sosPartNouveaux = sosParticipants.filter((s) => s.statut === "nouveau");
+
+  // Filtrage des alertes SOS actives (non clôturées)
+  const sosVisibles = sosParticipants.filter((s) => s.statut !== "cloture");
+  const sosPartNouveaux = sosVisibles.filter((s) => s.statut === "nouveau");
+
+  // Agrégats sanitaires (signalements QR des festivaliers)
+  const sanActifs = sanitaire.filter((s) => s.statut !== "resolu");
+  const sanNouveaux = sanActifs.filter((s) => s.statut === "nouveau");
+  const sanParLieu = {};
+  sanActifs.forEach((s) => { sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + (s.count || 1); });
+  const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
   const sosActif = alertes.length > 0 || sosPartNouveaux.length > 0;
   const meteoGrave = METEO.codeActuel === "orange" || METEO.codeActuel === "rouge";
 
   const niveau =
     sosActif || logBloquantes.length > 0 || METEO.codeActuel === "rouge"
       ? "critique"
-      : etapeSaturee || meteoGrave || METEO.codeActuel === "jaune"
+      : etapeSaturee || meteoGrave || METEO.codeActuel === "jaune" || sanNouveaux.length > 0
       ? "modere"
       : "mineur";
   const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
@@ -271,7 +307,7 @@ export default function DashboardQG() {
           </div>
         )}
 
-        {/* Alertes SOS */}
+        {/* Alertes SOS Globales */}
         {alertes.map((a, i) => (
           <div key={i} className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4">
             <div className="flex items-start gap-3">
@@ -293,20 +329,20 @@ export default function DashboardQG() {
           </div>
         ))}
 
-        {/* SOS participants */}
-        {sosParticipants.length > 0 && (
+        {/* SOS participants actives avec boutons Clôturer/Prendre en compte */}
+        {sosVisibles.length > 0 && (
           <section className={`bg-[#151b23] rounded-lg p-4 ${sosPartNouveaux.length > 0 ? "ring-2 ring-red-400/60" : "ring-1 ring-white/10"}`}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
                 <TriangleAlert className={`w-4 h-4 ${sosPartNouveaux.length > 0 ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
-                SOS PARTICIPANTS
+                SOS PARTICIPANTS ACTIVES
               </h2>
               <span className={`font-mono text-xs ${sosPartNouveaux.length > 0 ? "text-red-300" : "text-slate-500"}`}>
-                {sosPartNouveaux.length} nouveau(x) · {sosParticipants.length} au total
+                {sosPartNouveaux.length} nouveau(x) · {sosVisibles.length} en cours
               </span>
             </div>
             <div className="space-y-2">
-              {sosParticipants.slice(0, 6).map((s) => (
+              {sosVisibles.slice(0, 6).map((s) => (
                 <div
                   key={s.id}
                   className={`rounded-md px-3 py-2.5 ring-1 ${
@@ -317,18 +353,33 @@ export default function DashboardQG() {
                     <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
                     <span className="text-sm text-slate-100 font-medium">{s.motif}</span>
                     <span className="text-[11px] text-slate-400">— {s.nom}{s.tel ? ` · ${s.tel}` : ""}</span>
+                    
                     <span className="flex-1" />
-                    {s.statut === "nouveau" ? (
+                    
+                    <div className="flex items-center gap-2">
+                      {s.statut === "nouveau" ? (
+                        <button
+                          onClick={() => prendreEnCompteSos(s.id)}
+                          className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20 transition-colors"
+                        >
+                          Prendre en compte
+                        </button>
+                      ) : (
+                        <span className="text-[11px] font-mono text-slate-500 mr-1">
+                          Pris en compte {s.heurePriseEnCompte ? ` à ${s.heurePriseEnCompte}` : ""}
+                        </span>
+                      )}
+                      
                       <button
-                        onClick={() => prendreEnCompteSos(s.id)}
-                        className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20 transition-colors"
+                        onClick={() => cloturerSos(s.id)}
+                        className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
                       >
-                        Prendre en compte
+                        <CheckCircle className="w-3 h-3" />
+                        Clôturer
                       </button>
-                    ) : (
-                      <span className="text-[11px] font-mono text-slate-500">pris en compte{s.heurePriseEnCompte ? ` à ${s.heurePriseEnCompte}` : ""}</span>
-                    )}
+                    </div>
                   </div>
+                  
                   {s.surTrace && (
                     <div className="text-xs text-slate-300 mt-1">
                       <span className="font-mono text-amber-200">km {s.surTrace.km}</span> · {s.surTrace.segment}
@@ -352,8 +403,8 @@ export default function DashboardQG() {
                   )}
                 </div>
               ))}
-              {sosParticipants.length > 6 && (
-                <div className="text-[10px] font-mono text-slate-600 text-center">+ {sosParticipants.length - 6} plus ancien(s)</div>
+              {sosVisibles.length > 6 && (
+                <div className="text-[10px] font-mono text-slate-600 text-center">+ {sosVisibles.length - 6} autre(s) alerte(s) active(s)</div>
               )}
             </div>
           </section>
@@ -472,7 +523,34 @@ export default function DashboardQG() {
           </section>
         </div>
 
-        {/* Météo IRM cliquable vers la page de Ferrières */}
+        {/* Panneau Suivi Sanitaire (Signalements QR des festivaliers) */}
+        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+              <Droplets className="w-4 h-4 text-slate-500" /> SANITAIRE
+            </h2>
+            <span className={`font-mono text-xs ${sanNouveaux.length > 0 ? "text-red-300" : sanActifs.length > 0 ? "text-amber-300" : "text-emerald-300"}`}>
+              {sanActifs.length} actif(s){sanNouveaux.length > 0 ? ` · ${sanNouveaux.length} nouveau(x)` : ""}
+            </span>
+          </div>
+          {sanActifs.length === 0 ? (
+            <div className="text-xs text-slate-500 py-2 text-center">Aucun signalement en attente.</div>
+          ) : (
+            <div className="space-y-1.5">
+              {sanTop.map(([lieu, n]) => (
+                <div key={lieu} className="flex items-center justify-between text-xs rounded bg-white/[0.02] ring-1 ring-white/5 px-2.5 py-2">
+                  <span className="text-slate-300 font-medium">{lieu}</span>
+                  <span className="font-mono text-slate-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{n} signalement(s)</span>
+                </div>
+              ))}
+              <div className="text-[10px] font-mono text-slate-600 pt-1 text-center">
+                Traitement et intervention dans l'app Sanitaire (#sanitaire)
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Météo IRM ciblée et cliquable */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
@@ -540,7 +618,7 @@ export default function DashboardQG() {
           )}
           <div className="text-[10px] text-slate-600 font-mono mt-2">
             Prov. {METEO.province} · maj {METEO.maj} ·{" "}
-            {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Cliquez sur une échéance pour ouvrir le radar de Ferrières"}
+            {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Échéances stratégiques (+2h / +4h / +8h / +12h)"}
           </div>
         </section>
 
