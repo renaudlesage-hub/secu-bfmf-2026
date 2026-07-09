@@ -467,4 +467,31 @@ export default function DashboardQG() {
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM</h2>
-            <span className={
+            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
+          </div>
+          <div className="space-y-2">
+            {METEO.timeline.map((t, i) => (
+              <a key={i} href="https://www.meteo.be/fr/ferrieres" target="_blank" rel="noreferrer" className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2 hover:bg-white/[0.06] transition-all group">
+                <span className="text-slate-100 font-medium group-hover:text-amber-300 flex items-center gap-1">{t.phenomene} <ExternalLink className="w-3 h-3 text-slate-500" /></span>
+                <span className="text-slate-400 font-mono text-[11px]">{t.creneau}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* Plan Radio */}
+        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
+          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3"><Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {CANAUX_RADIO.map((c) => (
+              <div key={c.canal} className="flex items-start gap-2 text-[11px] rounded bg-white/[0.02] px-2 py-1.5">
+                <span className="font-mono text-amber-300 w-14">{c.canal}</span>
+                <span className="text-slate-400">{c.usage}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
