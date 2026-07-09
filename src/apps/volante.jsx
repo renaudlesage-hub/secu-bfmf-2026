@@ -12,16 +12,17 @@ import {
   RefreshCw,
   Compass,
   X,
+  CircleDot,
+  ShieldAlert,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
    APP VOLANTE -- BFMF 2026
-   Vue terrain unifiee pour l'equipe volante :
+   Vue terrain unifiée pour l'équipe volante :
    - Consigne d'engagement du QG (PRV choisi) avec guidage GPS
-   - SOS participants geolocalises (guidage vers la victime ou le PRV)
-   - Alertes equipes (logistique + balade) et saturation des etapes
-   - Missions logistiques attribuees a la volante, avec guidage
-   Lecture/ecriture via Supabase (memes cles que les autres apps).
+   - SOS participants géolocalisés avec cycle complet de statuts tactiques
+   - Alertes équipes (logistique + balade) et saturation des étapes
+   - Missions logistiques attribuées à la volante, avec guidage
 --------------------------------------------------------------------- */
 
 /* ------------------------------ Supabase ------------------------------ */
@@ -59,8 +60,6 @@ const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 
 /* -------------------- Points de reference geolocalises -------------------- */
-// Coordonnees issues du dossier de securite / trace GPX
-
 const POINTS = {
   "Point 0": { lat: 50.3835, lon: 5.6215 },
   "PRV#4": { lat: 50.38212, lon: 5.61673 },
@@ -72,7 +71,6 @@ const POINTS = {
   "Etape 3": { lat: 50.38817, lon: 5.62891 },
 };
 
-// Zone logistique (nom de zone du form) -> point de guidage
 const ZONE_VERS_POINT = {
   "Point 0": "Point 0",
   "Parking public": "Point 0",
@@ -96,7 +94,6 @@ const ZONE_VERS_POINT = {
 const CAPACITE_ETAPE = 300;
 
 /* ------------------------------ Geometrie ------------------------------ */
-
 function hav(la1, lo1, la2, lo2) {
   const R = 6371000, r = Math.PI / 180;
   const a =
@@ -143,7 +140,6 @@ function nowHM() {
 }
 
 /* ------------------------------ App ------------------------------ */
-
 export default function AppVolante() {
   const [missions, setMissions] = useState([]);
   const [groupes, setGroupes] = useState([]);
@@ -153,7 +149,7 @@ export default function AppVolante() {
   const [sbError, setSbError] = useState(false);
   const [now, setNow] = useState(new Date());
   const [maPos, setMaPos] = useState(null);
-  const [cible, setCible] = useState(null); // {nom, lat, lon, contexte}
+  const [cible, setCible] = useState(null);
   const watchRef = useRef(null);
 
   useEffect(() => {
@@ -211,15 +207,15 @@ export default function AppVolante() {
     };
   }, []);
 
-  // Missions attribuees a la volante, non resolues
+  // Missions attribuées à la volante, non résolues
   const mesMissions = missions.filter(
     (m) => (m.attribueA || "").toLowerCase().includes("volante") && m.statut !== "Resolue"
   );
 
-  // SOS participants actifs (nouveaux + pris en compte, non clos)
-  const sosActifs = sosPart.filter((s) => s.statut !== "clos").slice(0, 5);
+  // SOS participants actifs (exclut les clôturés)
+  const sosActifs = sosPart.filter((s) => s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé").slice(0, 5);
 
-  // Saturation etapes
+  // Saturation étapes
   const parEtape = { e1: 0, e2: 0, e3: 0 };
   groupes.forEach((g) => {
     if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
@@ -250,6 +246,20 @@ export default function AppVolante() {
     await kvSet(KEY_MISSIONS, next);
   }
 
+  // NOUVELLE FONCTION EVOLUTION TACTIQUE SOS PARTICIPANT
+  async function changerStatutSos(id, nouveauStatut, cleHeure) {
+    const codeHeure = nowHM();
+    const next = sosPart.map((s) =>
+      s.id === id ? { ...s, statut: nouveauStatut, [cleHeure]: codeHeure } : s
+    );
+    setSosPart(next);
+    try {
+      await kvSet(KEY_SOS_PART, next);
+    } catch (e) {
+      console.error("Erreur sync SOS tactique :", e);
+    }
+  }
+
   function guiderVers(nom, lat, lon, contexte) {
     setCible({ nom, lat, lon, contexte });
   }
@@ -265,7 +275,7 @@ export default function AppVolante() {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
@@ -407,54 +417,118 @@ export default function AppVolante() {
           </section>
         )}
 
-        {/* SOS participants */}
+        {/* SOS participants évolutifs */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
             <TriangleAlert className={`w-4 h-4 ${sosActifs.some((s) => s.statut === "nouveau") ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
             SOS PARTICIPANTS
             <span className="text-[11px] font-mono text-slate-500 font-normal">{sosActifs.length} actif(s)</span>
           </h2>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {sosActifs.length === 0 && <div className="text-xs text-slate-500 text-center py-2">Aucun SOS actif.</div>}
             {sosActifs.map((s) => {
               const prv = s.gps ? nearestPRV(s.gps.lat, s.gps.lon) : null;
               return (
                 <div
                   key={s.id}
-                  className={`rounded-md px-3 py-2.5 ring-1 ${s.statut === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"}`}
+                  className={`rounded-lg px-3 py-3 border border-white/5 bg-white/[0.02] space-y-2`}
                 >
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
-                    <span className="text-slate-100 font-medium flex-1 min-w-0 truncate">{s.motif}</span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+                        <span>{s.heure}</span>
+                        <span>·</span>
+                        <span className="truncate text-slate-300 font-medium">{s.nom}</span>
+                      </div>
+                      <h3 className="text-sm font-bold text-white mt-0.5">{s.motif}</h3>
+                    </div>
                     {s.tel && (
-                      <a href={`tel:${s.tel}`} className="text-emerald-300 shrink-0">
-                        <PhoneCall className="w-4 h-4" />
+                      <a href={`tel:${s.tel}`} className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 shrink-0">
+                        <PhoneCall className="w-3.5 h-3.5" />
                       </a>
                     )}
                   </div>
+
                   {s.surTrace && (
-                    <div className="text-xs text-slate-300 mt-0.5">
+                    <div className="text-xs text-slate-300 bg-white/[0.01] p-1.5 rounded border border-white/5">
                       km {s.surTrace.km} · {s.surTrace.segment}
-                      {s.surTrace.ecartMetres > 100 && <span className="text-amber-300"> · ~{s.surTrace.ecartMetres} m hors sentier</span>}
+                      {s.surTrace.ecartMetres > 100 && <span className="text-amber-300 block mt-0.5 font-medium">⚠️ ~{s.surTrace.ecartMetres} m hors sentier</span>}
                     </div>
                   )}
-                  {s.details && <div className="text-[11px] text-slate-400 italic mt-0.5">"{s.details}"</div>}
-                  <div className="flex gap-2 mt-2">
+
+                  {s.details && <div className="text-[11px] text-slate-400 italic bg-black/10 p-1.5 rounded">"{s.details}"</div>}
+
+                  {/* Boutons de navigation/guidage */}
+                  <div className="flex gap-2">
                     {s.gps && (
                       <button
                         onClick={() => guiderVers(`Victime (${s.motif})`, s.gps.lat, s.gps.lon, s.nom)}
-                        className="flex-1 text-[11px] font-mono px-2 py-2 rounded ring-1 ring-red-400/40 bg-red-400/10 text-red-200 flex items-center justify-center gap-1"
+                        className="flex-1 text-[11px] font-mono px-2 py-1.5 rounded ring-1 ring-red-400/40 bg-red-400/10 text-red-200 flex items-center justify-center gap-1"
                       >
-                        <Compass className="w-3.5 h-3.5" /> Vers la victime
+                        <Compass className="w-3.5 h-3.5" /> Victime
                       </button>
                     )}
                     {prv && (
                       <button
                         onClick={() => guiderVers(prv.nom, prv.lat, prv.lon, `PRV le plus proche de la victime (${fmtDist(prv.d)})`)}
-                        className="flex-1 text-[11px] font-mono px-2 py-2 rounded ring-1 ring-white/20 text-slate-300 flex items-center justify-center gap-1"
+                        className="flex-1 text-[11px] font-mono px-2 py-1.5 rounded ring-1 ring-white/20 text-slate-300 flex items-center justify-center gap-1"
                       >
                         <MapPin className="w-3.5 h-3.5" /> {prv.nom}
                       </button>
+                    )}
+                  </div>
+
+                  {/* BLOC CHRONOLOGIQUE ET TACTIQUE DES SECOURS */}
+                  <div className="pt-2 border-t border-white/5 space-y-2">
+                    {s.statut === "nouveau" && (
+                      <button
+                        onClick={() => changerStatutSos(s.id, "en route", "heureEnRoute")}
+                        className="w-full text-xs font-mono py-2 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Navigation className="w-3.5 h-3.5" /> EN ROUTE
+                      </button>
+                    )}
+
+                    {s.statut === "en route" && (
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-mono text-sky-400 text-center">✓ En route depuis {s.heureEnRoute}</div>
+                        <button
+                          onClick={() => changerStatutSos(s.id, "sur place", "heureArrivee")}
+                          className="w-full text-xs font-mono py-2 rounded bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors pulse-slow"
+                        >
+                          <CircleDot className="w-3.5 h-3.5" /> ARRIVÉ SUR PLACE
+                        </button>
+                      </div>
+                    )}
+
+                    {s.statut === "sur place" && (
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-mono text-amber-400 text-center">✓ Sur place depuis {s.heureArrivee}</div>
+                        <button
+                          onClick={() => changerStatutSos(s.id, "prise en charge", "heurePriseEnCharge")}
+                          className="w-full text-xs font-mono py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <ShieldAlert className="w-3.5 h-3.5" /> VICTIME PRISE EN CHARGE
+                        </button>
+                      </div>
+                    )}
+
+                    {s.statut === "prise en charge" && (
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-mono text-purple-400 text-center">✓ Soins en cours ({s.heurePriseEnCharge})</div>
+                        <button
+                          onClick={() => changerStatutSos(s.id, "retour a la normale", "heureRetourNormale")}
+                          className="w-full text-xs font-mono py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" /> RETOUR À LA NORMALE
+                        </button>
+                      </div>
+                    )}
+
+                    {s.statut === "retour a la normale" && (
+                      <div className="w-full text-center text-xs font-mono py-2 rounded bg-emerald-900/20 text-emerald-400 border border-emerald-500/30">
+                        ✓ Géré à {s.heureRetourNormale} — En attente d'archivage QG
+                      </div>
                     )}
                   </div>
                 </div>
