@@ -3,7 +3,6 @@ import {
   ShieldAlert,
   TriangleAlert,
   Clock,
-  Footprints,
   CircleDot,
   CheckCircle,
   Radio,
@@ -36,8 +35,10 @@ export default function AppVolante() {
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     async function pull() {
-      const data = await kvGet(KEY_SOS_PART);
-      setSosParticipants(Array.isArray(data) ? data : []);
+      try {
+        const data = await kvGet(KEY_SOS_PART);
+        setSosParticipants(Array.isArray(data) ? data : []);
+      } catch (e) { console.error("Erreur pull :", e); }
       setLoading(false);
     }
     pull();
@@ -60,7 +61,7 @@ export default function AppVolante() {
     } catch (e) { console.error("Erreur sync :", e); }
   }
 
-  // Filtrage : on ne montre que les SOS non clôturés
+  // Filtrage : on cache uniquement les SOS "cloture" par le QG
   const sosVisibles = sosParticipants.filter((s) => s.statut !== "cloture");
 
   return (
@@ -84,7 +85,7 @@ export default function AppVolante() {
           </div>
         ) : (
           sosVisibles.map((s) => (
-            <div key={s.id} className="bg-[#1e293b] rounded-xl p-4 border border-white/10 shadow-lg">
+            <div key={s.id} className="bg={#1e293b} rounded-xl p-4 border border-white/10 shadow-lg" style={{ backgroundColor: '#1e293b' }}>
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-xs font-mono text-amber-400">{s.heure} · {s.nom}</div>
@@ -97,35 +98,22 @@ export default function AppVolante() {
 
               {s.details && <p className="text-sm text-slate-400 mt-2 italic">"{s.details}"</p>}
 
-              {/* Bloc d'actions tactiques */}
               <div className="mt-4 space-y-2">
                 {s.statut === "nouveau" && (
-                  <button onClick={() => changerStatutSos(s.id, "en route", "heureEnRoute")} className="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <button onClick={() => changerStatutSos(s.id, "pris en compte", "heurePriseEnCompte")} className="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
                     <Navigation className="w-4 h-4" /> EN ROUTE
                   </button>
                 )}
 
-                {s.statut === "en route" && (
+                {s.statut === "pris en compte" && (
                   <button onClick={() => changerStatutSos(s.id, "sur place", "heureArrivee")} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                    <CircleDot className="w-4 h-4" /> SUR PLACE
+                    <CircleDot className="w-4 h-4" /> SIGNALER : SUR PLACE
                   </button>
                 )}
 
                 {s.statut === "sur place" && (
-                  <button onClick={() => changerStatutSos(s.id, "prise en charge", "heurePriseEnCharge")} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                    <ShieldAlert className="w-4 h-4" /> PRISE EN CHARGE
-                  </button>
-                )}
-
-                {s.statut === "prise en charge" && (
-                  <button onClick={() => changerStatutSos(s.id, "retour a la normale", "heureRetourNormale")} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                    <CheckCircle className="w-4 h-4" /> RETOUR À LA NORMALE
-                  </button>
-                )}
-
-                {s.statut === "retour a la normale" && (
-                  <div className="text-center text-xs text-emerald-400 py-3 bg-emerald-900/20 rounded-lg">
-                    ✓ Intervention terminée. En attente clôture QG.
+                  <div className="text-center text-xs text-emerald-400 py-3 bg-emerald-900/20 rounded-lg border border-emerald-500/30">
+                    ✓ Arrivé sur place à {s.heureArrivee || "—"}. Prise en charge en cours.
                   </div>
                 )}
               </div>
