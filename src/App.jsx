@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { ShieldAlert, ClipboardList, Footprints, TriangleAlert, Zap, ChevronRight, Landmark } from "lucide-react";
+import { 
+  ShieldAlert, 
+  ClipboardList, 
+  Footprints, 
+  TriangleAlert, 
+  Zap, 
+  ChevronRight, 
+  Landmark, 
+  Droplets 
+} from "lucide-react";
 import Dashboard from "./apps/dashboard.jsx";
 import Logistique from "./apps/logistique.jsx";
 import Balade from "./apps/balade.jsx";
 import Sos from "./apps/sos.jsx";
 import Volante from "./apps/volante.jsx";
 import PcOps from "./apps/pcops.jsx";
+import Sanitaire from "./apps/sanitaire.jsx"; // Import de la nouvelle application sanitaire
 
 // Navigation par hash : chaque app garde sa propre URL partageable
-// (ex: https://votre-site/#sos pour le QR code participants)
 const ROUTES = {
-  dashboard: { titre: "Dashboard QG", desc: "Synthèse : alertes, logistique, balade, météo", icon: ShieldAlert, comp: Dashboard, public: false },
+  dashboard: { titre: "Dashboard QG", desc: "Synthèse : alertes, logistique, balade, météo, sanitaire", icon: ShieldAlert, comp: Dashboard, public: false },
   logistique: { titre: "Missions logistiques", desc: "Saisie, attribution et suivi des demandes", icon: ClipboardList, comp: Logistique, public: false },
   balade: { titre: "Suivi balade", desc: "Crowd management du parcours 6,5 km", icon: Footprints, comp: Balade, public: false },
   volante: { titre: "App Volante", desc: "Engagements, guidage GPS, missions terrain", icon: Zap, comp: Volante, public: false },
+  sanitaire: { titre: "Suivi Sanitaire", desc: "Gestion et résolution des signalements blocs WC", icon: Droplets, comp: Sanitaire, public: false },
   pcops: { titre: "PC-Ops / Autorité", desc: "Vue de situation en lecture seule (commune, disciplines)", icon: Landmark, comp: PcOps, public: false },
   sos: { titre: "SOS Participants", desc: "App publique — lien/QR à diffuser aux festivaliers", icon: TriangleAlert, comp: Sos, public: true },
 };
@@ -46,7 +56,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans flex items-center justify-center p-4">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
       `}</style>
@@ -57,7 +67,7 @@ export default function App() {
           </div>
           <div>
             <div className="font-display tracking-wide text-lg leading-none">PLATEFORME SÉCURITÉ</div>
-            <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BUCOLIQUE FERRIÈRES MUSIQUE FESTIVAL · 15-16 AOÛT 2026</div>
+            <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BUCO_LOGIQUE FERRIÈRES MUSIQUE FESTIVAL · 15-16 AOÛT 2026</div>
           </div>
         </div>
         <div className="space-y-2">
