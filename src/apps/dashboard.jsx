@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version finale fusionnée avec création SOS manuelle)
+   DASHBOARD QG (Natures d'urgence normalisées PC-OPS)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -54,7 +54,6 @@ const KEY_SANITAIRE = "bfmf2026-sanitaire";
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
-// Coordonnées pour l'injection GPS automatique lors d'une saisie manuelle par point/repère
 const POINTS_GPS = {
   "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ / Plaine" },
   "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Zone Ouest Sentier" },
@@ -90,14 +89,6 @@ const METEO_FALLBACK = {
   ],
 };
 
-const SEUILS_IRM = {
-  jaune: "Veille renforcée, briefing météo QG.",
-  orange: "Sécuriser structures légères, préparer évacuation.",
-  rouge: "Suspension départs balade, évacuation selon zones.",
-};
-
-const MEDIA = { mentions24h: 486, variation: 14, sentiment: { positif: 68, neutre: 24, negatif: 8 } };
-
 const CANAUX_RADIO = [
   { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, volante)" },
   { canal: "PMR5", usage: "Bénévoles parking et sanitaires" },
@@ -127,8 +118,8 @@ export default function DashboardQG() {
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
 
-  // États locaux pour le nouveau formulaire SOS manuel
-  const [formMotif, setFormMotif] = useState("Malaise / Médical");
+  // Initialisation par défaut sur le premier choix de ta liste
+  const [formMotif, setFormMotif] = useState("médical");
   const [formLieu, setFormLieu] = useState("Point 0");
   const [formNom, setFormNom] = useState("Radio-PC");
   const [formDetails, setFormDetails] = useState("");
@@ -175,7 +166,6 @@ export default function DashboardQG() {
     return () => { stop = true; clearInterval(t); };
   }, []);
 
-  // Déclencher manuellement un SOS depuis le QG (Appels téléphoniques ou messages radio)
   async function declencherSosManuel(e) {
     e.preventDefault();
     const heureSaisie = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -195,7 +185,7 @@ export default function DashboardQG() {
 
     const next = [nouveauSos, ...sosParticipants];
     setSosParticipants(next);
-    setFormDetails(""); // reset champ texte
+    setFormDetails("");
 
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
@@ -260,18 +250,16 @@ export default function DashboardQG() {
   const sosPartNouveaux = sosVisibles.filter((s) => s.statut === "nouveau");
 
   const sanActifs = sanitaire.filter((s) => s.statut !== "resolu");
-  const sanNouveaux = sanActifs.filter((s) => s.statut === "nouveau");
   const sanParLieu = {};
   sanActifs.forEach((s) => { sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + (s.count || 1); });
   const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  const niveau = alertes.length > 0 || sosPartNouveaux.length > 0 || logBloquantes.length > 0 ? "critique" : "mineur";
   const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
 
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
@@ -298,7 +286,7 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
         
-        {/* NOUVEAU PANNEAU : INJECTION SOS MANUELLE POUR LES RECOURS RADIO/TEL */}
+        {/* PANNEAU DE SÉLECTION REPRENANT EXACTEMENT TES NATURES D'URGENCE */}
         <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
           <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide">
             <PlusCircle className="w-4 h-4" /> LANCER UNE ALERTE SOS MANUELLE (APPELS RADIO / TÉLÉPHONE)
@@ -310,11 +298,18 @@ export default function DashboardQG() {
                 className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
                 value={formMotif} onChange={(e) => setFormMotif(e.target.value)}
               >
-                <option>Malaise / Médical</option>
-                <option>Chute / Traumatisme</option>
-                <option>Agression / Rixe</option>
-                <option>Structure instable</option>
-                <option>Autre Urgence Secours</option>
+                <option value="médical">médical</option>
+                <option value="Incendie / fumée">Incendie / fumée</option>
+                <option value="Technique / énergie">Technique / énergie</option>
+                <option value="Gaz / Groupe électrogène">Gaz / Groupe électrogène</option>
+                <option value="météo">météo</option>
+                <option value="Mouvement de foule">Mouvement de foule</option>
+                <option value="Sûreté / violence">Sûreté / violence</option>
+                <option value="Enfant perdu / personne vulnérable">Enfant perdu / personne vulnérable</option>
+                <option value="accident circulation / parking">accident circulation / parking</option>
+                <option value="logistique">logistique</option>
+                <option value="communication">communication</option>
+                <option value="environnement">environnement</option>
               </select>
             </div>
             <div>
@@ -335,13 +330,13 @@ export default function DashboardQG() {
             </div>
             <div>
               <button type="submit" className="w-full py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-mono rounded tracking-wide transition-colors shadow">
-                INJECTER SOS INTERRAIN
+                INJECTER SOS TERRAIN
               </button>
             </div>
             <div className="sm:col-span-4">
               <input 
                 type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Détails descriptifs (ex: Victime inconsciente sous chapiteau, balisage en cours...)" required
+                value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Détails descriptifs de la situation terrain..." required
               />
             </div>
           </form>
@@ -361,7 +356,7 @@ export default function DashboardQG() {
                 <div key={s.id} className={`rounded-md px-3 py-2.5 ring-1 ${s.statut === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"}`}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
-                    <span className="text-sm text-slate-100 font-medium">{s.motif}</span>
+                    <span className="text-sm text-slate-100 font-medium capitalize">{s.motif}</span>
                     <span className="text-[11px] text-slate-400">— Origine: {s.nom}</span>
                     <span className="flex-1" />
                     <div className="flex items-center gap-2">
