@@ -15,11 +15,9 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
 /* ---------------------------------------------------------------------
    PC-OPS / AUTORITE -- BFMF 2026
-   Vue de situation EN LECTURE SEULE destinée aux autorités (commune,
-   discipline coordination) : événements en cours consolidés (SOS
-   participants filtrés, alertes équipes, urgences logistiques), statut,
-   localisation, gravité, et situation crowd management du parcours.
-   Aucune action possible depuis cette vue : l'engagement reste au QG.
+   Vue de situation EN LECTURE SEULE destinée aux autorités :
+   Événements ACTIFS uniquement (SOS participants non clos et non archivés,
+   alertes équipes, urgences logistiques), situation crowd management du parcours.
 --------------------------------------------------------------------- */
 
 const SB_HEADERS = {
@@ -48,7 +46,6 @@ const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const CAPACITE_ETAPE = 300;
 const LONGUEUR_KM = 6.5;
 
-// Position schematique des groupes sur le parcours lineaire (km estimes)
 const POS_KM = { p0: 0, t1: 0.45, e1: 0.9, t2: 1.7, e2: 2.53, t3: 3.8, e3: 5.06, tr: 5.8, ret: 6.5 };
 const POS_LABEL = {
   p0: "Point 0 (attente depart)", t1: "Transit vers Etape 1", e1: "Etape 1",
@@ -69,8 +66,6 @@ const GRAV = {
   grave: { rang: 2, cls: "text-amber-300", ring: "ring-amber-400/40", bg: "bg-amber-400/10", dot: "bg-amber-400" },
   modere: { rang: 1, cls: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10", dot: "bg-sky-400" },
 };
-
-/* ------------------------------ App ------------------------------ */
 
 export default function PcOps() {
   const [missions, setMissions] = useState([]);
@@ -120,7 +115,6 @@ export default function PcOps() {
   /* ------------------- Consolidation des evenements ------------------- */
   const evenements = [];
 
-  // FILTRAGE STRICT : Écarte tous les SOS clôturés par le QG sous n'importe quelle nomenclature
   const sosVisibles = sosPart.filter((s) => 
     s.statut !== "cloture" && 
     s.statut !== "clôture" && 
@@ -129,7 +123,6 @@ export default function PcOps() {
   );
 
   sosVisibles.forEach((s) => {
-    // Formatage dynamique du libellé selon l'avancement réel de la Volante sur le terrain
     let texteStatut = "Nouveau — non pris en compte";
     if (s.statut === "en route") texteStatut = `Volante en route (${s.heureEnRoute || ""})`;
     else if (s.statut === "sur place") texteStatut = `Volante sur place (${s.heureArrivee || ""})`;
@@ -183,7 +176,7 @@ export default function PcOps() {
         km: null,
         gps: null,
         statut: m.statut + (m.attribueA ? ` — ${m.attribueA}` : " — non attribuee"),
-        actif: m.statut === "A traiter",
+        actif: m.statut === "A traiter" || m.statut === "En cours",
         details: "",
       });
     });
@@ -195,6 +188,9 @@ export default function PcOps() {
     return (b.heure || "").localeCompare(a.heure || "");
   });
 
+  // FILTRE RADICAL : Ne conserve à l'affichage QUE les éléments strictement actifs
+  const evenementsActifsAffiches = evenements.filter((e) => e.actif === true);
+
   /* --------------------------- Crowd management --------------------------- */
   const grpDehors = groupes.filter((g) => g.position !== "p0" && g.position !== "ret");
   const persDehors = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
@@ -205,7 +201,6 @@ export default function PcOps() {
     if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
   });
 
-  // Logique de saturation sémantique demandée : distinction explicite "DENSITE ELEVEE" et "COMPLET" (100% ou plus)
   const etapesSaturees = ["e1", "e2", "e3"]
     .map((eid, i) => {
       const n = parEtape[eid];
@@ -215,16 +210,14 @@ export default function PcOps() {
     })
     .filter((e) => e.pct >= 0.72);
 
-  const critiques = evenements.filter((e) => e.gravite === "critique" && e.actif).length;
-  const niveau = critiques > 0 ? "critique" : evenements.some((e) => e.actif) || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
+  const critiques = evenementsActifsAffiches.filter((e) => e.gravite === "critique").length;
+  const niveau = critiques > 0 ? "critique" : evenementsActifsAffiches.length > 0 || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
   const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
-
-  const pad = (n) => String(n).padStart(2, "0");
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
@@ -265,9 +258,9 @@ export default function PcOps() {
           </div>
         )}
 
-        {/* Synthese chiffree */}
+        {/* Synthese chiffree relies sur les evenements affiches */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Kpi label="Evenements actifs" value={evenements.filter((e) => e.actif).length} accent={critiques > 0 ? "text-red-300" : "text-amber-300"} />
+          <Kpi label="Evenements actifs" value={evenementsActifsAffiches.length} accent={critiques > 0 ? "text-red-300" : "text-amber-300"} />
           <Kpi label="Dont critiques" value={critiques} accent={critiques > 0 ? "text-red-300" : "text-emerald-300"} />
           <Kpi label="Public sur parcours" value={persDehors} accent="text-amber-300" />
           <Kpi label="Groupes dehors" value={grpDehors.length} accent="text-slate-200" />
@@ -281,7 +274,7 @@ export default function PcOps() {
           </div>
         )}
 
-        {/* Crowd management : parcours lineaire */}
+        {/* Crowd management */}
         <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
             <Footprints className="w-4 h-4 text-slate-500" /> PARCOURS 6,5 KM — SITUATION
@@ -306,112 +299,4 @@ export default function PcOps() {
                 >
                   <div className="flex items-center gap-0.5 bg-amber-400/20 ring-1 ring-amber-400/50 rounded px-1 py-0.5">
                     <Users className="w-2.5 h-2.5 text-amber-300" />
-                    <span className="text-[9px] font-mono text-amber-200">{g.participants}</span>
-                  </div>
-                </div>
-              );
-            })}
-            {/* SOS geolocalises synchronises avec les sosVisibles non clotures */}
-            {sosVisibles.filter((s) => s.surTrace).map((s) => (
-              <div
-                key={s.id}
-                className="absolute top-10"
-                style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 6px)` }}
-                title={`SOS ${s.motif} · km ${s.surTrace.km}`}
-              >
-                <TriangleAlert className={`w-3.5 h-3.5 text-red-400 ${s.statut === "nouveau" ? "pulse-slow" : ""}`} />
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-4 text-[10px] font-mono text-slate-500 mb-3">
-            <span className="flex items-center gap-1"><Users className="w-3 h-3 text-amber-300" /> groupe (effectif)</span>
-            <span className="flex items-center gap-1"><TriangleAlert className="w-3 h-3 text-red-400" /> SOS participant</span>
-          </div>
-
-          {/* Jauges etapes dynamiques avec étiquette rouge COMPLET */}
-          <div className="grid grid-cols-3 gap-2 mb-2">
-            {["e1", "e2", "e3"].map((eid, idx) => {
-              const n = parEtape[eid];
-              const pct = Math.min(100, Math.round((n / CAPACITE_ETAPE) * 100));
-              const cls = pct >= 100 ? "bg-red-500" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
-              return (
-                <div key={eid} className="rounded bg-white/[0.03] ring-1 ring-white/10 p-2">
-                  <div className="text-[10px] font-mono text-slate-500 flex justify-between items-center">
-                    <span>ETAPE {idx + 1}</span>
-                    {pct >= 100 && <span className="text-[8px] font-bold text-red-400 uppercase tracking-wide">COMPLET</span>}
-                  </div>
-                  <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden my-1">
-                    <div className={`h-full ${cls} ${pct >= 100 ? "pulse-slow" : ""}`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="text-[10px] font-mono text-slate-400">{n}/{CAPACITE_ETAPE}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="text-[11px] font-mono text-slate-500">
-            {persAttente} en attente au Point 0 · {persDehors} sur le parcours · {persRentres} rentres
-          </div>
-        </section>
-
-        {/* Bandeau d'alerte crowd ciblé si au moins une étape est complète */}
-        {etapesSaturees.length > 0 && (
-          <section className="rounded-lg ring-1 ring-amber-400/40 bg-amber-400/5 p-3.5">
-            <div className="font-display text-amber-200 text-sm tracking-wide flex items-center gap-2 mb-1.5">
-              <Footprints className="w-4 h-4" /> 
-              {etapesSaturees.some(e => e.pct >= 1) ? "CROWD — CAPACITE MAXIMALE ATTEINTE" : "CROWD — DENSITE ELEVEE"}
-            </div>
-            <div className="space-y-1">
-              {etapesSaturees.map((e) => (
-                <div key={e.nom} className="flex items-center justify-between text-xs text-slate-200 py-0.5">
-                  <div className="flex items-center gap-2">
-                    <span>{e.nom} : {e.n}/{CAPACITE_ETAPE} ({Math.round(e.pct * 100)}%)</span>
-                    {e.pct >= 1 && (
-                      <span className="text-[9px] font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded ring-1 ring-red-500/40 font-mono">COMPLET</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Evenements en cours consolidés et triés */}
-        <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-            <TriangleAlert className="w-4 h-4 text-slate-500" /> EVENEMENTS EN COURS
-            <span className="text-[11px] font-mono text-slate-500 font-normal">{evenements.length}</span>
-          </h2>
-          <div className="space-y-2">
-            {evenements.length === 0 && (
-              <div className="text-xs text-slate-500 text-center py-4 flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Aucun evenement en cours.
-              </div>
-            )}
-            {evenements.map((e) => {
-              const g = GRAV[e.gravite] || GRAV["modere"];
-              return (
-                <div key={e.id} className={`rounded-md px-3 py-2.5 ring-1 ${e.actif ? `${g.ring} ${g.bg}` : "ring-white/10 bg-white/[0.02]"}`}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`w-1.5 h-1.5 rounded-full ${g.dot} shrink-0 ${e.actif && e.gravite === "critique" ? "pulse-slow" : ""}`} />
-                    <span className="font-mono text-[11px] text-slate-400">{e.heure}</span>
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ring-1 ${g.ring} ${g.cls}`}>{e.gravite.toUpperCase()}</span>
-                    <span className="text-[10px] font-mono text-slate-500">{e.type}</span>
-                  </div>
-                  <div className="text-sm text-slate-100 mt-1">{e.libelle}</div>
-                  <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 shrink-0" /> {e.localisation}
-                    {e.gps && (
-                      <>
-                        <a
-                          href={`https://www.google.com/maps?q=${e.gps.lat},${e.gps.lon}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5 ml-1"
-                        >
-                          Maps <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                        <a
-                          href={myMapsUrl(e.gps.lat, e.gps.lon)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-amber
+                    <span className="text-[9px] font-mono text-
