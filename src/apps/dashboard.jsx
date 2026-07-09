@@ -18,12 +18,12 @@ import {
   ExternalLink,
   CheckCircle,
   Droplets,
+  PlusCircle,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (version finale fusionnée) -- Bucolique Ferrières Musique Festival 2026
-   Vue de synthèse : alertes SOS (avec gestion de clôture), logistique, balade,
-   suivi sanitaire en temps réel, météo locale cliquable, médias et radio.
+   DASHBOARD QG (Version finale fusionnée avec création SOS manuelle)
+   Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
@@ -53,6 +53,18 @@ const KEY_METEO = "bfmf2026-meteo";
 const KEY_SANITAIRE = "bfmf2026-sanitaire";
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
+
+// Coordonnées pour l'injection GPS automatique lors d'une saisie manuelle par point/repère
+const POINTS_GPS = {
+  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ / Plaine" },
+  "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Zone Ouest Sentier" },
+  "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Zone Sud Bois" },
+  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Zone Est Crête" },
+  "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Secteur Nord Retour" },
+  "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
+  "Etape 2": { lat: 50.37828, lon: 5.64549, km: 2.53, segment: "Ravitaillement 2" },
+  "Etape 3": { lat: 50.38817, lon: 5.62891, km: 5.06, segment: "Ravitaillement 3" },
+};
 
 async function kvSet(key, value) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
@@ -100,11 +112,7 @@ const CODE_METEO = {
   rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/40", dot: "bg-red-400", label: "ROUGE" },
 };
 
-const PHENOMENE_ICON = { orages: CloudLightning, vent: Wind, chaleur: Thermometer, RAS: CircleDot };
-
-function pad(n) {
-  return n.toString().padStart(2, "0");
-}
+function pad(n) { return n.toString().padStart(2, "0"); }
 
 export default function DashboardQG() {
   const [now, setNow] = useState(new Date());
@@ -118,6 +126,12 @@ export default function DashboardQG() {
   const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
+
+  // États locaux pour le nouveau formulaire SOS manuel
+  const [formMotif, setFormMotif] = useState("Malaise / Médical");
+  const [formLieu, setFormLieu] = useState("Point 0");
+  const [formNom, setFormNom] = useState("Radio-PC");
+  const [formDetails, setFormDetails] = useState("");
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -158,44 +172,56 @@ export default function DashboardQG() {
     }
     pull();
     const t = setInterval(pull, 10000);
-    return () => {
-      stop = true;
-      clearInterval(t);
-    };
+    return () => { stop = true; clearInterval(t); };
   }, []);
 
-  // Prise en compte d'un SOS participant
+  // Déclencher manuellement un SOS depuis le QG (Appels téléphoniques ou messages radio)
+  async function declencherSosManuel(e) {
+    e.preventDefault();
+    const heureSaisie = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const geoRef = POINTS_GPS[formLieu];
+
+    const nouveauSos = {
+      id: "manual-" + Date.now(),
+      heure: heureSaisie,
+      motif: formMotif,
+      nom: formNom,
+      tel: "Canal Radio",
+      details: formDetails.trim(),
+      statut: "nouveau",
+      gps: geoRef ? { lat: geoRef.lat, lon: geoRef.lon } : null,
+      surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment, ecartMetres: 0, reperePlusProche: formLieu } : null
+    };
+
+    const next = [nouveauSos, ...sosParticipants];
+    setSosParticipants(next);
+    setFormDetails(""); // reset champ texte
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
+        method: "POST",
+        headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify({ key: KEY_SOS_PART, value: next, updated_at: new Date().toISOString() }),
+      });
+    } catch (err) {
+      setSbError(true);
+    }
+  }
+
   async function prendreEnCompteSos(id) {
     const next = sosParticipants.map((s) =>
       s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s
     );
     setSosParticipants(next);
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
-        method: "POST",
-        headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
-        body: JSON.stringify({ key: KEY_SOS_PART, value: next, updated_at: new Date().toISOString() }),
-      });
-    } catch (e) {
-      setSbError(true);
-    }
+    await kvSet(KEY_SOS_PART, next);
   }
 
-  // Clôturer et faire disparaître un SOS résolu
   async function cloturerSos(id) {
     const next = sosParticipants.map((s) =>
       s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s
     );
     setSosParticipants(next);
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
-        method: "POST",
-        headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
-        body: JSON.stringify({ key: KEY_SOS_PART, value: next, updated_at: new Date().toISOString() }),
-      });
-    } catch (e) {
-      setSbError(true);
-    }
+    await kvSet(KEY_SOS_PART, next);
   }
 
   async function engagerVolante() {
@@ -210,8 +236,7 @@ export default function DashboardQG() {
     };
     setConsigne(c);
     setMsgConsigne("");
-    const ok = await kvSet(KEY_CONSIGNE, c);
-    if (!ok) setSbError(true);
+    await kvSet(KEY_CONSIGNE, c);
   }
 
   async function leverConsigne() {
@@ -222,8 +247,6 @@ export default function DashboardQG() {
   }
 
   const METEO = meteoLive || METEO_FALLBACK;
-
-  // Agrégats tactiques
   const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue");
   const logBloquantes = logOuvertes.filter((m) => m.bloquant === "Oui" || (m.priorite || "").startsWith("P1"));
   const grpDehors = groupesBalade.filter((g) => g.position !== "p0" && g.position !== "ret");
@@ -232,30 +255,17 @@ export default function DashboardQG() {
   groupesBalade.forEach((g) => {
     if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
   });
-  const etapeSaturee = Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9);
 
-  // Filtrage des alertes SOS actives (non clôturées)
-  const sosVisibles = sosParticipants.filter((s) => s.statut !== "cloture");
+  const sosVisibles = sosParticipants.filter((s) => s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé");
   const sosPartNouveaux = sosVisibles.filter((s) => s.statut === "nouveau");
 
-  // Agrégats sanitaires (signalements QR des festivaliers)
   const sanActifs = sanitaire.filter((s) => s.statut !== "resolu");
   const sanNouveaux = sanActifs.filter((s) => s.statut === "nouveau");
   const sanParLieu = {};
   sanActifs.forEach((s) => { sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + (s.count || 1); });
   const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  const sosActif = alertes.length > 0 || sosPartNouveaux.length > 0;
-  const meteoGrave = METEO.codeActuel === "orange" || METEO.codeActuel === "rouge";
-
-  const niveau =
-    sosActif || logBloquantes.length > 0 || METEO.codeActuel === "rouge"
-      ? "critique"
-      : etapeSaturee || meteoGrave || METEO.codeActuel === "jaune" || sanNouveaux.length > 0
-      ? "modere"
-      : "mineur";
-  const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
-
+  const niveau = alertes.length > 0 || sosPartNouveaux.length > 0 || logBloquantes.length > 0 ? "critique" : "mineur";
   const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
 
   return (
@@ -269,402 +279,192 @@ export default function DashboardQG() {
       `}</style>
 
       <header className="border-b border-white/10 bg-[#151b23]/90 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
               <ShieldAlert className="w-5 h-5 text-amber-300" />
             </div>
-            <div className="min-w-0">
-              <div className="font-display tracking-wide text-[15px] leading-none truncate">QG BUCO — SYNTHESE</div>
-              <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · FERRIERES</div>
+            <div>
+              <div className="font-display tracking-wide text-[15px] leading-none">QG BUCO — DASHBOARD PRINCIPAL</div>
+              <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · CONSOLE COORD</div>
             </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full ring-1 font-mono text-xs tracking-wider ${
-                niveau === "critique"
-                  ? "bg-red-400/10 ring-red-400/40 text-red-300"
-                  : niveau === "modere"
-                  ? "bg-amber-400/10 ring-amber-400/40 text-amber-300"
-                  : "bg-emerald-400/10 ring-emerald-400/30 text-emerald-300"
-              }`}
-            >
-              <CircleDot className={`w-3 h-3 ${niveau === "critique" ? "pulse-slow" : ""}`} />
-              {niveauLabel}
-            </div>
-            <div className="hidden sm:flex items-center gap-1.5 text-slate-300 font-mono text-sm">
-              <Clock className="w-4 h-4 text-slate-500" />
-              {pad(now.getHours())}:{pad(now.getMinutes())}
-            </div>
+          <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
+            <Clock className="w-4 h-4 text-slate-500" />
+            {pad(now.getHours())}:{pad(now.getMinutes())}
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-        {sbError && (
-          <div className="rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 text-amber-300 text-xs px-3 py-2">
-            Connexion Supabase indisponible — données Logistique / Balade potentiellement obsolètes.
+      <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
+        
+        {/* NOUVEAU PANNEAU : INJECTION SOS MANUELLE POUR LES RECOURS RADIO/TEL */}
+        <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
+          <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide">
+            <PlusCircle className="w-4 h-4" /> LANCER UNE ALERTE SOS MANUELLE (APPELS RADIO / TÉLÉPHONE)
           </div>
-        )}
-
-        {/* Alertes SOS Globales */}
-        {alertes.map((a, i) => (
-          <div key={i} className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4">
-            <div className="flex items-start gap-3">
-              <TriangleAlert className="w-5 h-5 text-red-300 pulse-slow shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <div className="font-display text-red-200 text-sm tracking-wide">
-                  SOS {a.source.toUpperCase()} — {a.motif}
-                </div>
-                <div className="text-xs text-red-200/80 mt-1">
-                  {a.heure} · {a.auteur}
-                  {a.groupe ? ` · ${a.groupe}` : ""}
-                  {a.details ? ` — ${a.details}` : ""}
-                </div>
-                <div className="text-[11px] font-mono text-red-200/60 mt-1">
-                  {a.acquittePar ? `Acquittée par ${a.acquittePar} à ${a.heureAcquittement}` : `NON ACQUITTEE — traiter dans l'app ${a.source}`}
-                </div>
-              </div>
+          <form onSubmit={declencherSosManuel} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+            <div>
+              <label className="block text-[11px] font-mono text-slate-400 mb-1">Nature de l'urgence</label>
+              <select 
+                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                value={formMotif} onChange={(e) => setFormMotif(e.target.value)}
+              >
+                <option>Malaise / Médical</option>
+                <option>Chute / Traumatisme</option>
+                <option>Agression / Rixe</option>
+                <option>Structure instable</option>
+                <option>Autre Urgence Secours</option>
+              </select>
             </div>
-          </div>
-        ))}
+            <div>
+              <label className="block text-[11px] font-mono text-slate-400 mb-1">Localisation / Repère</label>
+              <select 
+                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                value={formLieu} onChange={(e) => setFormLieu(e.target.value)}
+              >
+                {Object.keys(POINTS_GPS).map(k => <option key={k}>{k}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-mono text-slate-400 mb-1">Origine / Indicatif</label>
+              <input 
+                type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Ex: PMR 333 / Secu"
+              />
+            </div>
+            <div>
+              <button type="submit" className="w-full py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-mono rounded tracking-wide transition-colors shadow">
+                INJECTER SOS INTERRAIN
+              </button>
+            </div>
+            <div className="sm:col-span-4">
+              <input 
+                type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Détails descriptifs (ex: Victime inconsciente sous chapiteau, balisage en cours...)" required
+              />
+            </div>
+          </form>
+        </section>
 
-        {/* SOS participants actives avec boutons Clôturer/Prendre en compte */}
+        {/* SOS participants actives */}
         {sosVisibles.length > 0 && (
-          <section className={`bg-[#151b23] rounded-lg p-4 ${sosPartNouveaux.length > 0 ? "ring-2 ring-red-400/60" : "ring-1 ring-white/10"}`}>
+          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
                 <TriangleAlert className={`w-4 h-4 ${sosPartNouveaux.length > 0 ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
                 SOS PARTICIPANTS ACTIVES
               </h2>
-              <span className={`font-mono text-xs ${sosPartNouveaux.length > 0 ? "text-red-300" : "text-slate-500"}`}>
-                {sosPartNouveaux.length} nouveau(x) · {sosVisibles.length} en cours
-              </span>
             </div>
             <div className="space-y-2">
-              {sosVisibles.slice(0, 6).map((s) => (
-                <div
-                  key={s.id}
-                  className={`rounded-md px-3 py-2.5 ring-1 ${
-                    s.statut === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"
-                  }`}
-                >
+              {sosVisibles.map((s) => (
+                <div key={s.id} className={`rounded-md px-3 py-2.5 ring-1 ${s.statut === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"}`}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
                     <span className="text-sm text-slate-100 font-medium">{s.motif}</span>
-                    <span className="text-[11px] text-slate-400">— {s.nom}{s.tel ? ` · ${s.tel}` : ""}</span>
-                    
+                    <span className="text-[11px] text-slate-400">— Origine: {s.nom}</span>
                     <span className="flex-1" />
-                    
                     <div className="flex items-center gap-2">
                       {s.statut === "nouveau" ? (
-                        <button
-                          onClick={() => prendreEnCompteSos(s.id)}
-                          className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20 transition-colors"
-                        >
-                          Prendre en compte
-                        </button>
+                        <button onClick={() => prendreEnCompteSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20">Prendre en compte</button>
                       ) : (
-                        <span className="text-[11px] font-mono text-slate-500 mr-1">
-                          Pris en compte {s.heurePriseEnCompte ? ` à ${s.heurePriseEnCompte}` : ""}
-                        </span>
+                        <span className="text-[11px] font-mono text-slate-500 mr-1">En cours {s.heurePriseEnCompte ? `(${s.heurePriseEnCompte})` : ""}</span>
                       )}
-                      
-                      <button
-                        onClick={() => cloturerSos(s.id)}
-                        className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
-                      >
-                        <CheckCircle className="w-3 h-3" />
-                        Clôturer
-                      </button>
+                      <button onClick={() => cloturerSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20">Clôturer</button>
                     </div>
                   </div>
-                  
-                  {s.surTrace && (
-                    <div className="text-xs text-slate-300 mt-1">
-                      <span className="font-mono text-amber-200">km {s.surTrace.km}</span> · {s.surTrace.segment}
-                      {s.surTrace.ecartMetres > 100 && (
-                        <span className="text-amber-300"> · ~{s.surTrace.ecartMetres} m hors sentier</span>
-                      )}
-                      <span className="text-slate-500"> · repère : {s.surTrace.reperePlusProche}</span>
-                    </div>
-                  )}
-                  {!s.surTrace && <div className="text-[11px] text-amber-300/90 mt-1">Sans GPS — voir description</div>}
+                  {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · Repère : {s.surTrace.reperePlusProche} · {s.surTrace.segment}</div>}
                   {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
-                  {s.gps && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${s.gps.lat},${s.gps.lon}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] font-mono text-sky-300 hover:text-sky-200 mt-0.5 inline-block"
-                    >
-                      Ouvrir dans Google Maps ({s.gps.lat.toFixed(5)}, {s.gps.lon.toFixed(5)})
-                    </a>
-                  )}
                 </div>
               ))}
-              {sosVisibles.length > 6 && (
-                <div className="text-[10px] font-mono text-slate-600 text-center">+ {sosVisibles.length - 6} autre(s) alerte(s) active(s)</div>
-              )}
             </div>
           </section>
         )}
 
         {/* Engagement volante */}
-        <section className={`bg-[#151b23] rounded-lg p-4 ${consigne ? "ring-2 ring-amber-400/50" : "ring-1 ring-white/10"}`}>
+        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
             <Footprints className="w-4 h-4 text-slate-500" /> ENGAGEMENT VOLANTE
           </h2>
           {consigne ? (
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-sm text-amber-200">
-                  Engagée vers <span className="font-semibold">{consigne.prv}</span>
-                  {consigne.message ? ` — ${consigne.message}` : ""}
-                </div>
-                <div className="text-[11px] font-mono text-slate-400 mt-1">
-                  Émise à {consigne.heure} ·{" "}
-                  {consigne.accusePar ? (
-                    <span className="text-emerald-300">accusée "bien reçu" à {consigne.heureAccuse}</span>
-                  ) : (
-                    <span className="text-amber-300 pulse-slow">en attente d'accusé</span>
-                  )}
-                </div>
+                <div className="text-sm text-amber-200">Engagée vers <span className="font-semibold">{consigne.prv}</span> {consigne.message ? ` — ${consigne.message}` : ""}</div>
+                <div className="text-[11px] font-mono text-slate-400 mt-1">Émise à {consigne.heure} · {consigne.accusePar ? <span className="text-emerald-300">Accusée à {consigne.heureAccuse}</span> : <span className="text-amber-300 pulse-slow">En attente d'accusé</span>}</div>
               </div>
-              <button
-                onClick={leverConsigne}
-                className="shrink-0 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-white/25 text-slate-300 hover:text-white hover:ring-white/40"
-              >
-                Lever
-              </button>
+              <button onClick={leverConsigne} className="text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-white/25 text-slate-300 hover:text-white">Lever</button>
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-wrap">
-              <select
-                className="bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-400/60"
-                value={prvChoisi}
-                onChange={(e) => setPrvChoisi(e.target.value)}
-              >
-                {PRVS.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
+              <select className="bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>
+                {PRVS.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
-              <input
-                className="flex-1 min-w-[140px] bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
-                value={msgConsigne}
-                onChange={(e) => setMsgConsigne(e.target.value)}
-                placeholder="Message (ex: SOS km 2,5 -- malaise)"
-              />
-              <button
-                onClick={engagerVolante}
-                className="text-xs font-mono px-3 py-2 rounded ring-1 ring-amber-400/50 bg-amber-400/15 text-amber-200 hover:bg-amber-400/25 transition-colors"
-              >
-                Engager
-              </button>
+              <input className="flex-1 bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Message d'accompagnement radio" />
+              <button onClick={engagerVolante} className="text-xs font-mono px-3 py-2 rounded ring-1 ring-amber-400/50 bg-amber-400/15 text-amber-200 hover:bg-amber-400/25">Engager</button>
             </div>
           )}
-          <div className="text-[10px] text-slate-600 font-mono mt-2">
-            La consigne s'affiche dans l'app Volante avec guidage GPS vers le point choisi. Doubler à la radio (PMR4.1).
-          </div>
         </section>
 
         {/* Logistique + Balade en direct */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-slate-500" /> LOGISTIQUE
-              </h2>
-              <span className={`font-mono text-xs ${logBloquantes.length > 0 ? "text-red-300" : logOuvertes.length > 0 ? "text-amber-300" : "text-emerald-300"}`}>
-                {logOuvertes.length} ouverte(s){logBloquantes.length > 0 ? ` · ${logBloquantes.length} bloquante(s)` : ""}
-              </span>
+              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><ClipboardList className="w-4 h-4 text-slate-500" /> LOGISTIQUE</h2>
+              <span className="font-mono text-xs text-slate-400">{logOuvertes.length} ouvertes</span>
             </div>
             <div className="space-y-1.5">
               {logOuvertes.slice(0, 4).map((m) => (
                 <div key={m.id || m.ref} className="flex items-center gap-2 text-xs rounded bg-white/[0.03] ring-1 ring-white/10 px-2.5 py-2">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(m.priorite || "").startsWith("P1") ? "bg-red-400" : (m.priorite || "").startsWith("P2") ? "bg-amber-400" : "bg-sky-400"}`} />
-                  <span className="text-slate-200 flex-1 min-w-0 truncate">{m.nature}</span>
-                  <span className="text-[10px] text-slate-500 shrink-0">{m.attribueA || "—"}</span>
+                  <span className="text-slate-200 flex-1 truncate">{m.nature}</span>
+                  <span className="text-[10px] text-slate-500">{m.attribueA || "—"}</span>
                 </div>
               ))}
-              {logOuvertes.length === 0 && <div className="text-xs text-slate-500 text-center py-3">Rien d'ouvert.</div>}
-              {logOuvertes.length > 4 && (
-                <div className="text-[10px] font-mono text-slate-600 text-center">+ {logOuvertes.length - 4} autre(s) dans l'app Logistique</div>
-              )}
             </div>
           </section>
 
           <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-                <Footprints className="w-4 h-4 text-slate-500" /> BALADE
-              </h2>
-              <span className="font-mono text-xs text-amber-300">{persDehors} sur le parcours</span>
+              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><Footprints className="w-4 h-4 text-slate-500" /> BALADE</h2>
+              <span className="font-mono text-xs text-amber-300">{persDehors} dehors</span>
             </div>
             <div className="space-y-1.5">
               {["e1", "e2", "e3"].map((eid, idx) => {
                 const n = parEtape[eid];
                 const pct = Math.min(100, Math.round((n / CAPACITE_ETAPE) * 100));
-                const cls = pct >= 90 ? "bg-red-400" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
+                const cls = pct >= 100 ? "bg-red-500" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
                 return (
                   <div key={eid} className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-400 w-14 shrink-0">Etape {idx + 1}</span>
+                    <span className="text-[11px] text-slate-400 w-14">Etape {idx + 1}</span>
                     <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div className={`h-full ${cls}`} style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="text-[11px] font-mono text-slate-500 w-14 text-right shrink-0">{n}/{CAPACITE_ETAPE}</span>
+                    <span className="text-[11px] font-mono w-14 text-right">{n}/{CAPACITE_ETAPE}</span>
                   </div>
                 );
               })}
-              <div className="text-[11px] text-slate-500 pt-1">
-                {grpDehors.length} groupe(s) dehors · {groupesBalade.filter((g) => g.position === "ret").length} rentré(s)
-              </div>
             </div>
           </section>
         </div>
 
-        {/* Panneau Suivi Sanitaire (Signalements QR des festivaliers) */}
+        {/* Suivi sanitaire */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-              <Droplets className="w-4 h-4 text-slate-500" /> SANITAIRE
-            </h2>
-            <span className={`font-mono text-xs ${sanNouveaux.length > 0 ? "text-red-300" : sanActifs.length > 0 ? "text-amber-300" : "text-emerald-300"}`}>
-              {sanActifs.length} actif(s){sanNouveaux.length > 0 ? ` · ${sanNouveaux.length} nouveau(x)` : ""}
-            </span>
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><Droplets className="w-4 h-4 text-slate-500" /> SANITAIRE</h2>
           </div>
-          {sanActifs.length === 0 ? (
-            <div className="text-xs text-slate-500 py-2 text-center">Aucun signalement en attente.</div>
-          ) : (
+          {sanActifs.length === 0 ? <div className="text-xs text-slate-500 text-center py-2">Aucun signalement bloc WC.</div> : (
             <div className="space-y-1.5">
               {sanTop.map(([lieu, n]) => (
                 <div key={lieu} className="flex items-center justify-between text-xs rounded bg-white/[0.02] ring-1 ring-white/5 px-2.5 py-2">
                   <span className="text-slate-300 font-medium">{lieu}</span>
-                  <span className="font-mono text-slate-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{n} signalement(s)</span>
+                  <span className="font-mono text-slate-400 bg-white/5 px-1.5 py-0.5 rounded">{n} signalement(s)</span>
                 </div>
               ))}
-              <div className="text-[10px] font-mono text-slate-600 pt-1 text-center">
-                Traitement et intervention dans l'app Sanitaire (#sanitaire)
-              </div>
             </div>
           )}
         </section>
 
-        {/* Météo IRM ciblée et cliquable */}
+        {/* Météo IRM */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-              <CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM
-            </h2>
-            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
-          </div>
-          <div className="space-y-2">
-            {METEO.timeline.map((t, i) => {
-              const traduirePhenomene = (p) => {
-                if (!p || p === "phenomene") return "Alerte Vigilance";
-                const memo = String(p).toLowerCase();
-                if (memo.includes("thunderstorm") || memo.includes("orage")) return "Orages violents";
-                if (memo.includes("wind") || memo.includes("vent")) return "Vent violent / Rafales";
-                if (memo.includes("rain") || memo.includes("pluie")) return "Pluie / Inondation";
-                if (memo.includes("snow") || memo.includes("neige")) return "Neige / Verglas";
-                if (memo.includes("heat") || memo.includes("chaleur")) return "Forte chaleur / Canicule";
-                return p;
-              };
-
-              const Icon = PHENOMENE_ICON[t.phenomene] || CircleDot;
-              const st = CODE_METEO[t.code] || CODE_METEO["vert"];
-
-              const texteCreneau = String(t.creneau)
-                .replace(/phenomene\s*·\s*/gi, "")
-                .replace(/mer\.\s*/gi, "Mer. ")
-                .replace(/jeu\.\s*/gi, "Jeu. ")
-                .replace(/ven\.\s*/gi, "Ven. ")
-                .replace(/sam\.\s*/gi, "Sam. ")
-                .replace(/dim\.\s*/gi, "Dim. ");
-
-              return (
-                <a
-                  key={i}
-                  href="https://www.meteo.be/fr/ferrieres"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs rounded bg-white/[0.02] border border-white/5 p-2 hover:bg-white/[0.06] hover:border-white/20 transition-all group cursor-pointer"
-                  title="Cliquez pour ouvrir la météo locale de Ferrières"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-1.5 h-1.5 rounded-full ${st.dot} shrink-0`} />
-                    <div className="min-w-0">
-                      <span className="text-slate-100 font-medium flex items-center gap-1.5 group-hover:text-amber-300 transition-colors">
-                        {traduirePhenomene(t.phenomene)}
-                        <ExternalLink className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </span>
-                      <span className="text-slate-400 font-mono text-[11px] block mt-0.5">
-                        {texteCreneau}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                    <Icon className="w-3.5 h-3.5 text-slate-500" />
-                    <span className={`font-mono text-[10px] uppercase ${st.text} bg-white/[0.02] px-1.5 py-0.5 rounded border border-white/5`}>
-                      {st.label}
-                    </span>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-          {METEO.codeActuel !== "vert" && (
-            <div className="text-[11px] text-slate-400 mt-3 pt-2 border-t border-white/10">{SEUILS_IRM[METEO.codeActuel]}</div>
-          )}
-          <div className="text-[10px] text-slate-600 font-mono mt-2">
-            Prov. {METEO.province} · maj {METEO.maj} ·{" "}
-            {meteoLive ? "Source : IRM via MeteoAlarm (CC BY 4.0)" : "SIMULE — Échéances stratégiques (+2h / +4h / +8h / +12h)"}
-          </div>
-        </section>
-
-        {/* Veille Médias */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-              <Rss className="w-4 h-4 text-slate-500" /> MEDIAS
-            </h2>
-            <div className="flex h-2 w-full rounded-full overflow-hidden bg-white/10">
-              <div className="bg-emerald-400 h-full" style={{ width: `${MEDIA.sentiment.positif}%` }} />
-              <div className="bg-slate-500 h-full" style={{ width: `${MEDIA.sentiment.neutre}%` }} />
-              <div className="bg-red-400 h-full" style={{ width: `${MEDIA.sentiment.negatif}%` }} />
-            </div>
-            <div className="flex items-center gap-3 mt-2 text-[11px] font-mono text-slate-400">
-              <span className="flex items-center gap-1"><Smile className="w-3 h-3 text-emerald-300" />{MEDIA.sentiment.positif}%</span>
-              <span className="flex items-center gap-1"><Meh className="w-3 h-3 text-slate-400" />{MEDIA.sentiment.neutre}%</span>
-              <span className="flex items-center gap-1"><Frown className="w-3 h-3 text-red-300" />{MEDIA.sentiment.negatif}%</span>
-            </div>
-            <div className="text-[10px] text-slate-600 font-mono mt-2">Simulé · à connecter à un outil de veille</div>
-          </section>
-
-          {/* Plan Radio */}
-          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-              <Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO
-            </h2>
-            <div className="grid grid-cols-1 gap-1.5">
-              {CANAUX_RADIO.map((c) => (
-                <div key={c.canal} className={`flex items-start gap-2 text-[11px] rounded px-2 py-1.5 ${c.canal === "PMR333" ? "bg-red-400/5 ring-1 ring-red-400/20" : "bg-white/[0.02]"}`}>
-                  <span className={`font-mono shrink-0 w-14 ${c.canal === "PMR333" ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
-                  <span className="text-slate-400">{c.usage}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <section className="bg-[#151b23] rounded-lg p-3 ring-1 ring-white/10 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
-          <PhoneCall className="w-3.5 h-3.5" /> Urgence vitale : 112 en priorité, information immédiate QG (Canal PMR333).
-        </section>
-
-        <div className="text-[10px] text-slate-600 font-mono text-center pt-1">
-          Synthèse en lecture seule · rafraîchissement auto 10 s · saisies dans les apps Logistique et Balade
-        </div>
-      </main>
-    </div>
-  );
-}
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM</h2>
+            <span className={
