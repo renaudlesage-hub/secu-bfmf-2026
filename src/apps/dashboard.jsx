@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - Panneau Intégré Frise Parcours PCOps)
+   DASHBOARD QG — VERSION 3 COLONNES COMPACTE TACTIQUE
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -94,8 +94,6 @@ const POINTS_GPS = {
 
 const CAPACITE_ETAPE = 300;
 const LONGUEUR_KM = 6.5;
-
-// Mappage de position linéaire pour la frise PCOps
 const POS_KM = { p0: 0, t1: 0.45, e1: 0.9, t2: 1.7, e2: 2.53, t3: 3.8, e3: 5.06, tr: 5.8, ret: 6.5 };
 
 const REPERES = [
@@ -107,47 +105,25 @@ const REPERES = [
 ];
 
 const METEO_FALLBACK = {
-  live: true,
-  province: "Liege",
-  codeActuel: "vert",
-  maj: "Initialisation",
-  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }],
-  station: "Ferrières (Province de Liège)",
-  statutAlerte: "jaune",
-  titre: "Avertissement Chaleur",
-  validite: "Du 10/07/2026 00:00 au 15/07/2026 00:00",
-  description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur.",
-  source: "Institut Royal Météorologique (IRM)",
-  obsHeure: "17h00",
-  obsResume: "Temps ensoleillé et sec — 22°C",
-  obsLever: "05h38",
-  obsCoucher: "21h52",
-  obsUV: "6.8 (Élevé)",
-  urlFerrieres: "https://www.meteo.be/fr/ferrieres"
+  live: true, province: "Liege", codeActuel: "vert", maj: "Initialisation",
+  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales" }],
+  station: "Ferrières (Province de Liège)", statutAlerte: "jaune", titre: "Suivi Météo",
+  description: "Conditions météo normales sur la plaine de Ferrières.",
+  source: "Institut Royal Météorologique (IRM)", obsHeure: "--h--", obsResume: "Calcul...",
+  obsLever: "05h38", obsCoucher: "21h52", obsUV: "0.0", urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
 const MEDIAS_FALLBACK = {
-  ambiance: "neutre",
-  maj: "il y a 8 min",
-  canaux: [
-    { name: "Facebook (Groupe Local Ferrières)", statut: "attention", note: "Plaintes sur l'attente au parking public" },
-    { name: "Instagram (#bfmf2026)", statut: "ok", note: "Retours très positifs sur la scénographie" }
-  ]
+  ambiance: "neutre", maj: "En direct",
+  canaux: [{ name: "Réseaux Sociaux", statut: "ok", note: "Aucun signalement critique" }]
 };
 
 const CANAUX_RADIO = [
-  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, volante)" },
-  { canal: "PMR5", usage: "Bénévoles parking et sanitaires" },
-  { canal: "PMR15", usage: "Sécurité privée" },
-  { canal: "PMR333", usage: "URGENCE exclusif" },
+  { canal: "PMR4.1", usage: "Coord. Générale" },
+  { canal: "PMR5", usage: "Parking / Sanitaires" },
+  { canal: "PMR15", usage: "Sécurité" },
+  { canal: "PMR333", usage: "URGENCE" },
 ];
-
-const CODE_METEO = {
-  vert: { text: "text-emerald-300", bg: "bg-emerald-400/10", ring: "ring-emerald-400/30", dot: "bg-emerald-400", label: "VERT" },
-  jaune: { text: "text-amber-300", bg: "bg-amber-400/10", ring: "ring-amber-400/40", dot: "bg-amber-400", label: "JAUNE" },
-  orange: { text: "text-orange-300", bg: "bg-orange-400/10", ring: "ring-orange-400/40", dot: "bg-orange-400", label: "ORANGE" },
-  rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
-};
 
 function pad(n) { return n.toString().padStart(2, "0"); }
 
@@ -165,13 +141,11 @@ export default function DashboardQG() {
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
 
-  // States Formulaire SOS
   const [formMotif, setFormMotif] = useState("médical");
   const [formLieu, setFormLieu] = useState("Site grande scène");
   const [formNom, setFormNom] = useState("Radio-PC");
   const [formDetails, setFormDetails] = useState("");
 
-  // States Formulaire Console Météo Interne
   const [mgtVigilance, setMgtVigilance] = useState("vert");
   const [mgtCreneau, setMgtCreneau] = useState("Dans les 2h (+2h)");
   const [mgtCouleurLigne, setMgtCouleurLigne] = useState("vert");
@@ -185,15 +159,9 @@ export default function DashboardQG() {
   async function pullAllData() {
     try {
       const [mi, gr, aLog, aBal, sosP, co, mto, san, med] = await Promise.all([
-        kvGet(KEY_MISSIONS),
-        kvGet(KEY_GROUPES),
-        kvGet(KEY_ALERTE_LOG),
-        kvGet(KEY_ALERTE_BAL),
-        kvGet(KEY_SOS_PART),
-        kvGet(KEY_CONSIGNE),
-        kvGet(KEY_METEO),
-        kvGet(KEY_SANITAIRE),
-        kvGet(KEY_MEDIAS),
+        kvGet(KEY_MISSIONS), kvGet(KEY_GROUPES), kvGet(KEY_ALERTE_LOG),
+        kvGet(KEY_ALERTE_BAL), kvGet(KEY_SOS_PART), kvGet(KEY_CONSIGNE),
+        kvGet(KEY_METEO), kvGet(KEY_SANITAIRE), kvGet(KEY_MEDIAS),
       ]);
       setMissionsLog(Array.isArray(mi) ? mi : []);
       setGroupesBalade(Array.isArray(gr) ? gr : []);
@@ -203,12 +171,10 @@ export default function DashboardQG() {
       setMediasLive(med && med.canaux ? med : null);
       setSanitaire(Array.isArray(san) ? san : []);
       
-      setAlertesCrises(
-        [
-          aLog && aLog.active ? { ...aLog, source: "Logistique", keyDb: KEY_ALERTE_LOG } : null,
-          aBal && aBal.active ? { ...aBal, source: "Balade / Secours", keyDb: KEY_ALERTE_BAL } : null,
-        ].filter(Boolean)
-      );
+      setAlertesCrises([
+        aLog && aLog.active ? { ...aLog, source: "Logistique", keyDb: KEY_ALERTE_LOG } : null,
+        aBal && aBal.active ? { ...aBal, source: "Balade / Secours", keyDb: KEY_ALERTE_BAL } : null,
+      ].filter(Boolean));
       setSbError(false);
     } catch (e) {
       setSbError(true);
@@ -221,109 +187,36 @@ export default function DashboardQG() {
     return () => clearInterval(t);
   }, []);
 
-  async function acquitterAlerteEquipe(alerte) {
-    const a = { ...alerte, acquittePar: "QG / PCE", heureAcquittement: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
-    await kvSet(alerte.keyDb, a);
-    pullAllData();
+  async function prendreEnCompteSos(id) {
+    const next = safeSos.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
+    setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
   }
 
-  async function leverAlerteEquipe(alerte) {
-    const a = { ...alerte, active: false, leveePar: "QG / PCE", heureLevee: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
-    await kvSet(alerte.keyDb, a);
-    pullAllData();
-  }
-
-  async function soumettreAjustementMeteo(e) {
-    e.preventDefault();
-    const heureMaj = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    const baseMeteo = meteoLive || METEO_FALLBACK;
-    const timelineExistante = Array.isArray(baseMeteo.timeline) ? baseMeteo.timeline : [];
-
-    const nouvelleLigneTimeline = { creneau: mgtCreneau, code: mgtCouleurLigne, phenomene: mgtTexteAlea.trim() };
-    const payloadMeteo = {
-      ...baseMeteo,
-      live: true,
-      codeActuel: mgtVigilance,
-      maj: `Mise à jour QG à ${heureMaj}`,
-      timeline: [nouvelleLigneTimeline, ...timelineExistante].slice(0, 5)
-    };
-
-    setMeteoLive(payloadMeteo);
-    await kvSet(KEY_METEO, payloadMeteo);
-    setMgtTexteAlea("");
-  }
-
-  async function purgerTimelineMeteo() {
-    const heureMaj = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    const payloadVierge = {
-      ...METEO_FALLBACK,
-      live: true,
-      maj: `Purgé par le QG à ${heureMaj}`,
-      timeline: [{ creneau: "Actuel", code: "vert", phenomene: "Conditions normales / RAS" }]
-    };
-    setMeteoLive(payloadVierge);
-    await kvSet(KEY_METEO, payloadVierge);
+  async function cloturerSos(id) {
+    const next = safeSos.map((s) => s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
+    setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
   }
 
   async function declencherSosManuel(e) {
     e.preventDefault();
-    const heureSaisie = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const geoRef = POINTS_GPS[formLieu];
-
     const nouveauSos = {
-      id: "manual-" + Date.now(),
-      heure: heureSaisie,
-      motif: formMotif,
-      nom: formNom,
-      tel: "Canal Radio",
-      details: formDetails.trim(),
-      statut: "nouveau",
-      gps: geoRef ? { lat: geoRef.lat, lon: geoRef.lon } : null,
-      surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment, ecartMetres: 0, reperePlusProche: formLieu } : null
+      id: "manual-" + Date.now(), heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+      motif: formMotif, nom: formNom, tel: "Radio", details: formDetails.trim(), statut: "nouveau",
+      surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment } : null
     };
-
-    const currentSos = Array.isArray(sosParticipants) ? sosParticipants : [];
-    const next = [nouveauSos, ...currentSos];
-    setSosParticipants(next);
-    setFormDetails("");
-    await kvSet(KEY_SOS_PART, next);
-  }
-
-  async function prendreEnCompteSos(id) {
-    const currentSos = Array.isArray(sosParticipants) ? sosParticipants : [];
-    const next = currentSos.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
-    setSosParticipants(next);
-    await kvSet(KEY_SOS_PART, next);
-  }
-
-  async function cloturerSos(id) {
-    const currentSos = Array.isArray(sosParticipants) ? sosParticipants : [];
-    const next = currentSos.map((s) => s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
-    setSosParticipants(next);
-    await kvSet(KEY_SOS_PART, next);
+    const next = [nouveauSos, ...safeSos];
+    setSosParticipants(next); setFormDetails(""); await kvSet(KEY_SOS_PART, next);
   }
 
   async function engagerVolante() {
-    const c = { active: true, prv: prvChoisi, message: msgConsigne.trim(), heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`, auteur: "QG", accusePar: "", heureAccuse: "" };
-    setConsigne(c);
-    setMsgConsigne("");
-    await kvSet(KEY_CONSIGNE, c);
-  }
-
-  async function leverConsigne() {
-    if (!consigne) return;
-    const c = { ...consigne, active: false, heureLevee: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
-    setConsigne(null);
-    await kvSet(KEY_CONSIGNE, c);
+    const c = { active: true, prv: prvChoisi, message: msgConsigne.trim(), heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`, auteur: "QG" };
+    setConsigne(c); setMsgConsigne(""); await kvSet(KEY_CONSIGNE, c);
   }
 
   const METEO = meteoLive || METEO_FALLBACK;
   const MEDIAS = mediasLive || MEDIAS_FALLBACK;
-  
-  const safeMissions = Array.isArray(missionsLog) ? missionsLog : [];
-  const safeGroupes = Array.isArray(groupesBalade) ? groupesBalade : [];
-  const safeSos = Array.isArray(sosParticipants) ? sosParticipants : [];
-  const safeSanitaire = Array.isArray(sanitaire) ? sanitaire : [];
+  const safeMissions = missionsLog, safeGroupes = groupesBalade, safeSos = sosParticipants, safeSanitaire = sanitaire;
 
   const logOuvertes = safeMissions.filter((m) => m && m.statut !== "Resolue" && m.statut !== "Résolue");
   const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
@@ -332,420 +225,272 @@ export default function DashboardQG() {
   const persRentres = safeGroupes.filter((g) => g && g.position === "ret").reduce((s, g) => s + (Number(g.participants) || 0), 0);
 
   const parEtape = { e1: 0, e2: 0, e3: 0 };
-  safeGroupes.forEach((g) => {
-    if (g && parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
-  });
+  safeGroupes.forEach((g) => { if (g && parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0; });
 
   const sosVisibles = safeSos.filter((s) => s && s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
-  const sosPartNouveaux = sosVisibles.filter((s) => s && s.statut === "nouveau");
-
   const sanActifs = safeSanitaire.filter((s) => s && s.statut !== "resolu" && s.statut !== "résolu");
-  const sanParLieu = {};
-  sanActifs.forEach((s) => { if(s && s.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + (s.count || 1); });
-  const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 3);
-
-  const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
+  const sanParLieu = {}; sanActifs.forEach((s) => { if(s?.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + 1; });
+  const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
+    <div className="min-h-screen bg-[#0f1319] text-slate-100 font-sans antialiased">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=500&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-        @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
-        .pulse-slow { animation: pulseSlow 1.8s ease-in-out infinite; }
+        @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+        .pulse-slow { animation: pulseSlow 1.6s ease-in-out infinite; }
       `}</style>
 
-      <header className="border-b border-white/10 bg-[#151b23]/90 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
-              <ShieldAlert className="w-5 h-5 text-amber-300" />
-            </div>
-            <div>
-              <div className="font-display tracking-wide text-[15px] leading-none">QG BUCO — DASHBOARD PRINCIPAL</div>
-              <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · CONSOLE COORD</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {sbError && <span className="text-xxs text-amber-400 font-mono bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 mr-2">Erreur Sync</span>}
-            <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
-              <Clock className="w-4 h-4 text-slate-500" />
-              {pad(now.getHours())}:{pad(now.getMinutes())}
-            </div>
-          </div>
+      {/* BANDEAU EN-TÊTE ULTRA COMPACT */}
+      <header className="border-b border-white/5 bg-[#141922]/90 backdrop-blur sticky top-0 z-30 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="font-display tracking-wider text-sm">QG BUCO — CONSOLE DE SUPERVISION INTEGRÉE</span>
+        </div>
+        <div className="flex items-center gap-4 font-mono text-xs text-slate-400">
+          {sbError && <span className="text-red-400 animate-pulse">⚠️ SYNC ERROR</span>}
+          <div className="flex items-center gap-1.5 text-slate-200"><Clock className="w-3.5 h-3.5 text-slate-500" /> {pad(now.getHours())}:{pad(now.getMinutes())}</div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
-
-        {/* 1. PANNEAU CRISES SOS ÉQUIPES */}
-        {alertesCrises.map((al, idx) => (
-          <div key={idx} className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4 border-l-4 border-red-500">
-            <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
-              <div className="flex items-start gap-3 min-w-0">
-                <TriangleAlert className="w-5 h-5 text-red-300 pulse-slow mt-0.5 shrink-0" />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-display text-sm tracking-wide text-red-200 uppercase font-bold">SOS CANAL {al.source.toUpperCase()}</span>
-                    <span className="text-[10px] font-mono bg-red-500/30 text-white px-2 py-0.2 rounded border border-red-400/30">CRITIQUE</span>
-                  </div>
-                  <div className="text-sm text-white font-semibold mt-1">{al.motif}</div>
-                  {al.details && <p className="text-xs text-red-200/80 mt-1 italic">"{al.details}"</p>}
-                  <div className="text-[10px] text-slate-400 font-mono mt-2">
-                    Déclenché par <span className="text-slate-300">{al.auteur}</span> à {al.heure}
-                    {al.acquittePar && <span className="text-emerald-400 ml-2">✓ Pris en compte par {al.acquittePar} ({al.heureAcquittement})</span>}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2 self-center shrink-0">
-                {!al.acquittePar && (
-                  <button onClick={() => acquitterAlerteEquipe(al)} className="text-xs font-mono px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-all">Acquitter</button>
-                )}
-                <button onClick={() => leverAlerteEquipe(al)} className="text-xs font-mono px-2.5 py-1 bg-red-600 hover:bg-red-500 rounded text-white font-bold transition-all shadow">Lever l'alerte</button>
+      {/* BOÎTE DES ALERTES RADICALES CRITIQUES (PLEINE LARGEUR SI ACTIVE) */}
+      {alertesCrises.length > 0 && (
+        <div className="p-4 bg-red-950/40 border-b border-red-500/30 space-y-2">
+          {alertesCrises.map((al, i) => (
+            <div key={i} className="flex items-center justify-between bg-red-500/10 ring-1 ring-red-500/30 p-2.5 rounded-md text-xs">
+              <div className="flex items-center gap-2 truncate">
+                <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow shrink-0" />
+                <span className="font-bold text-red-200 uppercase">SOS {al.source} ({al.heure}) :</span>
+                <span className="text-slate-200 truncate font-medium">"{al.motif} — {al.details || 'Aucun détail'}"</span>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      )}
 
-        {/* 2. PANNEAU SOS PARTICIPANTS ACTIFS */}
-        {sosVisibles.length > 0 && (
-          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-red-400/30">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-                <TriangleAlert className={`w-4 h-4 ${sosPartNouveaux.length > 0 ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
-                SOS PARTICIPANTS ACTIFS
-              </h2>
+      {/* CONTENEUR MAÎTRE EN 3 COLONNES SÉPARÉES */}
+      <main className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-[1700px] mx-auto items-start">
+        
+        {/* ==================== COLONNE 1 : SÛRETÉ & SOS TERRAIN ==================== */}
+        <div className="space-y-4">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+            <div className="flex items-center gap-2 mb-3 pb-1 border-b border-white/5">
+              <TriangleAlert className="w-4 h-4 text-red-400" />
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-300">SOS Participants Actifs ({sosVisibles.length})</h2>
             </div>
-            <div className="space-y-2">
-              {sosVisibles.map((s) => {
-                if (!s) return null;
-                const st = (s.statut || "").toLowerCase();
-                
-                let libelleStatutInterterrain = "Pris en compte par le QG";
-                if (st === "nouveau") libelleStatutInterterrain = "Nouveau — non pris en compte";
-                else if (st === "en route") libelleStatutInterterrain = `Volante en route (${s.heureEnRoute || ""})`;
-                else if (st === "sur place") libelleStatutInterterrain = `Volante sur place (${s.heureArrivee || ""})`;
-                else if (st === "prise en charge") libelleStatutInterterrain = `Victime prise en charge / Soins (${s.heurePriseEnCharge || ""})`;
-                else if (st === "retour a la normale") libelleStatutInterterrain = `Retour à la normale terrain (${s.heureRetourNormale || ""})`;
-                else if (st === "pris en compte" && s.heurePriseEnCompte) libelleStatutInterterrain = `Pris en compte par le QG (${s.heurePriseEnCompte})`;
-
-                return (
-                  <div key={s.id} className={`rounded-md px-3 py-2.5 ring-1 ${st === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"}`}>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
-                      <span className="text-sm text-slate-100 font-medium capitalize">{s.motif}</span>
-                      <span className="text-[11px] text-slate-400">— Origine: {s.nom}</span>
-                      <span className="flex-1" />
-                      <div className="flex items-center gap-2">
-                        {st === "nouveau" && (
-                          <button onClick={() => prendreEnCompteSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20">Prendre en compte</button>
-                        )}
-                        <button onClick={() => cloturerSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20">Clôturer</button>
-                      </div>
+            {sosVisibles.length === 0 ? (
+              <div className="text-xxs text-slate-500 italic py-6 text-center">Aucune fiche de secours active sur la plaine.</div>
+            ) : (
+              <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+                {sosVisibles.map((s) => (
+                  <div key={s.id} className={`p-2.5 rounded border text-xs bg-white/[0.01] ${s.statut === "nouveau" ? "border-red-500/30 bg-red-500/5" : "border-white/5"}`}>
+                    <div className="flex justify-between items-start font-mono text-[10px] text-slate-400 mb-1">
+                      <span>{s.heure} · {s.nom}</span>
+                      <span className="text-amber-400 uppercase">{s.statut}</span>
                     </div>
-                    {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · {s.surTrace.segment || s.surTrace.reperePlusProche}</div>}
-                    {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
-                    <div className="text-[11px] font-mono mt-1.5 text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded w-fit border border-amber-500/10">Statut : {libelleStatutInterterrain}</div>
+                    <div className="font-semibold text-slate-100">{s.motif}</div>
+                    {s.surTrace && <div className="text-[11px] text-slate-400 mt-0.5">📍 km {s.surTrace.km} · {s.surTrace.segment}</div>}
+                    {s.details && <div className="text-[10px] text-slate-400 italic mt-1 bg-black/20 p-1 rounded">"{s.details}"</div>}
+                    <div className="mt-2 flex gap-1.5 justify-end">
+                      {s.statut === "nouveau" && (
+                        <button onClick={() => prendreEnCompteSos(s.id)} className="text-[10px] font-mono bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>
+                      )}
+                      <button onClick={() => cloturerSos(s.id)} className="text-[10px] font-mono bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Clôturer</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Saisie SOS PC Rapide */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24]">
+            <div className="text-xs font-display text-red-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS Interrain</div>
+            <form onSubmit={declencherSosManuel} className="space-y-2 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
+                  <option value="médical">Médical / Malaise</option>
+                  <option value="Incendie / fumée">Incendie / Fumée</option>
+                  <option value="Technique / énergie">Technique / Énergie</option>
+                  <option value="Sûreté / violence">Sûreté / Bagarre</option>
+                </select>
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200" value={formLieu} onChange={(e) => setFormLieu(e.target.value)}>
+                  {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200" value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Indicatif Radio / Source" />
+                <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-mono font-bold text-white shadow-md">ALERTER</button>
+              </div>
+              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions de la situation terrain..." required />
+            </form>
+          </div>
+
+          {/* Gestion des Équipes Volantes */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
+            {consigne ? (
+              <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
+                <div>
+                  <div className="text-amber-300">Volante en transit : <strong className="text-slate-100">{consigne.prv}</strong></div>
+                  {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
+                </div>
+                <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
+              </div>
+            ) : (
+              <div className="flex gap-1">
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
+                <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
+                <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 px-2.5 py-1 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ==================== COLONNE 2 : SUIVI PARCOURS & CROWD ==================== */}
+        <div className="space-y-4">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+            <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5">
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
+                <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOPS)
+              </h2>
+              <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} Pax Forêt</span>
+            </div>
+
+            {/* Frise linéaire d'avancement des vagues */}
+            <div className="relative h-14 mt-4 mb-2">
+              <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
+              {REPERES.map((r, i) => (
+                <div key={i} className="absolute top-3" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-600 mx-auto mt-2" />
+                  <div className="text-[8px] font-mono text-slate-500 text-center mt-0.5">{r.nom}</div>
+                </div>
+              ))}
+              {grpDehors.map((g, idx) => {
+                const km = POS_KM[g.position] ?? 0;
+                return (
+                  <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} : ${g.participants} pax`}>
+                    <div className="flex items-center bg-sky-500/20 ring-1 ring-sky-400/50 rounded px-1 py-0.5 text-[8px] font-mono text-sky-200">
+                      <Users className="w-2 h-2 text-sky-300 mr-0.5" />{g.participants}
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </section>
-        )}
-
-        {/* 2B. NOUVEAU PANNEAU INTÉGRÉ : SITUATION DU PARCOURS (FRISE TACTIQUE PCOPS) */}
-        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4 shadow-xl">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-            <Footprints className="w-4 h-4 text-sky-400" /> PARCOURS 6,5 KM — SITUATION TACTIQUE (PCOPS)
-          </h2>
-
-          <div className="relative h-16 mb-2">
-            <div className="absolute top-8 left-0 right-0 h-1 bg-white/15 rounded-full" />
-            
-            {/* Repères kilométriques fixes (P0, E1, E2, E3) */}
-            {REPERES.map((r, i) => (
-              <div key={i} className="absolute top-5" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
-                <div className="w-2 h-2 rounded-full bg-slate-500 mx-auto mt-2" />
-                <div className="text-[9px] font-mono text-slate-500 text-center mt-1">{r.nom}</div>
-              </div>
-            ))}
-            
-            {/* Vagues de marcheurs actives */}
-            {grpDehors.map((g) => {
-              const km = POS_KM[g.position] ?? 0;
-              return (
-                <div key={g.id || g.nom} className="absolute top-1" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} · ${g.participants} pers.`}>
-                  <div className="flex items-center gap-0.5 bg-amber-400/20 ring-1 ring-amber-400/50 rounded px-1 py-0.5">
-                    <Users className="w-2.5 h-2.5 text-amber-300" />
-                    <span className="text-[9px] font-mono text-amber-200">{g.participants}</span>
-                  </div>
-                </div>
-              );
-            })}
-            
-            {/* Alertes SOS participantes actives projetées sur le tracé */}
-            {sosVisibles.filter((s) => s && s.surTrace && s.surTrace.km !== null).map((s) => (
-              <div key={s.id} className="absolute top-10" style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 6px)` }} title={s.motif}>
-                <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
-              </div>
-            ))}
-          </div>
-
-          <div className="text-[11px] font-mono text-slate-500 mt-1 border-t border-white/5 pt-2">
-            {persAttente} en attente au Point 0 · <span className="text-sky-400 font-medium">{totalMarcheursEnForet} sur le parcours</span> · {persRentres} rentrés
-          </div>
-        </section>
-        
-        {/* 3. PANEL IRM BELGIQUE */}
-        <a 
-          href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block bg-[#151b23] rounded-lg p-4 ring-1 ring-amber-400/30 border-t-4 border-amber-400 shadow-xl hover:bg-[#1b222c] hover:ring-amber-400/50 transition-all cursor-pointer group"
-        >
-          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400 pulse-slow" />
-              <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase flex items-center gap-1.5">
-                IRM LIVE — AVERTISSEMENTS OFFICIELS ({METEO.station || METEO_FALLBACK.station})
-                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-300 transition-colors inline" />
-              </h2>
-            </div>
-            <div className="text-[10px] font-mono bg-amber-400/10 text-amber-300 px-2 py-0.5 rounded border border-amber-400/20 uppercase tracking-wider">
-              Vigilance : {METEO.statutAlerte || METEO_FALLBACK.statutAlerte}
+            <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1">
+              <span>Attente P0 : {persAttente}</span>
+              <span>Rentré QG : {persRentres}</span>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-            <div className="md:col-span-2 bg-white/[0.02] border border-white/5 rounded p-2.5">
-              <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-                {METEO.titre || METEO_FALLBACK.titre}
-              </div>
-              <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">{METEO.description || METEO_FALLBACK.description}</p>
-              <div className="text-[10px] font-mono text-slate-400 mt-2">Période de validité : {METEO.validite || METEO_FALLBACK.validite}</div>
-            </div>
-            
-            <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between space-y-3">
-              <div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Météo & Données Clés</div>
-                <div className="text-xs font-medium text-slate-200">{METEO.obsResume || METEO_FALLBACK.obsResume}</div>
-                
-                <div className="mt-2 pt-2 border-t border-white/5 space-y-1 text-[11px]">
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="flex items-center gap-1 text-slate-400"><Sun className="w-3 h-3 text-amber-400" /> Lever :</span>
-                    <span className="font-mono font-medium">{METEO.obsLever || METEO_FALLBACK.obsLever}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="flex items-center gap-1 text-slate-400"><Sunset className="w-3 h-3 text-orange-400" /> Coucher :</span>
-                    <span className="font-mono font-medium">{METEO.obsCoucher || METEO_FALLBACK.obsCoucher}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-300 pt-0.5">
-                    <span className="text-slate-400">Indice UV max :</span>
-                    <span className="font-mono font-bold text-amber-400">{METEO.obsUV || METEO_FALLBACK.obsUV}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-[9px] font-mono text-slate-500 pt-1.5 border-t border-white/5">Source : {METEO.source} <br/>Obs Synchro : {METEO.maj}</div>
-            </div>
-          </div>
-        </a>
-        
-        {/* GRILLE : PANNEAUX DE SAISIE */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
-          {/* COLONNE A : FORMULAIRE SOS RAPIDE PC */}
-          <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide"><PlusCircle className="w-4 h-4" /> INJECTER SOS INTERRAIN</div>
-              <form onSubmit={declencherSosManuel} className="space-y-2.5">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Urgence</label>
-                    <select className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
-                      <option value="médical">médical</option>
-                      <option value="Incendie / fumée">Incendie / fumée</option>
-                      <option value="Technique / énergie">Technique / énergie</option>
-                      <option value="Gaz / G.E.">Gaz / G.E.</option>
-                      <option value="météo">météo</option>
-                      <option value="Mouvement de foule">Mouvement de foule</option>
-                      <option value="Sûreté / violence">Sûreté / violence</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Localisation</label>
-                    <select className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none" value={formLieu} onChange={(e) => setFormLieu(e.target.value)}>
-                      {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-2 items-end">
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Origine / Indicatif</label>
-                    <input type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none" value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Ex: PMR 333 / Secu" />
-                  </div>
-                  <button type="submit" className="py-1 bg-red-600 hover:bg-red-500 text-white text-[11px] font-bold font-mono rounded tracking-wide transition-colors shadow">LANCER SOS</button>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Détails</label>
-                  <input type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1.5 text-xs text-slate-300 focus:outline-none" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Descriptif de l'événement..." required />
-                </div>
-              </form>
-            </div>
-          </section>
-
-          {/* COLONNE B : REPORT MÉTÉO INTERNE */}
-          <section className="bg-[#1a1f26] border-l-4 border-sky-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-sky-400 font-display text-sm tracking-wide"><Wrench className="w-4 h-4" /> MANAGEMENT MÉTÉO INTERNE</div>
-                <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded transition-all">Purger tout</button>
-              </div>
-              <form onSubmit={soumettreAjustementMeteo} className="space-y-2.5">
-                <div className="grid grid-cols-3 gap-1.5">
-                  <div>
-                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Global</label>
-                    <select className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
-                      <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option><option value="rouge">ROUGE</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Créneau</label>
-                    <select className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
-                      <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Ligne</label>
-                    <select className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none" value={mgtCouleurLigne} onChange={(e) => setMgtCouleurLigne(e.target.value)}>
-                      <option value="vert">Vert</option><option value="jaune">Jaune</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2 items-end">
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Texte descriptif</label>
-                    <input type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Ex: Orages isolés..." required />
-                  </div>
-                  <button type="submit" className="py-1 bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold font-mono rounded tracking-wide shadow">POUSSER</button>
-                </div>
-              </form>
-            </div>
-          </section>
-        </div>
-
-        {/* Engagement volante */}
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3"><Footprints className="w-4 h-4 text-slate-500" /> ENGAGEMENT VOLANTE</h2>
-          {consigne ? (
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-sm text-amber-200">Engagée vers <span className="font-semibold">{consigne.prv}</span>{consigne.message ? ` — ${consigne.message}` : ""}</div>
-                <div className="text-[11px] font-mono text-slate-400 mt-1">Émise à {consigne.heure} · {consigne.accusePar ? <span className="text-emerald-300">Accusée à {consigne.heureAccuse}</span> : <span className="text-amber-300 pulse-slow">En attente d'accusé</span>}</div>
-              </div>
-              <button onClick={leverConsigne} className="text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-white/25 text-slate-300">Lever</button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 flex-wrap">
-              <select className="bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
-              <input className="flex-1 bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Message d'accompagnement radio" />
-              <button onClick={engagerVolante} className="text-xs font-mono px-3 py-2 rounded ring-1 ring-amber-400/50 bg-amber-400/15 text-amber-200 hover:bg-amber-400/25">Engager</button>
-            </div>
-          )}
-        </section>
-
-        {/* Logistique + Étapes */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><ClipboardList className="w-4 h-4 text-slate-500" /> LOGISTIQUE</h2>
-              <span className="font-mono text-xs text-slate-400">{logOuvertes.length} ouvertes</span>
-            </div>
-            <div className="space-y-1.5">
-              {logOuvertes.length === 0 ? <div className="text-xs text-slate-500 italic py-2 text-center">Aucune tâche logistique.</div> : logOuvertes.slice(0, 6).map((m) => (
-                <div key={m.id || m.ref} className="flex items-center gap-2 text-xs rounded bg-white/[0.03] ring-1 ring-white/10 px-2.5 py-2">
-                  <span className="text-slate-200 flex-1 truncate">{m.nature}</span>
-                  <span className={`text-[10px] font-mono px-1 rounded ${m.bloquant === "Oui" || (m.priorite || "").startsWith("P1") ? "bg-red-500/20 text-red-300" : "bg-slate-500/20 text-slate-400"}`}>{m.priorite || "P3"}</span>
-                  <span className="text-[10px] text-slate-500 shrink-0">{m.attribueA || "non-attribué"}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><Footprints className="w-4 h-4 text-slate-500" /> SEUILS DES ÉTAPES</h2>
-              <span className="font-mono text-xs text-amber-300">{totalMarcheursEnForet} engagés</span>
-            </div>
-            <div className="space-y-1.5">
+          {/* Seuils et saturation des étapes de ravitaillement */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5"><CircleDot className="w-3.5 h-3.5 text-slate-400" /> Seuils des Étapes</h3>
+            <div className="space-y-2 text-xs">
               {["e1", "e2", "e3"].map((eid, idx) => {
                 const n = parEtape[eid];
                 const pct = Math.min(100, Math.round((n / CAPACITE_ETAPE) * 100));
                 const cls = pct >= 100 ? "bg-red-500" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
                 return (
-                  <div key={eid} className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-400 w-14">Etape {idx + 1}</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden"><div className={`h-full ${cls}`} style={{ width: `${pct}%` }} /></div>
-                    <span className="text-[11px] font-mono w-14 text-right">{n}/{CAPACITE_ETAPE}</span>
+                  <div key={eid} className="bg-black/10 border border-white/5 p-2 rounded">
+                    <div className="flex justify-between items-center font-mono text-[11px] mb-1">
+                      <span className="text-slate-300 font-medium">Étape {idx + 1} — Ravitaillement</span>
+                      <span className={pct >= 72 ? "text-amber-400 font-bold" : "text-slate-400"}>{n} / {CAPACITE_ETAPE} pax</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div className={`h-full ${cls} transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </section>
+          </div>
+
+          {/* Bloc Sanitaire */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Signalements Sanitaires Bloquants</h3>
+            {sanTop.length === 0 ? (
+              <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune anomalie rembobinée sur les blocs WC.</div>
+            ) : (
+              <div className="space-y-1">
+                {sanTop.map(([lieu, count]) => (
+                  <div key={lieu} className="flex justify-between items-center text-xs bg-black/20 p-2 rounded border border-white/5">
+                    <span className="text-slate-300">{lieu}</span>
+                    <span className="text-xxs font-mono text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded border border-amber-500/20">{count} plaintes</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Suivi sanitaire */}
-        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3"><Droplets className="w-4 h-4 text-slate-500" /> SANITAIRE</h2>
-          {sanActifs.length === 0 ? <div className="text-xs text-slate-500 text-center py-2">Aucun signalement bloc WC.</div> : (
-            <div className="space-y-1.5">
-              {sanTop.map(([lieu, n]) => (
-                <div key={lieu} className="flex items-center justify-between text-xs rounded bg-white/[0.02] ring-1 ring-white/5 px-2.5 py-2">
-                  <span className="text-slate-300 font-medium">{lieu}</span>
-                  <span className="font-mono text-slate-400 bg-white/5 px-1.5 py-0.5 rounded">{n} signalement(s)</span>
+        {/* ==================== COLONNE 3 : MÉTÉO, LOGISTIQUE & MÉDIAS ==================== */}
+        <div className="space-y-4">
+          {/* Panneau IRM Cliquable */}
+          <a 
+            href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
+            className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md"
+          >
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xxs font-mono text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 tracking-wider uppercase">IRM LIVE</span>
+              <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
+            </div>
+            <div className="text-xs font-semibold text-slate-100 truncate">{METEO.titre} — {METEO.obsResume}</div>
+            <p className="text-[11px] text-slate-400 leading-snug mt-1 line-clamp-2">{METEO.description}</p>
+            <div className="mt-2 pt-1.5 border-t border-white/5 flex justify-between text-[10px] text-slate-400 font-mono">
+              <span className="flex items-center gap-0.5"><Sun className="w-3 h-3 text-amber-400" /> UV Max: {METEO.obsUV}</span>
+              <span className="flex items-center gap-0.5"><Sunset className="w-3 h-3 text-orange-400" /> Coucher: {METEO.obsCoucher}</span>
+            </div>
+          </a>
+
+          {/* Tâches Logistiques Ouvertes */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+            <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
+              <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
+              <span className="font-mono text-xxs text-slate-400">{logOuvertes.length} Ops</span>
+            </div>
+            <div className="space-y-1.5 max-h-[160px] overflow-y-auto">
+              {logOuvertes.length === 0 ? (
+                <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune panne ou anomalie matérielle ouverte.</div>
+              ) : (
+                logOuvertes.slice(0, 4).map((m, i) => (
+                  <div key={i} className="text-xs bg-white/[0.02] p-2 rounded flex justify-between items-center gap-2 border border-white/5">
+                    <span className="text-slate-300 truncate flex-1">{m.nature}</span>
+                    <span className="text-[10px] font-mono bg-red-500/10 text-red-400 px-1.5 rounded">{m.priorite || "P3"}</span>
+                  </div>
+                )
+              ))}
+            </div>
+          </div>
+
+          {/* Veille Médias */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><Rss className="w-3.5 h-3.5 text-slate-400" /> Veille Réseaux</h3>
+              <span className="text-xxs font-mono bg-emerald-500/10 text-emerald-400 px-1.5 rounded border border-emerald-500/20 capitalize">{MEDIAS.ambiance}</span>
+            </div>
+            {MEDIAS.canaux?.slice(0, 2).map((c, i) => (
+              <div key={i} className="text-[11px] bg-black/20 p-2 rounded border border-white/5 mt-1">
+                <span className="font-semibold text-slate-300 block">{c.name}</span>
+                <p className="text-slate-400 italic mt-0.5 truncate">"{c.note}"</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Plan Radio Compact */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Radio className="w-3.5 h-3.5 text-slate-400" /> Plan d'Urgence Radio</h3>
+            <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
+              {CANAUX_RADIO.map((c) => (
+                <div key={c.canal} className="bg-white/[0.02] p-1 px-2 rounded border border-white/5 flex justify-between">
+                  <span className="text-amber-300 font-bold">{c.canal}</span>
+                  <span className="text-slate-400 truncate max-w-[80px]">{c.usage}</span>
                 </div>
               ))}
             </div>
-          )}
-        </section>
-
-        {/* ... (Veille médias et Plan Radio identiques) */}
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><Rss className="w-4 h-4 text-slate-500" /> . VEILLE MÉDIAS</h2>
-            <div className="flex items-center gap-1.5 text-[11px] font-mono bg-white/5 px-2 py-0.5 rounded text-slate-400">
-              <span>Ambiance :</span>
-              {MEDIAS.ambiance === "positive" && <Smile className="w-3.5 h-3.5 text-emerald-400" />}
-              {MEDIAS.ambiance === "neutre" && <Meh className="w-3.5 h-3.5 text-amber-400" />}
-              <span className="uppercase text-[10px] tracking-wider text-slate-300">{MEDIAS.ambiance}</span>
-            </div>
           </div>
-          <div className="grid grid-cols-1 gap-2">
-            {MEDIAS.canaux && MEDIAS.canaux.map((c, i) => (
-              <div key={i} className="text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <div className="min-w-0">
-                  <span className="font-mono text-slate-300 block font-medium">{c.name}</span>
-                  <span className="text-slate-400 text-[11px] mt-0.5 block italic">"{c.note}"</span>
-                </div>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider ${c.statut === "ok" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}>{c.statut}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3"><Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-            {CANAUX_RADIO.map((c) => (
-              <div key={c.canal} className="flex items-start gap-2 text-[11px] rounded bg-white/[0.02] px-2 py-1.5">
-                <span className="font-mono text-amber-300 w-14">{c.canal}</span>
-                <span className="text-slate-400">{c.usage}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        </div>
 
       </main>
     </div>
