@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Restauration Statuts Volante + Logistique + SOS)
+   DASHBOARD QG (Restauration Statuts Volante + Logistique + SOS + Veille Médias)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -43,6 +43,15 @@ async function kvGet(key) {
   return j.length ? j[0].value : null;
 }
 
+async function kvSet(key, value) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
+    method: "POST",
+    headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
+    body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
+  });
+  return r.ok;
+}
+
 const KEY_MISSIONS = "bfmf2026-missions-logistique";
 const KEY_GROUPES = "bfmf2026-suivi-balade";
 const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
@@ -51,6 +60,7 @@ const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
 const KEY_SANITAIRE = "bfmf2026-sanitaire";
+const KEY_MEDIAS = "bfmf2026-medias-live"; // Clé pour la veille médias
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
@@ -79,15 +89,6 @@ const POINTS_GPS = {
   "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
 };
 
-async function kvSet(key, value) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
-    method: "POST",
-    headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
-  });
-  return r.ok;
-}
-
 const CAPACITE_ETAPE = 300;
 
 const METEO_FALLBACK = {
@@ -101,6 +102,16 @@ const METEO_FALLBACK = {
     { creneau: "Dans les 8 prochaines heures (+8h)", code: "jaune", phenomene: "vent" },
     { creneau: "Dans les 12 prochaines heures (+12h)", code: "vert", phenomene: "RAS" },
   ],
+};
+
+const MEDIAS_FALLBACK = {
+  ambiance: "neutre",
+  maj: "il y a 8 min",
+  canaux: [
+    { name: "Facebook (Groupe Local Ferrières)", statut: "attention", note: "Plaintes sur l'attente au parking public à l'ouverture" },
+    { name: "Instagram (#bfmf2026)", statut: "ok", note: "Retours très positifs sur la scénographie et le stand ravitaillement Etape 1" },
+    { name: "Presse Locale (L'Avenir)", statut: "ok", note: "Brève publiée, focus sur l'écofestival et l'affluence record" }
+  ]
 };
 
 const CANAUX_RADIO = [
@@ -127,6 +138,7 @@ export default function DashboardQG() {
   const [sosParticipants, setSosParticipants] = useState([]);
   const [consigne, setConsigne] = useState(null);
   const [meteoLive, setMeteoLive] = useState(null);
+  const [mediasLive, setMediasLive] = useState(null);
   const [sanitaire, setSanitaire] = useState([]);
   const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
   const [msgConsigne, setMsgConsigne] = useState("");
@@ -146,7 +158,7 @@ export default function DashboardQG() {
     let stop = false;
     async function pull() {
       try {
-        const [mi, gr, aLog, aBal, sosP, co, mto, san] = await Promise.all([
+        const [mi, gr, aLog, aBal, sosP, co, mto, san, med] = await Promise.all([
           kvGet(KEY_MISSIONS),
           kvGet(KEY_GROUPES),
           kvGet(KEY_ALERTE_LOG),
@@ -155,6 +167,7 @@ export default function DashboardQG() {
           kvGet(KEY_CONSIGNE),
           kvGet(KEY_METEO),
           kvGet(KEY_SANITAIRE),
+          kvGet(KEY_MEDIAS),
         ]);
         if (stop) return;
         setMissionsLog(Array.isArray(mi) ? mi : []);
@@ -162,6 +175,7 @@ export default function DashboardQG() {
         setSosParticipants(Array.isArray(sosP) ? sosP : []);
         setConsigne(co && co.active ? co : null);
         setMeteoLive(mto && mto.live ? mto : null);
+        setMediasLive(med && med.canaux ? med : null);
         setSanitaire(Array.isArray(san) ? san : []);
         setAlertes(
           [
@@ -250,6 +264,7 @@ export default function DashboardQG() {
   }
 
   const METEO = meteoLive || METEO_FALLBACK;
+  const MEDIAS = mediasLive || MEDIAS_FALLBACK;
   const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue" && m.statut !== "Résolue");
   
   const grpDehors = groupesBalade.filter((g) => g.position !== "p0" && g.position !== "ret");
@@ -364,7 +379,7 @@ export default function DashboardQG() {
             </div>
             <div>
               <button type="submit" className="w-full py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-mono rounded tracking-wide transition-colors shadow">
-                INJECTER SOS TERRAIN
+                INJECTER SOS INTERRAIN
               </button>
             </div>
             <div className="sm:col-span-4">
@@ -376,7 +391,7 @@ export default function DashboardQG() {
           </form>
         </section>
 
-        {/* SOS PARTICIPANTS ACTIFS AVEC DECODAGE SYNTAXIQUE DYNAMIQUE DES STATUTS */}
+        {/* SOS PARTICIPANTS ACTIFS */}
         {sosVisibles.length > 0 && (
           <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
             <div className="flex items-center justify-between mb-3">
@@ -389,7 +404,6 @@ export default function DashboardQG() {
               {sosVisibles.map((s) => {
                 const st = (s.statut || "").toLowerCase();
                 
-                // Décodage dynamique de l'état d'avancement pour le QG coord
                 let libelleStatutInterterrain = "Pris en compte par le QG";
                 if (st === "nouveau") libelleStatutInterterrain = "Nouveau — non pris en compte";
                 else if (st === "en route") libelleStatutInterterrain = `Volante en route (${s.heureEnRoute || ""})`;
@@ -413,7 +427,6 @@ export default function DashboardQG() {
                     </div>
                     {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · Repère : {s.surTrace.reperePlusProche} · {s.surTrace.segment}</div>}
                     {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
-                    {/* Ligne d'état tactique dynamique en ambre */}
                     <div className="text-[11px] font-mono mt-1.5 text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded w-fit border border-amber-500/10">
                       Statut : {libelleStatutInterterrain}
                     </div>
@@ -511,6 +524,37 @@ export default function DashboardQG() {
               ))}
             </div>
           )}
+        </section>
+
+        {/* VEILLE MÉDIAS ET RÉSEAUX SOCIAUX */}
+        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+              <Rss className="w-4 h-4 text-slate-500" /> VEILLE MÉDIAS & RÉSEAUX
+            </h2>
+            <div className="flex items-center gap-1.5 text-[11px] font-mono bg-white/5 px-2 py-0.5 rounded text-slate-400">
+              <span>Ambiance :</span>
+              {MEDIAS.ambiance === "positive" && <Smile className="w-3.5 h-3.5 text-emerald-400" />}
+              {MEDIAS.ambiance === "neutre" && <Meh className="w-3.5 h-3.5 text-amber-400" />}
+              {MEDIAS.ambiance === "negative" && <Frown className="w-3.5 h-3.5 text-red-400" />}
+              <span className="uppercase text-[10px] tracking-wider text-slate-300">{MEDIAS.ambiance}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {MEDIAS.canaux.map((c, i) => (
+              <div key={i} className="text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <div className="min-w-0">
+                  <span className="font-mono text-slate-300 block font-medium">{c.name}</span>
+                  <span className="text-slate-400 text-[11px] mt-0.5 block italic">"{c.note}"</span>
+                </div>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider w-fit shrink-0 ${
+                  c.statut === "ok" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                }`}>
+                  {c.statut}
+                </span>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* Météo IRM */}
