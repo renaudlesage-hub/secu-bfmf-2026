@@ -14,6 +14,7 @@ import {
   Smile,
   Meh,
   Frown,
+  Rss, // <-- Correction : Ajout de l'import manquant ici
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -80,7 +81,7 @@ const POINTS_GPS = {
   "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
   "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Balisage Secours #4" },
   "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Balisage Secours #5" },
-  "PRV#6": { lat: 50.38236, font: 5.64579, km: 3.8, segment: "Balisage Secours #6" },
+  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Balisage Secours #6" }, // Corrected 'font' to 'lon'
   "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
 };
 
@@ -569,7 +570,7 @@ export default function DashboardQG() {
           </div>
         </section>
 
-        {/* SUIVI MÉTÉO IRM CORRIGÉ (SÉCURITÉ MAXIMUM) */}
+        {/* SUIVI MÉTÉO IRM */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM</h2>
