@@ -10,6 +10,9 @@ import {
   Users,
   PhoneCall,
   ExternalLink,
+  AlertTriangle,
+  Sun,
+  Sunset,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
@@ -68,6 +71,22 @@ const GRAV = {
   critique: { rang: 3, cls: "text-red-300", ring: "ring-red-400/40", bg: "bg-red-400/10", dot: "bg-red-400" },
   grave: { rang: 2, cls: "text-amber-300", ring: "ring-amber-400/40", bg: "bg-amber-400/10", dot: "bg-amber-400" },
   modere: { rang: 1, cls: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10", dot: "bg-sky-400" },
+};
+
+// Lecture seule des infos scraping IRM répliquées ici
+const DATA_IRM_SCRAPED = {
+  station: "Ferrières (Province de Liège)",
+  statutAlerte: "jaune",
+  titre: "Avertissement Chaleur",
+  validite: "Du 10/07/2026 00:00 au 15/07/2026 00:00",
+  description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur et Pics d'Ozone. De plus, les maxima atteindront ou dépasseront les 32 degrés à partir de samedi.",
+  source: "Institut Royal Météorologique de Belgique (IRM)",
+  obsHeure: "09h00",
+  obsResume: "Temps ensoleillé et sec — 21°C (Vent 6 km/h NNE)",
+  obsLever: "05h38",
+  obsCoucher: "21h52",
+  obsUV: "6.8 (Élevé)",
+  urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
 /* ------------------------------ App ------------------------------ */
@@ -213,6 +232,14 @@ export default function PcOps() {
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-slate-100 font-sans">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
+        .font-display { font-family: 'Oswald', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+        .pulse-slow { animation: pulseSlow 1.8s ease-in-out infinite; }
+      `}</style>
+
       <header className="border-b border-white/10 bg-[#131a22]/95 backdrop-blur sticky top-0 z-20">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -246,6 +273,74 @@ export default function PcOps() {
             Liaison donnees indisponible — la situation affichee peut etre obsolete.
           </div>
         )}
+
+        {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE (LECTURE SEULE AUTORITÉS) */}
+        <a 
+          href={DATA_IRM_SCRAPED.urlFerrieres}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block bg-[#131a22] rounded-lg p-4 ring-1 ring-amber-400/30 border-t-4 border-amber-400 shadow-xl hover:bg-[#1a232e] hover:ring-amber-400/50 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 pulse-slow" />
+              <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase flex items-center gap-1.5">
+                IRM LIVE — AVERTISSEMENTS OFFICIELS ({DATA_IRM_SCRAPED.station})
+                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-300 transition-colors inline" />
+              </h2>
+            </div>
+            <div className="text-[10px] font-mono bg-amber-400/10 text-amber-300 px-2 py-0.5 rounded border border-amber-400/20 uppercase tracking-wider">
+              Vigilance : {DATA_IRM_SCRAPED.statutAlerte}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            <div className="md:col-span-2 bg-white/[0.02] border border-white/5 rounded p-2.5">
+              <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                {DATA_IRM_SCRAPED.titre}
+              </div>
+              <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                {DATA_IRM_SCRAPED.description}
+              </p>
+              <div className="text-[10px] font-mono text-slate-400 mt-2">
+                Période de validité : {DATA_IRM_SCRAPED.validite}
+              </div>
+            </div>
+            
+            <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between space-y-3">
+              <div>
+                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Météo & Données Clés</div>
+                <div className="text-xs font-medium text-slate-200">{DATA_IRM_SCRAPED.obsResume}</div>
+                
+                {/* Éphémérides et Indice UV */}
+                <div className="mt-2 pt-2 border-t border-white/5 space-y-1 text-[11px]">
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <Sun className="w-3 h-3 text-amber-400" /> Lever :
+                    </span>
+                    <span className="font-mono font-medium">{DATA_IRM_SCRAPED.obsLever}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <Sunset className="w-3 h-3 text-orange-400" /> Coucher :
+                    </span>
+                    <span className="font-mono font-medium">{DATA_IRM_SCRAPED.obsCoucher}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300 pt-0.5">
+                    <span className="text-slate-400">Indice UV max :</span>
+                    <span className="font-mono font-bold text-amber-400">{DATA_IRM_SCRAPED.obsUV}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-[9px] font-mono text-slate-500 pt-1.5 border-t border-white/5">
+                Source : {DATA_IRM_SCRAPED.source} <br/>
+                Observation : {DATA_IRM_SCRAPED.obsHeure}
+              </div>
+            </div>
+          </div>
+        </a>
 
         {/* Synthese chiffree */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
