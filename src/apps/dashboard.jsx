@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Restauration Statuts Volante + Logistique + SOS + Veille Médias)
+   DASHBOARD QG (Restauration Complète Détails Météo + Médias + Volante)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -60,7 +60,7 @@ const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
 const KEY_SANITAIRE = "bfmf2026-sanitaire";
-const KEY_MEDIAS = "bfmf2026-medias-live"; // Clé pour la veille médias
+const KEY_MEDIAS = "bfmf2026-medias-live";
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
@@ -98,9 +98,9 @@ const METEO_FALLBACK = {
   maj: "il y a 12 min",
   timeline: [
     { creneau: "Dans les 2 prochaines heures (+2h)", code: "vert", phenomene: "RAS" },
-    { creneau: "Dans les 4 prochaines heures (+4h)", code: "jaune", phenomene: "orages" },
-    { creneau: "Dans les 8 prochaines heures (+8h)", code: "jaune", phenomene: "vent" },
-    { creneau: "Dans les 12 prochaines heures (+12h)", code: "vert", phenomene: "RAS" },
+    { creneau: "Dans les 4 prochaines heures (+4h)", code: "jaune", phenomene: "Risque d'orages locaux" },
+    { creneau: "Dans les 8 prochaines heures (+8h)", code: "jaune", phenomene: "Rafales de vent soutenues" },
+    { creneau: "Dans les 12 prochaines heures (+12h)", code: "vert", phenomene: "Retour au calme / RAS" },
   ],
 };
 
@@ -557,19 +557,28 @@ export default function DashboardQG() {
           </div>
         </section>
 
-        {/* Météo IRM */}
+        {/* SUIVI MÉTÉO IRM DÉTAILLÉ ET CORRIGÉ */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM</h2>
             <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
           </div>
           <div className="space-y-2">
-            {METEO.timeline.map((t, i) => (
-              <a key={i} href="https://www.meteo.be/fr/ferrieres" target="_blank" rel="noreferrer" className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2 hover:bg-white/[0.06] transition-all group">
-                <span className="text-slate-100 font-medium group-hover:text-amber-300 flex items-center gap-1">{t.phenomene} <ExternalLink className="w-3 h-3 text-slate-500" /></span>
-                <span className="text-slate-400 font-mono text-[11px]">{t.creneau}</span>
-              </a>
-            ))}
+            {METEO.timeline.map((t, i) => {
+              const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
+              return (
+                <a key={i} href="https://www.meteo.be/fr/ferrieres" target="_blank" rel="noreferrer" className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 hover:bg-white/[0.06] transition-all group">
+                  <div className="flex items-center gap-2.5">
+                    {/* Indicateur de couleur de vigilance pour chaque créneau */}
+                    <span className={`w-2 h-2 rounded-full ${tc.dot}`} />
+                    <span className="text-slate-100 font-medium group-hover:text-amber-300 flex items-center gap-1">
+                      {t.phenomene} <ExternalLink className="w-3 h-3 text-slate-500" />
+                    </span>
+                  </div>
+                  <span className="text-slate-400 font-mono text-[11px] shrink-0">{t.creneau}</span>
+                </a>
+              );
+            })}
           </div>
         </section>
 
