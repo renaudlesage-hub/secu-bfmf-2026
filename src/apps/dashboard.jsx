@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version Finale Consolidée - Suivi Aléas Météo & Médias)
+   DASHBOARD QG (Version Finale Consolidée - Protection Clés Brutes Météo)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -319,7 +319,7 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
         
-        {/* FORMULAIRE SOS MANUEL DETECTE */}
+        {/* FORMULAIRE SOS RAPIDE PC */}
         <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
           <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide">
             <PlusCircle className="w-4 h-4" /> LANCER UNE ALERTE SOS MANUELLE (APPELS RADIO / TÉLÉPHONE)
@@ -565,7 +565,7 @@ export default function DashboardQG() {
           </div>
         </section>
 
-        {/* SUIVI MÉTÉO IRM CORRIGÉ (SÉCURISÉ + DECODAGE DISCRET D'ALÉAS) */}
+        {/* SUIVI MÉTÉO IRM AVEC NETTOYAGE DES CHAÎNES BRUTES "PHENOMENE" */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM</h2>
@@ -576,10 +576,19 @@ export default function DashboardQG() {
               if (!t) return null;
               
               const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
-              const nomDuPhenomene = t.phenomene || t.label || t.title || "Alerte";
+              let nomDuPhenomene = t.phenomene || t.label || t.title || "Alerte";
               const labelCreneau = t.creneau || "En cours";
 
-              // Extraction autonome et cloisonnée du type d'aléa pour affichage de badge
+              // INTERCEPTION DU BUG SUPABASE : Si l'objet de la bdd contient le mot générique brut "phenomene"
+              if (nomDuPhenomene.toLowerCase().trim() === "phenomene") {
+                if (t.code === "jaune" || t.code === "orange" || t.code === "rouge") {
+                  nomDuPhenomene = `Vigilance ${t.code.toUpperCase()} — Alerte météo en cours`;
+                } else {
+                  nomDuPhenomene = "Conditions normales / RAS";
+                }
+              }
+
+              // Analyse sémantique secondaire pour réinjecter le badge d'aléa approprié
               const lowerText = nomDuPhenomene.toLowerCase();
               let typeAlea = "";
               let aleaClass = "bg-slate-500/10 text-slate-400 border-slate-500/20";
@@ -596,6 +605,9 @@ export default function DashboardQG() {
               } else if (lowerText.includes("vent") || lowerText.includes("rafale") || lowerText.includes("tempête")) {
                 typeAlea = "Vent";
                 aleaClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
+              } else if (t.code === "jaune" || t.code === "orange") {
+                typeAlea = "Vigilance";
+                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
               }
 
               return (
