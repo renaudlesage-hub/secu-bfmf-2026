@@ -14,13 +14,15 @@ import {
   X,
   CircleDot,
   ShieldAlert,
+  CloudLightning,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
    APP VOLANTE -- BFMF 2026
    Vue terrain unifiée pour l'équipe volante :
+   - Moniteur météo interne synchronisé en temps réel
    - Consigne d'engagement du QG (PRV choisi) avec guidage GPS
-   - SOS participants géolocalisés avec cycle complet de statuts tactiques
+   - SOS participants avec cycle tactique complet (tolérant aux injections QG)
    - Alertes équipes (logistique + balade) et saturation des étapes
    - Missions logistiques attribuées à la volante, avec guidage
 --------------------------------------------------------------------- */
@@ -58,6 +60,7 @@ const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
 const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
 const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
+const KEY_METEO = "bfmf2026-meteo";
 
 /* -------------------- Points de reference geolocalises -------------------- */
 const POINTS = {
@@ -93,6 +96,21 @@ const ZONE_VERS_POINT = {
 
 const CAPACITE_ETAPE = 300;
 
+const METEO_FALLBACK = {
+  live: true,
+  province: "Liege",
+  codeActuel: "vert",
+  maj: "Initialisation",
+  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }],
+};
+
+const CODE_METEO = {
+  vert: { text: "text-emerald-300", bg: "bg-emerald-400/10", ring: "ring-emerald-400/30", dot: "bg-emerald-400", label: "VERT" },
+  jaune: { text: "text-amber-300", bg: "bg-amber-400/10", ring: "ring-amber-400/40", dot: "bg-amber-400", label: "JAUNE" },
+  orange: { text: "text-orange-300", bg: "bg-orange-400/10", ring: "ring-orange-400/40", dot: "bg-orange-400", label: "ORANGE" },
+  rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
+};
+
 /* ------------------------------ Geometrie ------------------------------ */
 function hav(la1, lo1, la2, lo2) {
   const R = 6371000, r = Math.PI / 180;
@@ -121,7 +139,7 @@ function fmtDist(m) {
 }
 
 function mapsUrl(lat, lon) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking`;
+  return `http://googleusercontent.com/maps.google.com/?q=${lat},${lon}&travelmode=walking`;
 }
 
 function nearestPRV(lat, lon) {
@@ -146,6 +164,7 @@ export default function AppVolante() {
   const [alertes, setAlertes] = useState([]);
   const [sosPart, setSosPart] = useState([]);
   const [consigne, setConsigne] = useState(null);
+  const [meteoLive, setMeteoLive] = useState(null);
   const [sbError, setSbError] = useState(false);
   const [now, setNow] = useState(new Date());
   const [maPos, setMaPos] = useState(null);
@@ -175,19 +194,21 @@ export default function AppVolante() {
     let stop = false;
     async function pull() {
       try {
-        const [mi, gr, aLog, aBal, sp, co] = await Promise.all([
+        const [mi, gr, aLog, aBal, sp, co, mto] = await Promise.all([
           kvGet(KEY_MISSIONS),
           kvGet(KEY_GROUPES),
           kvGet(KEY_ALERTE_LOG),
           kvGet(KEY_ALERTE_BAL),
           kvGet(KEY_SOS_PART),
           kvGet(KEY_CONSIGNE),
+          kvGet(KEY_METEO),
         ]);
         if (stop) return;
         setMissions(Array.isArray(mi) ? mi : []);
         setGroupes(Array.isArray(gr) ? gr : []);
         setSosPart(Array.isArray(sp) ? sp : []);
         setConsigne(co && co.active ? co : null);
+        setMeteoLive(mto && mto.live ? mto : null);
         setAlertes(
           [
             aLog && aLog.active ? { ...aLog, source: "Logistique" } : null,
@@ -213,7 +234,10 @@ export default function AppVolante() {
   );
 
   // SOS participants actifs (exclut les clôturés)
-  const sosActifs = sosPart.filter((s) => s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé").slice(0, 5);
+  const sosActifs = sosPart.filter((s) => {
+    const st = (s.statut || "").toLowerCase();
+    return st !== "cloture" && st !== "clôture" && st !== "cloturé" && st !== "clos";
+  }).slice(0, 5);
 
   // Saturation étapes
   const parEtape = { e1: 0, e2: 0, e3: 0 };
@@ -246,7 +270,6 @@ export default function AppVolante() {
     await kvSet(KEY_MISSIONS, next);
   }
 
-  // NOUVELLE FONCTION EVOLUTION TACTIQUE SOS PARTICIPANT
   async function changerStatutSos(id, nouveauStatut, cleHeure) {
     const codeHeure = nowHM();
     const next = sosPart.map((s) =>
@@ -271,6 +294,9 @@ export default function AppVolante() {
           b: bearing(maPos.lat, maPos.lon, cible.lat, cible.lon),
         }
       : null;
+
+  const METEO = meteoLive || METEO_FALLBACK;
+  const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
 
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
@@ -348,6 +374,68 @@ export default function AppVolante() {
           </div>
         )}
 
+        {/* SUIVI MÉTÉO - PANEL INTERNE REPRIS DU DASHBOARD PRINCIPAL */}
+        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+              <CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO INTERNE BFMF
+            </h2>
+            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
+          </div>
+          
+          <div className="text-[11px] font-mono text-slate-400 mb-2 px-1">
+            Status : {METEO.maj}
+          </div>
+
+          <div className="space-y-2">
+            {METEO.timeline && METEO.timeline.map((t, i) => {
+              if (!t) return null;
+              
+              const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
+              const texteAlerteDefinitif = t.phenomene || "Pas de précisions terrain";
+              const labelCreneau = t.creneau || "Horizon en cours";
+
+              const lowerText = texteAlerteDefinitif.toLowerCase();
+              let typeAlea = "";
+              let aleaClass = "bg-slate-500/10 text-slate-400 border-slate-500/20";
+
+              if (lowerText.includes("orage")) {
+                typeAlea = "Orages";
+                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+              } else if (lowerText.includes("chaleur") || lowerText.includes("canicule") || lowerText.includes("température") || lowerText.includes("chaud")) {
+                typeAlea = "Chaleur";
+                aleaClass = "bg-orange-500/10 text-orange-400 border-orange-500/20";
+              } else if (lowerText.includes("pluie") || lowerText.includes("précipit") || lowerText.includes("inond") || lowerText.includes("flotte")) {
+                typeAlea = "Précipitations";
+                aleaClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+              } else if (lowerText.includes("vent") || lowerText.includes("rafale") || lowerText.includes("tempête") || lowerText.includes("coup de vent")) {
+                typeAlea = "Vent";
+                aleaClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
+              } else if (t.code === "jaune" || t.code === "orange" || t.code === "rouge") {
+                typeAlea = "Vigilance";
+                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+              }
+
+              return (
+                <div key={i} className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 transition-all">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={`w-2 h-2 rounded-full ${tc.dot} shrink-0`} />
+                    {typeAlea && (
+                      <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border shrink-0 ${aleaClass}`}>
+                        {typeAlea}
+                      </span>
+                    )}
+                    <span className="text-slate-100 font-medium truncate">
+                      {texteAlerteDefinitif}
+                    </span>
+                  </div>
+                  <span className="text-slate-500 font-mono text-[10px] shrink-0 ml-2">{labelCreneau}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {/* Consigne d'engagement QG */}
         {consigne && (
           <section className="rounded-lg ring-2 ring-amber-400/60 bg-amber-400/10 p-4">
@@ -420,7 +508,7 @@ export default function AppVolante() {
         {/* SOS participants évolutifs */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-            <TriangleAlert className={`w-4 h-4 ${sosActifs.some((s) => s.statut === "nouveau") ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
+            <TriangleAlert className={`w-4 h-4 ${sosActifs.some((s) => (s.statut || "").toLowerCase() === "nouveau") ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
             SOS PARTICIPANTS
             <span className="text-[11px] font-mono text-slate-500 font-normal">{sosActifs.length} actif(s)</span>
           </h2>
@@ -428,10 +516,12 @@ export default function AppVolante() {
             {sosActifs.length === 0 && <div className="text-xs text-slate-500 text-center py-2">Aucun SOS actif.</div>}
             {sosActifs.map((s) => {
               const prv = s.gps ? nearestPRV(s.gps.lat, s.gps.lon) : null;
+              const currentStatutLower = (s.statut || "").toLowerCase();
+
               return (
                 <div
                   key={s.id}
-                  className={`rounded-lg px-3 py-3 border border-white/5 bg-white/[0.02] space-y-2`}
+                  className="rounded-lg px-3 py-3 border border-white/5 bg-white/[0.02] space-y-2"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -451,7 +541,7 @@ export default function AppVolante() {
 
                   {s.surTrace && (
                     <div className="text-xs text-slate-300 bg-white/[0.01] p-1.5 rounded border border-white/5">
-                      km {s.surTrace.km} · {s.surTrace.segment}
+                      km {s.surTrace.km} · {s.surTrace.segment || s.surTrace.reperePlusProche}
                       {s.surTrace.ecartMetres > 100 && <span className="text-amber-300 block mt-0.5 font-medium">⚠️ ~{s.surTrace.ecartMetres} m hors sentier</span>}
                     </div>
                   )}
@@ -478,9 +568,9 @@ export default function AppVolante() {
                     )}
                   </div>
 
-                  {/* BLOC CHRONOLOGIQUE ET TACTIQUE DES SECOURS */}
+                  {/* BLOC CHRONOLOGIQUE ET TACTIQUE DES SECOURS CORRIGÉ — PREND EN COMPTE L'INJECTION DASHBOARD */}
                   <div className="pt-2 border-t border-white/5 space-y-2">
-                    {s.statut === "nouveau" && (
+                    {(currentStatutLower === "nouveau" || currentStatutLower === "pris en compte") && (
                       <button
                         onClick={() => changerStatutSos(s.id, "en route", "heureEnRoute")}
                         className="w-full text-xs font-mono py-2 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
@@ -489,9 +579,9 @@ export default function AppVolante() {
                       </button>
                     )}
 
-                    {s.statut === "en route" && (
+                    {currentStatutLower === "en route" && (
                       <div className="space-y-1">
-                        <div className="text-[10px] font-mono text-sky-400 text-center">✓ En route depuis {s.heureEnRoute}</div>
+                        <div className="text-[10px] font-mono text-sky-400 text-center">✓ En route depuis {s.heureEnRoute || "—"}</div>
                         <button
                           onClick={() => changerStatutSos(s.id, "sur place", "heureArrivee")}
                           className="w-full text-xs font-mono py-2 rounded bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors pulse-slow"
@@ -501,9 +591,9 @@ export default function AppVolante() {
                       </div>
                     )}
 
-                    {s.statut === "sur place" && (
+                    {currentStatutLower === "sur place" && (
                       <div className="space-y-1">
-                        <div className="text-[10px] font-mono text-amber-400 text-center">✓ Sur place depuis {s.heureArrivee}</div>
+                        <div className="text-[10px] font-mono text-amber-400 text-center">✓ Sur place depuis {s.heureArrivee || "—"}</div>
                         <button
                           onClick={() => changerStatutSos(s.id, "prise en charge", "heurePriseEnCharge")}
                           className="w-full text-xs font-mono py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
@@ -513,9 +603,9 @@ export default function AppVolante() {
                       </div>
                     )}
 
-                    {s.statut === "prise en charge" && (
+                    {currentStatutLower === "prise en charge" && (
                       <div className="space-y-1">
-                        <div className="text-[10px] font-mono text-purple-400 text-center">✓ Soins en cours ({s.heurePriseEnCharge})</div>
+                        <div className="text-[10px] font-mono text-purple-400 text-center">✓ Soins en cours ({s.heurePriseEnCharge || "—"})</div>
                         <button
                           onClick={() => changerStatutSos(s.id, "retour a la normale", "heureRetourNormale")}
                           className="w-full text-xs font-mono py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
@@ -525,9 +615,9 @@ export default function AppVolante() {
                       </div>
                     )}
 
-                    {s.statut === "retour a la normale" && (
+                    {(currentStatutLower === "retour a la normale" || currentStatutLower === "cloture" || currentStatutLower === "clôture") && (
                       <div className="w-full text-center text-xs font-mono py-2 rounded bg-emerald-900/20 text-emerald-400 border border-emerald-500/30">
-                        ✓ Géré à {s.heureRetourNormale} — En attente d'archivage QG
+                        ✓ Géré à {s.heureRetourNormale || s.heureCloture || "—"} — En attente d'archivage QG
                       </div>
                     )}
                   </div>
