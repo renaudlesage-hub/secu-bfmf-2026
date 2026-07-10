@@ -23,10 +23,12 @@ import {
   MapPin,
   Users,
   UserCheck,
+  CheckCircle,
+  UserPlus
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG — VERSION 3 COLONNES AVEC INVERSION LOGISTIQUE
+   DASHBOARD QG — VERSION 3 COLONNES CONSOLIDÉE ET INTERACTIVE
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -236,10 +238,27 @@ export default function DashboardQG() {
       statut: "A affecter",
       heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
       signalePar: SESS_USER.nom,
-      roleSignaleur: SESS_USER.role
+      roleSignaleur: SESS_USER.role,
+      attribueA: ""
     };
     const next = [nouvelleMission, ...safeMissions];
     setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
+  }
+
+  // 🛠️ RETAILLE DES FONCTIONS D'ACTION DE L'APPLICATION LOGISTIQUE PRECEDENTE
+  async function attribuerMissionLog(id, equipe) {
+    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: "En cours", attribueA: equipe, heurePriseEnCharge: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
+    setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
+  }
+
+  async function resoudreMissionLog(id) {
+    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: "Resolue", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
+    setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
+  }
+
+  async function pousserEnCriseLog(m) {
+    const al = { active: true, motif: `[LOGISTIQUE CRITIQUE] ${m.nature}`, details: `Localisé à ${m.zone} — Déclaré par ${m.signalePar}`, heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`, auteur: "Console QG", acquittePar: "", heureAcquittement: "" };
+    await kvSet(KEY_ALERTE_LOG, al); pullAllData();
   }
 
   async function engagerVolante() {
@@ -290,7 +309,7 @@ export default function DashboardQG() {
         .pulse-slow { animation: pulseSlow 1.6s ease-in-out infinite; }
       `}</style>
 
-      {/* HEADER PRINCIPAL */}
+      {/* HEADER DE SUPERVISION */}
       <header className="border-b border-white/5 bg-[#141922]/90 backdrop-blur sticky top-0 z-30 px-4 py-2.5 flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
@@ -307,7 +326,7 @@ export default function DashboardQG() {
         </div>
       </header>
 
-      {/* BANDEAU ALERTES CRITIQUES */}
+      {/* BANDEAU ALERTES CRITIQUES CRUCIALES */}
       {alertesCrises.length > 0 && (
         <div className="p-3 bg-red-950/40 border-b border-red-500/30 space-y-1.5 w-full">
           {alertesCrises.map((al, i) => (
@@ -322,7 +341,7 @@ export default function DashboardQG() {
         </div>
       )}
 
-      {/* RESTRUCTURATION TRIPLE COLONNE PANORAMIQUE */}
+      {/* COMPOSANT TRIPLE COLONNE PANORAMIQUE */}
       <main className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
         
         {/* ==================== COLONNE 1 : URGENCE & TERRAIN 🚨 ==================== */}
@@ -402,7 +421,7 @@ export default function DashboardQG() {
         {/* ==================== BLOC DE DROITE FUSIONNÉ (COLONNES 2 & 3 SUBDIVISÉES) ==================== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
           
-          {/* ⚡ PLAN RADIO EN TÊTE — ETENDU SUR LES COLONNES 2 ET 3 */}
+          {/* ⚡ PLAN RADIO LARGE EN EN-TÊTE HORIZONTALE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2">
             <div className="flex items-center gap-2 mb-2 pb-1 border-b border-white/5">
               <Radio className="w-4 h-4 text-amber-400" />
@@ -498,32 +517,48 @@ export default function DashboardQG() {
           {/* ==================== CONTENU INTERNE COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* 🔄 PANNEAU 1 : LISTE DES MISSIONS OUVERTES (REHUSSÉ) */}
+            {/* 🛠️ TABLEAU DE BORD DE L'APPLICATION LOGISTIQUE RESTAURÉ ET ACTIONNABLE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
                 <span className="font-mono text-xxs text-slate-400">{logOuvertes.length} Ops</span>
               </div>
-              <div className="space-y-1.5 max-h-[160px] overflow-y-auto">
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                 {logOuvertes.length === 0 ? (
                   <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune panne ou anomalie matérielle ouverte.</div>
                 ) : (
-                  logOuvertes.slice(0, 4).map((m, i) => (
-                    <div key={i} className="text-xs bg-white/[0.02] p-2 rounded border border-white/5">
-                      <div className="flex justify-between items-center gap-2">
-                        <span className="text-slate-300 truncate font-medium flex-1">{m.nature}</span>
-                        <span className={`text-[9px] font-mono px-1.5 rounded ${m.priorite?.startsWith("P1") ? "bg-red-500/20 text-red-400" : m.priorite?.startsWith("P2") ? "bg-amber-500/20 text-amber-400" : "bg-slate-500/10 text-slate-400"}`}>
+                  logOuvertes.map((m) => (
+                    <div key={m.id} className="text-xs bg-white/[0.02] p-2.5 rounded border border-white/5 space-y-1.5">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-200 font-medium flex-1 leading-snug">{m.nature}</span>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${m.priorite?.startsWith("P1") ? "bg-red-500/20 text-red-400 border border-red-500/20" : m.priorite?.startsWith("P2") ? "bg-amber-500/20 text-amber-400 border border-amber-500/20" : "bg-slate-500/10 text-slate-400"}`}>
                           {m.priorite ? m.priorite.slice(0,2) : "P3"}
                         </span>
                       </div>
-                      <div className="text-[10px] text-slate-500 font-mono mt-1">📍 {m.zone} — <span className="text-slate-400">Par : {m.signalePar || "QG"}</span></div>
+                      
+                      <div className="text-[10px] text-slate-400 font-mono flex justify-between items-center">
+                        <span>📍 {m.zone}</span>
+                        <span className="text-xxs text-slate-500">Statut: <strong className="text-amber-400 font-normal">{m.attribueA ? `En cours (${m.attribueA})` : "En attente"}</strong></span>
+                      </div>
+
+                      {/* ⚡ BOUTONS DE CYCLE DE VIE DE L'APP LOGISTIQUE (RÉTABLIS) */}
+                      <div className="flex justify-end gap-1 pt-1.5 border-t border-white/5">
+                        {!m.attribueA && (
+                          <>
+                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 1")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 1</button>
+                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 2")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 2</button>
+                            <button onClick={() => pousserEnCriseLog(m)} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded">🚨 Alerte QG</button>
+                          </>
+                        )}
+                        <button onClick={() => resoudreMissionLog(m.id)} className="text-[9px] font-mono bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 ml-auto"><CheckCircle className="w-2.5 h-2.5" /> Clore</button>
+                      </div>
                     </div>
                   ))
                 )}
               </div>
             </div>
 
-            {/* 🔄 PANNEAU 2 : FORMULAIRE D'INJECTION NOUVELLE DEMANDE LOGISTIQUE */}
+            {/* FORMULAIRE D'INJECTION DEMANDE LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md">
               <div className="text-xs font-display text-sky-400 tracking-wider uppercase mb-2 flex items-center gap-1.5">
                 <ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique
