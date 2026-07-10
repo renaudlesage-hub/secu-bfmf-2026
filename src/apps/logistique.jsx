@@ -1,241 +1,53 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Truck,
-  Plus,
-  X,
-  ChevronRight,
+  ShieldAlert,
+  TriangleAlert,
+  Radio,
   Clock,
   CircleDot,
-  CheckCircle2,
-  UserCheck,
-  TriangleAlert,
-  MapPin,
-  Package,
-  Wrench,
-  Users,
-  Zap,
-  Droplets,
-  RefreshCw,
-  ClipboardList,
-  Flag,
-  Download,
   CloudLightning,
   ExternalLink,
+  Footprints,
+  ClipboardList,
+  Droplets,
+  PlusCircle,
+  Smile,
+  Meh,
+  Frown,
+  Rss,
+  Wrench,
+  AlertTriangle,
+  Sun,
+  Sunset,
+  Compass,
+  MapPin,
+  Users,
+  UserCheck,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   MISSIONS LOGISTIQUES -- Bucolique Ferrières Musique Festival 2026
+   DASHBOARD QG — LOGISTIQUE ET SÛRETÉ CONSOLIDÉES
+   Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
-const STORAGE_KEY = "bfmf2026-missions-logistique";
-const ALERT_KEY = "bfmf2026-logistique-alerte";
-const PROFILE_KEY = "bfmf2026-profil";
-const KEY_METEO = "bfmf2026-meteo";
-
-const ROLES = [
-  "QG / PCE",
-  "Coordination générale",
-  "Volante",
-  "Responsable scène 1",
-  "Responsable scène 2",
-  "Responsable Étape 1",
-  "Responsable Étape 2",
-  "Responsable Étape 3",
-  "Bénévole parking",
-  "Bénévole sanitaire",
-  "Sécurité privée",
-  "Technique",
-  "Bar / restauration",
-  "Logistique",
-  "Médical / secouriste",
-  "Autre",
-];
-
-const MOTIFS_ALERTE = [
-  "Situation bloquante générale",
-  "Accès secours obstrué",
-  "Panne critique (énergie, structure)",
-  "Besoin de renfort immédiat",
-  "Météo -- adaptation urgente",
-  "Autre",
-];
-
-const STATUTS = ["A traiter", "Attribuee", "En cours", "Resolue"];
-
-const FONCTIONS = [
-  "QG / PCE",
-  "Coordination générale",
-  "Volante",
-  "Responsable scène 1",
-  "Responsable scène 2",
-  "Responsable Étape 1",
-  "Responsable Étape 2",
-  "Responsable Étape 3",
-  "Bénévole parking",
-  "Bénévole sanitaire",
-  "Sécurité privée",
-  "Gestion artistique / backstage",
-  "Technique",
-  "Bar / restauration",
-  "Foodtruck",
-  "Logistique",
-  "Médical / secouriste",
-  "Autre",
-];
-
-const CANAUX_REMONTEE = [
-  "PMR4.1",
-  "PMR5",
-  "PMR7.1",
-  "PMR15",
-  "PMR333",
-  "PMR x",
-  "Telephone",
-  "En direct",
-  "Autre",
-];
-
-const PRIORITES = {
-  "P1 - immediat / critique": { dot: "bg-red-400", text: "text-red-300", ring: "ring-red-400/30", bg: "bg-red-400/10" },
-  "P2 - urgent": { dot: "bg-amber-400", text: "text-amber-300", ring: "ring-amber-400/30", bg: "bg-amber-400/10" },
-  "P3 - important non bloquant": { dot: "bg-sky-400", text: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10" },
-  "P4 - amelioration / des que possible": { dot: "bg-emerald-400", text: "text-emerald-300", ring: "ring-emerald-400/30", bg: "bg-emerald-400/10" },
-};
-
-const CATEGORIES = [
-  "Acces / circulation",
-  "Parking",
-  "Sanitaires",
-  "Eau",
-  "Dechets / proprete",
-  "Electricite / energie",
-  "Groupe electrogene",
-  "Structure / montage",
-  "Barrierage / Hera",
-  "Signalisation / balisage",
-  "Eclairage",
-  "Foodtrucks / restauration",
-  "Materiel manquant",
-  "Transport / manutention",
-  "Zone backstage / artistes",
-  "Communication / radio",
-  "Approvisionnement",
-  "Confort public",
-  "PMR / accessibilite",
-  "Meteo / adaptation",
-  "Autre",
-];
-
-const CATEGORIE_ICONS = {
-  "Acces / circulation": Flag,
-  Parking: Truck,
-  Sanitaires: Droplets,
-  Eau: Droplets,
-  "Dechets / proprete": Droplets,
-  "Electricite / energie": Zap,
-  "Groupe electrogene": Zap,
-  "Structure / montage": Wrench,
-  "Barrierage / Hera": Flag,
-  "Signalisation / balisage": Flag,
-  Eclairage: Zap,
-  "Foodtrucks / restauration": Package,
-  "Materiel manquant": Package,
-  "Transport / manutention": Truck,
-  "Zone backstage / artistes": Users,
-  "Communication / radio": ClipboardList,
-  Approvisionnement: Package,
-  "Confort public": Users,
-  "PMR / accessibilite": Users,
-  "Meteo / adaptation": TriangleAlert,
-  Autre: ClipboardList,
-};
-
-const NATURES_BESOIN = [
-  "Manque",
-  "Panne",
-  "Dysfonctionnement",
-  "Saturation",
-  "Degradation",
-  "Demande de renfort",
-  "Deplacement / repositionnement",
-  "Remplacement",
-  "Reapprovisionnement",
-  "Nettoyage",
-  "Securisation",
-  "Information manquante",
-  "A verifier",
-  "Autre",
-];
-
-const ZONES = [
-  "Point 0",
-  "Parking public",
-  "Scene 1",
-  "Scene 2",
-  "Plaine / public",
-  "Bar",
-  "Foodtrucks",
-  "Sanitaires",
-  "Backstage",
-  "Zone logistique",
-  "Parcours secteur A",
-  "Parcours secteur B",
-  "Parcours secteur C",
-  "Parcours secteur D",
-  "Etape 1",
-  "Etape 2",
-  "Etape 3",
-  "Voie d'acces secours",
-  "Hors site",
-  "Autre",
-];
-
-const EQUIPES = [
-  "Volante",
-  "Technique",
-  "Logistique",
-  "Responsable Étape 1",
-  "Responsable Étape 2",
-  "Responsable Étape 3",
-  "Benevole parking",
-  "Benevole sanitaire",
-  "Bar / restauration",
-  "Responsable scene 1",
-  "Responsable scene 2",
-  "Securite privee",
-  "QG / PCE",
-];
-
-const METEO_FALLBACK = {
-  live: true,
-  province: "Liege",
-  codeActuel: "vert",
-  maj: "Initialisation",
-  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }],
-};
-
-const CODE_METEO = {
-  vert: { text: "text-emerald-300", bg: "bg-emerald-400/10", ring: "ring-emerald-400/30", dot: "bg-emerald-400", label: "VERT" },
-  jaune: { text: "text-amber-300", bg: "bg-amber-400/10", ring: "ring-amber-400/40", dot: "bg-amber-400", label: "JAUNE" },
-  orange: { text: "text-orange-300", bg: "bg-orange-400/10", ring: "ring-orange-400/40", dot: "bg-orange-400", label: "ORANGE" },
-  rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
-};
-
-const inputCls =
-  "w-full bg-[#232b36] ring-1 ring-white/25 rounded px-3 py-2.5 text-[15px] text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/60";
-
-const MISSIONS_DEMO = [];
-
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
-
 const SB_HEADERS = {
   apikey: SUPABASE_ANON_KEY,
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
   "Content-Type": "application/json",
 };
 
+// Simulation du profil utilisateur capté lors du Login unique
+const SESS_USER = {
+  nom: "Radio-PC",
+  role: "Opérateur QG / PCE",
+};
+
 async function kvGet(key) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`, { headers: SB_HEADERS });
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
+    { headers: SB_HEADERS }
+  );
   if (!r.ok) throw new Error(`Supabase GET ${r.status}`);
   const j = await r.json();
   return j.length ? j[0].value : null;
@@ -250,397 +62,544 @@ async function kvSet(key, value) {
   return r.ok;
 }
 
-function pad(n) { return n.toString().padStart(2, "0"); }
-function nowHM() {
-  const d = new Date();
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function genRef(count) { return `LOG-2026-${String(count + 1).padStart(3, "0")}`; }
+const KEY_MISSIONS = "bfmf2026-missions-logistique";
+const KEY_GROUPES = "bfmf2026-suivi-balade";
+const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
+const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
+const KEY_SOS_PART = "bfmf2026-sos-participants";
+const KEY_CONSIGNE = "bfmf2026-volante-consigne";
+const KEY_METEO = "bfmf2026-meteo";
+const KEY_SANITAIRE = "bfmf2026-sanitaire";
+const KEY_MEDIAS = "bfmf2026-medias-live";
 
-export default function LogistiqueMissions() {
-  const [missions, setMissions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saveError, setSaveError] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [filtreStatut, setFiltreStatut] = useState("Tous");
+const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
+
+const POINTS_GPS = {
+  "Site grande scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Grande Scène" },
+  "Site petite scène": { lat: 50.3832, lon: 5.6219, km: 0, segment: "Plaine centrale — Petite Scène" },
+  "Site plaine": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Zone Public / Pelouse" },
+  "Site bar": { lat: 50.3836, lon: 5.6222, km: 0, segment: "Zone Débit de Boissons" },
+  "Site foodtrucks": { lat: 50.3831, lon: 5.6208, km: 0, segment: "Allée Restauration" },
+  "Site sanitaires": { lat: 50.3841, lon: 5.6211, km: 0, segment: "Blocs WC Publics" },
+  "Site backstage": { lat: 50.3842, lon: 5.6201, km: 0, segment: "Coulisses / Loges" },
+  "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie" },
+  "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public" },
+  "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes" },
+  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
+  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt" },
+  "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Balisage Secours #4" },
+  "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
+  "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé Sud - Vers Étape 2" },
+  "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Balisage Secours #5" },
+  "Etape 2": { lat: 50.37828, lon: 5.64549, km: 2.53, segment: "Ravitaillement 2" },
+  "Parcours Balade secteur C": { lat: 50.3823, lon: 5.6457, km: 3.5, segment: "Tracé Est Crête" },
+  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Balisage Secours #6" },
+  "Etape 3": { lat: 50.38817, lon: 5.62891, km: 5.06, segment: "Ravitaillement 3" },
+  "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Secteur Nord Retour P0" },
+  "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
+};
+
+const LONGUEUR_KM = 6.5;
+const POS_KM = { p0: 0, t1: 0.45, e1: 0.9, t2: 1.7, e2: 2.53, t3: 3.8, e3: 5.06, tr: 5.8, ret: 6.5 };
+
+const REPERES = [
+  { nom: "P0", km: 0 },
+  { nom: "E1", km: 0.9 },
+  { nom: "E2", km: 2.53 },
+  { nom: "E3", km: 5.06 },
+  { nom: "P0", km: 6.5 },
+];
+
+const METEO_FALLBACK = {
+  live: true, province: "Liege", codeActuel: "vert", maj: "Initialisation",
+  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales" }],
+  station: "Ferrières (Province de Liège)", statutAlerte: "jaune", titre: "Suivi Météo",
+  description: "Conditions météo normales sur la plaine de Ferrières.",
+  source: "Institut Royal Météorologique (IRM)", obsHeure: "--h--", obsResume: "Calcul...",
+  obsLever: "05h38", obsCoucher: "21h52", obsUV: "0.0", urlFerrieres: "https://www.meteo.be/fr/ferrieres"
+};
+
+const MEDIAS_FALLBACK = {
+  ambiance: "neutre", maj: "En direct",
+  canaux: [{ name: "Réseaux Sociaux", statut: "ok", note: "Aucun signalement critique" }]
+};
+
+const CANAUX_RADIO = [
+  { canal: "PMR4.1", usage: "Coord. Générale" },
+  { canal: "PMR5", usage: "Parking / Sanitaires" },
+  { canal: "PMR15", usage: "Sécurité Privée" },
+  { canal: "PMR333", usage: "URGENCE EXCLUSIF" },
+];
+
+function pad(n) { return n.toString().padStart(2, "0"); }
+
+export default function DashboardQG() {
   const [now, setNow] = useState(new Date());
+  const [missionsLog, setMissionsLog] = useState([]);
+  const [groupesBalade, setGroupesBalade] = useState([]);
+  const [alertesCrises, setAlertesCrises] = useState([]);
+  const [sosParticipants, setSosParticipants] = useState([]);
+  const [consigne, setConsigne] = useState(null);
   const [meteoLive, setMeteoLive] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [profileLoaded, setProfileLoaded] = useState(false);
-  const [alerte, setAlerte] = useState(null);
-  const [showAlarme, setShowAlarme] = useState(false);
+  const [mediasLive, setMediasLive] = useState(null);
+  const [sanitaire, setSanitaire] = useState([]);
+  const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
+  const [msgConsigne, setMsgConsigne] = useState("");
+  const [sbError, setSbError] = useState(false);
+
+  // States Formulaire SOS Actifs
+  const [formMotif, setFormMotif] = useState("médical");
+  const [formLieu, setFormLieu] = useState("Site grande scène");
+  const [formNom, setFormNom] = useState(SESS_USER.nom); // Pré-remplissage via session
+  const [formDetails, setFormDetails] = useState("");
+
+  // States Formulaire Nouvelle Mission Logistique
+  const [formLogNature, setFormLogNature] = useState("");
+  const [formLogLieu, setFormLogLieu] = useState("Site zone logistique");
+  const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
+  const [formLogBloquant, setFormLogBloquant] = useState("Non");
+
+  // States Formulaire Console Météo Interne
+  const [mgtVigilance, setMgtVigilance] = useState("vert");
+  const [mgtCreneau, setMgtCreneau] = useState("Dans les 2h (+2h)");
+  const [mgtCouleurLigne, setMgtCouleurLigne] = useState("vert");
+  const [mgtTexteAlea, setMgtTexteAlea] = useState("Conditions normales / RAS");
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
+  async function pullAllData() {
     try {
-      const s = localStorage.getItem(PROFILE_KEY);
-      if (s) setProfile(JSON.parse(s));
-    } catch (e) {}
-    setProfileLoaded(true);
-  }, []);
-
-  const refresh = useCallback(async (initial = false) => {
-    try {
-      const [data, al, mto] = await Promise.all([kvGet(STORAGE_KEY), kvGet(ALERT_KEY), kvGet(KEY_METEO)]);
-      if (data) {
-        setMissions(data);
-      } else if (initial) {
-        setMissions(MISSIONS_DEMO);
-        await kvSet(STORAGE_KEY, MISSIONS_DEMO);
-      }
-      setAlerte(al && al.active ? al : null);
+      const [mi, gr, aLog, aBal, sosP, co, mto, san, med] = await Promise.all([
+        kvGet(KEY_MISSIONS), kvGet(KEY_GROUPES), kvGet(KEY_ALERTE_LOG),
+        kvGet(KEY_ALERTE_BAL), kvGet(KEY_SOS_PART), kvGet(KEY_CONSIGNE),
+        kvGet(KEY_METEO), kvGet(KEY_SANITAIRE), kvGet(KEY_MEDIAS),
+      ]);
+      setMissionsLog(Array.isArray(mi) ? mi : []);
+      setGroupesBalade(Array.isArray(gr) ? gr : []);
+      setSosParticipants(Array.isArray(sosP) ? sosP : []);
+      setConsigne(co && co.active ? co : null);
       setMeteoLive(mto && mto.live ? mto : null);
-    } catch (err) {
-      console.error(err);
+      setMediasLive(med && med.canaux ? med : null);
+      setSanitaire(Array.isArray(san) ? san : []);
+      
+      setAlertesCrises([
+        aLog && aLog.active ? { ...aLog, source: "Logistique", keyDb: KEY_ALERTE_LOG } : null,
+        aBal && aBal.active ? { ...aBal, source: "Balade / Secours", keyDb: KEY_ALERTE_BAL } : null,
+      ].filter(Boolean));
+      setSbError(false);
+    } catch (e) {
+      setSbError(true);
     }
-    setLoading(false);
-  }, []);
+  }
 
   useEffect(() => {
-    refresh(true);
-    const t = setInterval(() => refresh(false), alerte ? 5000 : 15000);
+    pullAllData();
+    const t = setInterval(pullAllData, 10000);
     return () => clearInterval(t);
-  }, [refresh, alerte]);
+  }, []);
 
-  async function persist(next) {
-    setMissions(next);
-    const ok = await kvSet(STORAGE_KEY, next);
-    setSaveError(!ok);
+  async function prendreEnCompteSos(id) {
+    const next = safeSos.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
+    setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
   }
 
-  const signature = profile ? `${profile.nom} (${profile.role})` : "?";
-
-  // Corrections mineures sur l'historique et évite le crash du .find si vide
-  function updateMission(id, changes, logTexte) {
-    const next = missions.map((m) => {
-      if (m.id !== id) return m;
-      const historique = logTexte
-        ? [...(m.historique || []), { heure: nowHM(), texte: `${logTexte} -- par ${signature}` }]
-        : m.historique || [];
-      return { ...m, ...changes, historique };
-    });
-    persist(next);
-    if (selected && selected.id === id) {
-      setSelected(next.find((m) => m.id === id) || null);
-    }
+  async function cloturerSos(id) {
+    const next = safeSos.map((s) => s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
+    setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
   }
 
-  async function declencherAlerte(data) {
-    const a = {
-      active: true,
-      heure: nowHM(),
-      auteur: signature,
-      motif: data.motif || "Alerte",
-      details: data.details || "",
-      acquittePar: "",
-      heureAcquittement: "",
+  async function declencherSosManuel(e) {
+    e.preventDefault();
+    const geoRef = POINTS_GPS[formLieu];
+    const nouveauSos = {
+      id: "manual-" + Date.now(), heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+      motif: formMotif, nom: formNom, tel: "Radio", details: formDetails.trim(), statut: "nouveau",
+      surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment } : null
     };
-    setAlerte(a);
-    await kvSet(ALERT_KEY, a);
-    setShowAlarme(false);
+    const next = [nouveauSos, ...safeSos];
+    setSosParticipants(next); setFormDetails(""); await kvSet(KEY_SOS_PART, next);
   }
 
-  async function acquitterAlerte() {
-    if (!alerte) return;
-    const a = { ...alerte, acquittePar: signature, heureAcquittement: nowHM() };
-    setAlerte(a);
-    await kvSet(ALERT_KEY, a);
-  }
-
-  async function leverAlerte() {
-    if (!alerte) return;
-    const a = { ...alerte, active: false, leveePar: signature, heureLevee: nowHM() };
-    setAlerte(null);
-    await kvSet(ALERT_KEY, a);
-  }
-
-  function addMission(data) {
-    const mission = {
-      ...data,
-      id: `m${Date.now()}`,
-      ref: genRef(missions.length),
-      heureConstat: data.heureConstat || nowHM(),
-      statut: "A traiter",
-      attribueA: "",
-      responsableSuivi: "",
-      heurePriseEnCompte: "",
-      heureEstimeeResolution: "",
-      actionEffectuee: "",
-      realiseePar: "",
-      regleTotalement: "",
-      risqueResiduel: "",
-      pointREX: "",
-      historique: [
-        {
-          heure: nowHM(),
-          texte: `Demande creee par ${data.emetteurNom || "?"} (${data.equipeOrigine || "?"}) -- saisie: ${signature}`,
-        },
-      ],
+  async function ajouterMissionLogistique(e) {
+    e.preventDefault();
+    const nouvelleMission = {
+      id: "log-" + Date.now(),
+      ref: "LOG-" + pad(safeMissions.length + 1),
+      nature: formLogNature.trim(),
+      zone: formLogLieu,
+      localisation: POINTS_GPS[formLogLieu]?.segment || "",
+      priorite: formLogPriorite,
+      bloquant: formLogBloquant,
+      statut: "A affecter",
+      heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+      signalePar: SESS_USER.nom,
+      roleSignaleur: SESS_USER.role
     };
-    persist([mission, ...missions]);
-    setShowForm(false);
+    const next = [nouvelleMission, ...safeMissions];
+    setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
   }
 
-  const filtered = filtreStatut === "Tous" ? missions : missions.filter((m) => m.statut === filtreStatut);
-  const counts = STATUTS.reduce((acc, s) => ({ ...acc, [s]: missions.filter((m) => m.id && m.statut === s).length }), {});
-  const bloquantes = missions.filter((m) => m.statut !== "Resolue" && (m.bloquant === "Oui" || m.priorite?.startsWith("P1"))).length;
+  async function engagerVolante() {
+    const c = { active: true, prv: prvChoisi, message: msgConsigne.trim(), heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`, auteur: `${SESS_USER.nom} (${SESS_USER.role})` };
+    setConsigne(c); setMsgConsigne(""); await kvSet(KEY_CONSIGNE, c);
+  }
+
+  async function leverConsigne() {
+    if (!consigne) return;
+    const c = { ...consigne, active: false }; setConsigne(null); await kvSet(KEY_CONSIGNE, c);
+  }
+
+  async function soumettreAjustementMeteo(e) {
+    e.preventDefault();
+    const baseMeteo = meteoLive || METEO_FALLBACK;
+    const nouvelleLigne = { creneau: mgtCreneau, code: mgtCouleurLigne, phenomene: mgtTexteAlea.trim() };
+    const payload = { ...baseMeteo, live: true, codeActuel: mgtVigilance, maj: `QG à ${pad(now.getHours())}:${pad(now.getMinutes())}`, timeline: [nouvelleLigne, ...(baseMeteo.timeline || [])].slice(0, 5) };
+    setMeteoLive(payload); await kvSet(KEY_METEO, payload); setMgtTexteAlea("");
+  }
+
+  async function purgerTimelineMeteo() {
+    const payload = { ...METEO_FALLBACK, live: true, maj: `Purgé à ${pad(now.getHours())}:${pad(now.getMinutes())}`, timeline: [{ creneau: "Actuel", code: "vert", phenomene: "Conditions normales / RAS" }] };
+    setMeteoLive(payload); await kvSet(KEY_METEO, payload);
+  }
 
   const METEO = meteoLive || METEO_FALLBACK;
-  const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
+  const MEDIAS = mediasLive || MEDIAS_FALLBACK;
+  const safeMissions = missionsLog, safeGroupes = groupesBalade, safeSos = sosParticipants, safeSanitaire = sanitaire;
 
-  function exportCSV() {
-    const cols = [
-      ["Reference", "ref"], ["Titre", "nature"], ["Statut", "statut"], ["Zone", "zone"], ["Priorite", "priorite"]
-    ];
-    const esc = (v) => {
-      let s = v == null ? "" : String(v);
-      if (/[";\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
-      return s;
-    };
-    const lines = [
-      cols.map((c) => esc(c[0])).join(";"),
-      ...missions.map((m) => cols.map((c) => esc(m[c[1]])).join(";")),
-    ];
-    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `logbook-logistique-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  const logOuvertes = safeMissions.filter((m) => m && m.statut !== "Resolue" && m.statut !== "Résolue");
+  const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
+  const totalMarcheursEnForet = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
+  const persAttente = safeGroupes.filter((g) => g && g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
+  const persRentres = safeGroupes.filter((g) => g && g.position === "ret").reduce((s, g) => s + (Number(g.participants) || 0), 0);
 
-  if (profileLoaded && !profile) {
-    return (
-      <ProfilSetup
-        onSave={(p) => {
-          setProfile(p);
-          try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch(e){}
-        }}
-      />
-    );
-  }
+  const parEtape = { e1: 0, e2: 0, e3: 0 };
+  safeGroupes.forEach((g) => { if (g && parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0; });
+
+  const sosVisibles = safeSos.filter((s) => s && s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
+  const sanActifs = safeSanitaire.filter((s) => s && s.statut !== "resolu" && s.statut !== "résolu");
+  const sanParLieu = {}; sanActifs.forEach((s) => { if(s?.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + 1; });
+  const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
-      <header className="border-b border-white/10 bg-[#151b23]/90 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
-              <Truck className="w-5 h-5 text-amber-300" />
-            </div>
-            <div className="min-w-0">
-              <div className="font-display tracking-wide text-[15px] leading-none truncate">MISSIONS LOGISTIQUES</div>
-              <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · QG BUCO</div>
-            </div>
+    <div className="min-h-screen bg-[#0f1319] text-slate-100 font-sans antialiased w-full">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=500&display=swap');
+        .font-display { font-family: 'Oswald', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+        .pulse-slow { animation: pulseSlow 1.6s ease-in-out infinite; }
+      `}</style>
+
+      {/* HEADER PRINCIPAL */}
+      <header className="border-b border-white/5 bg-[#141922]/90 backdrop-blur sticky top-0 z-30 px-4 py-2.5 flex items-center justify-between w-full">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="font-display tracking-wider text-sm">QG BUCO — CONSOLE DE SUPERVISION PRINCIPALE</span>
+          <div className="hidden md:flex items-center gap-1.5 ml-4 bg-white/5 px-2 py-0.5 rounded text-[11px] font-mono text-slate-400">
+            <UserCheck className="w-3 h-3 text-sky-400" /> Profil : {SESS_USER.nom} <span className="text-slate-500">({SESS_USER.role})</span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button onClick={() => setShowAlarme(true)} className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded ring-2 ring-red-400/60 bg-red-500/20 text-red-200 hover:bg-red-500/30 font-semibold">
-              <TriangleAlert className="w-4 h-4" /> SOS
-            </button>
-            <button onClick={() => refresh(false)} className="text-slate-500 hover:text-slate-200"><RefreshCw className="w-4 h-4" /></button>
-            <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
-              <Clock className="w-4 h-4 text-slate-500" />
-              {pad(now.getHours())}:{pad(now.getMinutes())}
-            </div>
+        </div>
+        <div className="flex items-center gap-4 font-mono text-xs text-slate-400">
+          {sbError && <span className="text-red-400 animate-pulse font-bold">⚠️ SYNC ERROR</span>}
+          <div className="flex items-center gap-1.5 text-slate-200">
+            <Clock className="w-3.5 h-3.5 text-slate-500" /> {pad(now.getHours())}:{pad(now.getMinutes())}
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
-        {alerte && (
-          <div className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4">
-            <div className="flex items-start gap-3">
-              <TriangleAlert className="w-5 h-5 text-red-300 pulse-slow mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="font-display text-red-200 text-sm">{alerte.motif}</div>
-                <div className="text-xs text-red-200/80 mt-1">Saisie par {alerte.auteur} à {alerte.heure}</div>
+      {/* BANDEAU ALERTES CRITIQUES */}
+      {alertesCrises.length > 0 && (
+        <div className="p-3 bg-red-950/40 border-b border-red-500/30 space-y-1.5 w-full">
+          {alertesCrises.map((al, i) => (
+            <div key={i} className="flex items-center justify-between bg-red-500/10 ring-1 ring-red-500/30 p-2 rounded text-xs">
+              <div className="flex items-center gap-2 truncate">
+                <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow shrink-0" />
+                <span className="font-bold text-red-200 uppercase">SOS {al.source} ({al.heure}) :</span>
+                <span className="text-slate-200 truncate">"{al.motif} — {al.details || 'Aucun détail'}"</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* RESTRUCTURATION TRIPLE COLONNE PANORAMIQUE */}
+      <main className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
+        
+        {/* ==================== COLONNE 1 : URGENCE & TERRAIN 🚨 ==================== */}
+        <div className="space-y-4 w-full lg:col-span-1">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+            <div className="flex items-center gap-2 mb-3 pb-1 border-b border-white/5">
+              <TriangleAlert className="w-4 h-4 text-red-400" />
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-300">SOS Participants Actifs ({sosVisibles.length})</h2>
+            </div>
+            {sosVisibles.length === 0 ? (
+              <div className="text-xxs text-slate-500 italic py-6 text-center">Aucune fiche de secours active sur la plaine.</div>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {sosVisibles.map((s) => (
+                  <div key={s.id} className={`p-2.5 rounded border text-xs bg-white/[0.01] ${s.statut === "nouveau" ? "border-red-500/30 bg-red-500/5" : "border-white/5"}`}>
+                    <div className="flex justify-between items-start font-mono text-[10px] text-slate-400 mb-1">
+                      <span>{s.heure} · {s.nom}</span>
+                      <span className="text-amber-400 uppercase font-bold">{s.statut}</span>
+                    </div>
+                    <div className="font-semibold text-slate-100">{s.motif}</div>
+                    {s.surTrace && <div className="text-[11px] text-slate-400 mt-0.5">📍 km {s.surTrace.km} · {s.surTrace.segment}</div>}
+                    {s.details && <div className="text-[10px] text-slate-400 italic mt-1 bg-black/20 p-1 rounded">"{s.details}"</div>}
+                    <div className="mt-2 flex gap-1.5 justify-end">
+                      {s.statut === "nouveau" && (
+                        <button onClick={() => prendreEnCompteSos(s.id)} className="text-[10px] font-mono bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>
+                      )}
+                      <button onClick={() => cloturerSos(s.id)} className="text-[10px] font-mono bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Clôturer</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md">
+            <div className="text-xs font-display text-red-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS Interrain</div>
+            <form onSubmit={declencherSosManuel} className="space-y-2 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
+                  <option value="médical">Médical / Malaise</option>
+                  <option value="Incendie / fumée">Incendie / Fumée</option>
+                  <option value="Technique / énergie">Technique / Énergie</option>
+                  <option value="Sûreté / violence">Sûreté / Bagarre</option>
+                </select>
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLieu} onChange={(e) => setFormLieu(e.target.value)}>
+                  {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
               </div>
               <div className="flex gap-2">
-                {!alerte.acquittePar && <button onClick={acquitterAlerte} className="text-xs font-mono px-2 py-1 ring-1 ring-white/20 rounded">Acquitter</button>}
-                <button onClick={leverAlerte} className="text-xs font-mono px-2 py-1 ring-1 ring-white/20 rounded">Lever</button>
+                <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-400 font-mono select-none" value={`${formNom} (${SESS_USER.role})`} disabled />
+                <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-mono font-bold text-white shadow-md">ALERTER</button>
               </div>
-            </div>
+              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions terrain..." required />
+            </form>
           </div>
-        )}
 
-        {/* METEO PANEL */}
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-              <CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO INTERNE BFMF
-            </h2>
-            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
-          </div>
-          <p className="text-[11px] text-slate-400 mb-2 font-mono">Status : {METEO.maj}</p>
-          <div className="space-y-2">
-            {METEO.timeline?.map((t, i) => (
-              <div key={i} className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5">
-                <div className="flex items-center gap-2 truncate">
-                  <span className={`w-2 h-2 rounded-full ${CODE_METEO[t.code]?.dot || "bg-emerald-400"}`} />
-                  <span className="text-slate-100 font-medium truncate">{t.phenomene}</span>
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
+            {consigne ? (
+              <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
+                <div>
+                  <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
+                  {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
                 </div>
-                <span className="text-slate-500 font-mono text-[10px] ml-2 shrink-0">{t.creneau}</span>
+                <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
               </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Kpi label="A traiter" value={counts["A traiter"] || 0} accent="text-amber-300" />
-          <Kpi label="Attribuees" value={counts["Attribuee"] || 0} accent="text-sky-300" />
-          <Kpi label="En cours" value={counts["En cours"] || 0} accent="text-slate-200" />
-          <Kpi label="Bloquantes" value={bloquantes} accent={bloquantes > 0 ? "text-red-300" : "text-emerald-300"} />
-        </section>
-
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {["Tous", ...STATUTS].map((s) => (
-              <button key={s} onClick={() => setFiltreStatut(s)} className={`text-[11px] font-mono px-2.5 py-1 rounded-full ring-1 ${filtreStatut === s ? "bg-amber-400/10 text-amber-300 ring-amber-400/40" : "text-slate-400 ring-white/10"}`}>
-                {s} ({s === "Tous" ? missions.length : counts[s] || 0})
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={exportCSV} className="text-xs font-mono px-3 py-1.5 rounded ring-1 ring-white/10 text-slate-400"><Download className="w-3.5 h-3.5 inline mr-1" /> Export CSV</button>
-            <button onClick={() => setShowForm(true)} className="text-xs font-mono px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30"><Plus className="w-3.5 h-3.5 inline mr-1" /> Nouvelle demande</button>
+            ) : (
+              <div className="flex gap-1">
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
+                <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
+                <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 px-2.5 py-1 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
+              </div>
+            )}
           </div>
         </div>
 
-        <section className="space-y-2">
-          {filtered.map((m) => {
-            const p = PRIORITES[m.priorite] || PRIORITES["P3 - important non bloquant"];
-            const Icon = CATEGORIE_ICONS[m.categorie] || ClipboardList;
-            return (
-              <button key={m.id} onClick={() => setSelected(m)} className="w-full text-left rounded-lg ring-1 p-3.5 bg-[#151b23] ring-white/10 hover:bg-[#1a212b] flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className={`w-1.5 h-1.5 rounded-full ${p.dot}`} />
-                  <span className="font-mono text-[11px] text-slate-500">{m.ref}</span>
-                  <Icon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-sm text-slate-200 truncate">{m.nature}</span>
+        {/* ==================== BLOC DE DROITE FUSIONNÉ (COLONNES 2 & 3 SUBDIVISÉES) ==================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
+          
+          {/* ⚡ PLAN RADIO EN TÊTE — ETENDU SUR LES COLONNES 2 ET 3 */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2">
+            <div className="flex items-center gap-2 mb-2 pb-1 border-b border-white/5">
+              <Radio className="w-4 h-4 text-amber-400" />
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission & d'Urgence Radio (BFMF 2026)</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+              {CANAUX_RADIO.map((c) => (
+                <div key={c.canal} className="bg-black/30 p-2 rounded border border-white/5 flex flex-col justify-between">
+                  <span className="text-amber-300 font-bold text-sm">{c.canal}</span>
+                  <span className="text-slate-400 text-[10px] mt-1 leading-tight">{c.usage}</span>
                 </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-              </button>
-            );
-          })}
-        </section>
+              ))}
+            </div>
+          </div>
+
+          {/* ==================== CONTENU INTERNE COLONNE 2 ==================== */}
+          <div className="space-y-4 w-full">
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+              <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5">
+                <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
+                </h2>
+                <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} Pax Forêt</span>
+              </div>
+
+              {/* Frise linéaire d'avancement */}
+              <div className="relative h-14 mt-4 mb-2">
+                <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
+                {REPERES.map((r, i) => (
+                  <div key={i} className="absolute top-3" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-600 mx-auto mt-2" />
+                    <div className="text-[8px] font-mono text-slate-500 text-center mt-0.5">{r.nom}</div>
+                  </div>
+                ))}
+                {grpDehors.map((g, idx) => {
+                  const km = POS_KM[g.position] ?? 0;
+                  return (
+                    <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} : ${g.participants} pax`}>
+                      <div className="flex items-center bg-sky-500/20 ring-1 ring-sky-400/50 rounded px-1 py-0.5 text-[8px] font-mono text-sky-200">
+                        <Users className="w-2 h-2 text-sky-300 mr-0.5" />{g.participants}
+                      </div>
+                    </div>
+                  );
+                })}
+                {sosVisibles.filter((s) => s && s.surTrace && s.surTrace.km !== null).map((s) => (
+                  <div key={s.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`SOS : ${s.motif}`}>
+                    <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
+                  </div>
+                ))}
+              </div>
+              <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1">
+                <span>Attente P0 : {persAttente}</span>
+                <span>Rentré QG : {persRentres}</span>
+              </div>
+            </div>
+
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+              <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Signalements Sanitaires</h3>
+              {sanTop.length === 0 ? (
+                <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune anomalie remontée sur les blocs WC.</div>
+              ) : (
+                <div className="space-y-1">
+                  {sanTop.map(([lieu, count]) => (
+                    <div key={lieu} className="flex justify-between items-center text-xs bg-black/20 p-2 rounded border border-white/5">
+                      <span className="text-slate-300">{lieu}</span>
+                      <span className="text-xxs font-mono text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded border border-amber-500/20">{count} plaintes</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Management météo */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Alerte Météo Interne</div>
+                <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
+              </div>
+              <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs">
+                <div className="grid grid-cols-3 gap-1.5">
+                  <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
+                    <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option>
+                  </select>
+                  <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
+                    <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
+                  </select>
+                  <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm">POUSSER</button>
+                </div>
+                <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
+              </form>
+            </div>
+          </div>
+
+          {/* ==================== CONTENU INTERNE COLONNE 3 ==================== */}
+          <div className="space-y-4 w-full">
+            
+            {/* INJECTION NOUVELLE DEMANDE LOGISTIQUE RE-CORRIGÉE */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md">
+              <div className="text-xs font-display text-sky-400 tracking-wider uppercase mb-2 flex items-center gap-1.5">
+                <ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique
+              </div>
+              <form onSubmit={ajouterMissionLogistique} className="space-y-2 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Localisation (Synchro)</label>
+                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogLieu} onChange={(e) => setFormLogLieu(e.target.value)}>
+                      {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Degré de Priorité</label>
+                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogPriorite} onChange={(e) => setFormLogPriorite(e.target.value)}>
+                      <option value="P1 - Critique / Bloquant">P1 - Critique / Crucial</option>
+                      <option value="P2 - Urgent">P2 - Urgent</option>
+                      <option value="P3 - Standard">P3 - Standard</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 items-end">
+                  <div className="col-span-2">
+                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Qui signale ? (Lecture Seule)</label>
+                    <input type="text" className="w-full bg-black/50 border border-white/5 rounded px-2 py-1 text-slate-400 font-mono text-[11px] select-none" value={`${SESS_USER.nom} [${SESS_USER.role}]`} disabled />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Bloquant ?</label>
+                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogBloquant} onChange={(e) => setFormLogBloquant(e.target.value)}>
+                      <option value="Non">Non</option>
+                      <option value="Oui">Oui</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogNature} onChange={(e) => setFormLogNature(e.target.value)} placeholder="Ex: Panne groupe élec, manque gobelets..." required />
+                  <button type="submit" className="bg-sky-600 hover:bg-sky-500 px-3 py-1 rounded font-mono font-bold text-white shadow">INJECTER</button>
+                </div>
+              </form>
+            </div>
+
+            {/* Liste des missions ouvertes */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+              <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
+                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
+                <span className="font-mono text-xxs text-slate-400">{logOuvertes.length} Ops</span>
+              </div>
+              <div className="space-y-1.5 max-h-[160px] overflow-y-auto">
+                {logOuvertes.length === 0 ? (
+                  <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune panne ou anomalie matérielle ouverte.</div>
+                ) : (
+                  logOuvertes.slice(0, 4).map((m, i) => (
+                    <div key={i} className="text-xs bg-white/[0.02] p-2 rounded border border-white/5">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-slate-300 truncate font-medium flex-1">{m.nature}</span>
+                        <span className={`text-[9px] font-mono px-1.5 rounded ${m.priorite?.startsWith("P1") ? "bg-red-500/20 text-red-400" : m.priorite?.startsWith("P2") ? "bg-amber-500/20 text-amber-400" : "bg-slate-500/10 text-slate-400"}`}>
+                          {m.priorite ? m.priorite.slice(0,2) : "P3"}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono mt-1">📍 {m.zone} — <span className="text-slate-400">Par : {m.signalePar || "QG"}</span></div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><Rss className="w-3.5 h-3.5 text-slate-400" /> Veille Réseaux</h3>
+                <span className="text-xxs font-mono bg-emerald-500/10 text-emerald-400 px-1.5 rounded border border-emerald-500/20 capitalize">{MEDIAS.ambiance}</span>
+              </div>
+              {MEDIAS.canaux?.slice(0, 2).map((c, i) => (
+                <div key={i} className="text-[11px] bg-black/20 p-2 rounded border border-white/5 mt-1">
+                  <span className="font-semibold text-slate-300 block">{c.name}</span>
+                  <p className="text-slate-400 italic mt-0.5 truncate">"{c.note}"</p>
+                </div>
+              ))}
+            </div>
+
+            <a 
+              href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
+              className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md"
+            >
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-xxs font-mono text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 tracking-wider uppercase">IRM LIVE</span>
+                <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
+              </div>
+              <div className="text-xs font-semibold text-slate-100 truncate">{METEO.titre} — {METEO.obsResume}</div>
+              <div className="mt-2 pt-1.5 border-t border-white/5 flex justify-between text-[10px] text-slate-400 font-mono">
+                <span className="flex items-center gap-0.5"><Sun className="w-3 h-3 text-amber-400" /> UV: {METEO.obsUV}</span>
+                <span className="flex items-center gap-0.5"><Sunset className="w-3 h-3 text-orange-400" /> Coucher: {METEO.obsCoucher}</span>
+              </div>
+            </a>
+          </div>
+
+        </div>
       </main>
-
-      {showForm && <FormNouvelle onClose={() => setShowForm(false)} onSubmit={addMission} />}
-      {showAlarme && <AlarmeForm onClose={() => setShowAlarme(false)} onDeclencher={declencherAlerte} />}
-      {selected && (
-        <MissionDetail
-          mission={missions.find((m) => m.id === selected.id) || selected}
-          onClose={() => setSelected(null)}
-          onAttribuer={updateMission}
-          onDemarrer={(id) => updateMission(id, { statut: "En cours" }, "Démarré")}
-          onResoudre={(id, dt) => updateMission(id, { statut: "Resolue", actionEffectuee: dt.action }, "Résolue")}
-        />
-      )}
-    </div>
-  );
-}
-
-function Kpi({ label, value, accent }) {
-  return (
-    <div className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-3">
-      <div className="text-[10px] font-mono text-slate-500 uppercase">{label}</div>
-      <div className={`font-display text-2xl mt-0.5 ${accent}`}>{value}</div>
-    </div>
-  );
-}
-
-function ProfilSetup({ onSave }) {
-  const [nom, setNom] = useState("");
-  const [role, setRole] = useState(ROLES[0]);
-  return (
-    <div className="min-h-screen bg-[#11151b] flex items-center justify-center p-4">
-      <div className="bg-[#1a212b] p-6 rounded-lg max-w-sm w-full space-y-4">
-        <h3 className="font-display text-white text-lg">Configuration du Profil</h3>
-        <input className={inputCls} value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom / Indicatif" />
-        <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value)}>
-          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <button onClick={() => nom.trim() && onSave({ nom: nom.trim(), role })} className="w-full py-2 bg-emerald-600 text-white font-mono rounded">Valider</button>
-      </div>
-    </div>
-  );
-}
-
-function AlarmeForm({ onClose, onDeclencher }) {
-  const [motif, setMotif] = useState(MOTIFS_ALERTE[0]);
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-[#1a212b] p-5 rounded-lg max-w-sm w-full space-y-3" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-red-300 font-display">Alerte Générale</h3>
-        <select className={inputCls} value={motif} onChange={(e) => setMotif(e.target.value)}>
-          {MOTIFS_ALERTE.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <button onClick={() => onDeclencher({ motif })} className="w-full py-2 bg-red-600 text-white rounded font-mono">LANCER</button>
-      </div>
-    </div>
-  );
-}
-
-function StatutBadge({ statut }) {
-  return <span className="text-[10px] font-mono px-1.5 py-0.5 bg-slate-800 rounded">{statut}</span>;
-}
-
-function Field({ label, children }) {
-  return (
-    <label className="block">
-      <div className="text-[11px] font-mono text-slate-300 uppercase mb-1">{label}</div>
-      {children}
-    </label>
-  );
-}
-
-function FormNouvelle({ onClose, onSubmit }) {
-  const [nature, setNature] = useState("");
-  const [emetteurNom, setEmetteurNom] = useState("");
-  const [localisation, setLocalisation] = useState("");
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-[#1a212b] p-5 rounded-lg max-w-md w-full space-y-3 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-white font-display text-lg">Nouvelle Demande</h3>
-        <Field label="Titre court / Nature de l'incident *">
-          <input className={inputCls} value={nature} onChange={(e) => setNature(e.target.value)} placeholder="Ex : Panne éclairage" />
-        </Field>
-        <Field label="Qui signale ? *">
-          <input className={inputCls} value={emetteurNom} onChange={(e) => setEmetteurNom(e.target.value)} placeholder="Nom" />
-        </Field>
-        <Field label="Localisation précise *">
-          <input className={inputCls} value={localisation} onChange={(e) => setLocalisation(e.target.value)} placeholder="Lieu" />
-        </Field>
-        <button onClick={() => nature && emetteurNom && localisation && onSubmit({ nature, emetteurNom, localisation })} className="w-full py-2 bg-emerald-600 text-white rounded">Créer</button>
-      </div>
-    </div>
-  );
-}
-
-function MissionDetail({ mission, onClose, onAttribuer, onDemarrer, onResoudre }) {
-  const [action, setAction] = useState("");
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-[#151b23] p-5 rounded-lg max-w-md w-full space-y-4" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-white font-display text-lg">{mission.nature}</h3>
-        <p className="text-xs text-slate-400">Signalé par {mission.emetteurNom} — Lieu : {mission.localisation}</p>
-        <div className="space-y-2 pt-2 border-t border-white/10">
-          {mission.statut === "A traiter" && <button onClick={() => onAttribuer(mission.id, { statut: "Attribuee" })} className="w-full py-2 bg-sky-600 text-white rounded text-xs font-mono">Prendre la mission</button>}
-          {mission.statut === "Attribuee" && <button onClick={() => onDemarrer(mission.id)} className="w-full py-2 bg-amber-600 text-white rounded text-xs font-mono">Démarrer le traitement</button>}
-          {mission.statut === "En cours" && (
-            <div className="space-y-2">
-              <input className={inputCls} value={action} onChange={(e) => setAction(e.target.value)} placeholder="Action effectuée" />
-              <button onClick={() => onResoudre(mission.id, { action })} className="w-full py-2 bg-emerald-600 text-white rounded text-xs font-mono">Clôturer résolue</button>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
