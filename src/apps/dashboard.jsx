@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG — VERSION 3 COLONNES COMPACTE TACTIQUE
+   DASHBOARD QG — VERSION 3 COLONNES COMPACTE TACTIQUE CORRIGÉE
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -233,7 +233,7 @@ export default function DashboardQG() {
   const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-[#0f1319] text-slate-100 font-sans antialiased">
+    <div className="min-h-screen bg-[#0f1319] text-slate-100 font-sans antialiased w-full">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=500&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
@@ -242,38 +242,40 @@ export default function DashboardQG() {
         .pulse-slow { animation: pulseSlow 1.6s ease-in-out infinite; }
       `}</style>
 
-      {/* BANDEAU EN-TÊTE ULTRA COMPACT */}
-      <header className="border-b border-white/5 bg-[#141922]/90 backdrop-blur sticky top-0 z-30 px-4 py-2 flex items-center justify-between">
+      {/* HEADER COHÉRENT */}
+      <header className="border-b border-white/5 bg-[#141922]/90 backdrop-blur sticky top-0 z-30 px-4 py-2.5 flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="font-display tracking-wider text-sm">QG BUCO — CONSOLE DE SUPERVISION INTEGRÉE</span>
+          <span className="font-display tracking-wider text-sm">QG BUCO — CONSOLE DE SUPERVISION PRINCIPALE</span>
         </div>
         <div className="flex items-center gap-4 font-mono text-xs text-slate-400">
-          {sbError && <span className="text-red-400 animate-pulse">⚠️ SYNC ERROR</span>}
-          <div className="flex items-center gap-1.5 text-slate-200"><Clock className="w-3.5 h-3.5 text-slate-500" /> {pad(now.getHours())}:{pad(now.getMinutes())}</div>
+          {sbError && <span className="text-red-400 animate-pulse font-bold">⚠️ SYNC ERROR</span>}
+          <div className="flex items-center gap-1.5 text-slate-200">
+            <Clock className="w-3.5 h-3.5 text-slate-500" /> {pad(now.getHours())}:{pad(now.getMinutes())}
+          </div>
         </div>
       </header>
 
-      {/* BOÎTE DES ALERTES RADICALES CRITIQUES (PLEINE LARGEUR SI ACTIVE) */}
+      {/* BANDEAU EN CAS D'ALERTE ROUGE QG */}
       {alertesCrises.length > 0 && (
-        <div className="p-4 bg-red-950/40 border-b border-red-500/30 space-y-2">
+        <div className="p-3 bg-red-950/40 border-b border-red-500/30 space-y-1.5 w-full">
           {alertesCrises.map((al, i) => (
-            <div key={i} className="flex items-center justify-between bg-red-500/10 ring-1 ring-red-500/30 p-2.5 rounded-md text-xs">
+            <div key={i} className="flex items-center justify-between bg-red-500/10 ring-1 ring-red-500/30 p-2 rounded text-xs">
               <div className="flex items-center gap-2 truncate">
                 <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow shrink-0" />
                 <span className="font-bold text-red-200 uppercase">SOS {al.source} ({al.heure}) :</span>
-                <span className="text-slate-200 truncate font-medium">"{al.motif} — {al.details || 'Aucun détail'}"</span>
+                <span className="text-slate-200 truncate">"{al.motif} — {al.details || 'Aucun détail'}"</span>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* CONTENEUR MAÎTRE EN 3 COLONNES SÉPARÉES */}
-      <main className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-[1700px] mx-auto items-start">
+      {/* GRID APPLIQUÉ SUR TOUTE LA LARGEUR ET FIXÉ À 3 COLONNES SUR GRAND ÉCRAN (lg:) */}
+      <main className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
         
-        {/* ==================== COLONNE 1 : SÛRETÉ & SOS TERRAIN ==================== */}
-        <div className="space-y-4">
+        {/* ==================== COLONNE 1 : URGENCE & TERRAIN 🚨 ==================== */}
+        <div className="space-y-4 w-full">
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <div className="flex items-center gap-2 mb-3 pb-1 border-b border-white/5">
               <TriangleAlert className="w-4 h-4 text-red-400" />
@@ -282,12 +284,12 @@ export default function DashboardQG() {
             {sosVisibles.length === 0 ? (
               <div className="text-xxs text-slate-500 italic py-6 text-center">Aucune fiche de secours active sur la plaine.</div>
             ) : (
-              <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                 {sosVisibles.map((s) => (
                   <div key={s.id} className={`p-2.5 rounded border text-xs bg-white/[0.01] ${s.statut === "nouveau" ? "border-red-500/30 bg-red-500/5" : "border-white/5"}`}>
                     <div className="flex justify-between items-start font-mono text-[10px] text-slate-400 mb-1">
                       <span>{s.heure} · {s.nom}</span>
-                      <span className="text-amber-400 uppercase">{s.statut}</span>
+                      <span className="text-amber-400 uppercase font-bold">{s.statut}</span>
                     </div>
                     <div className="font-semibold text-slate-100">{s.motif}</div>
                     {s.surTrace && <div className="text-[11px] text-slate-400 mt-0.5">📍 km {s.surTrace.km} · {s.surTrace.segment}</div>}
@@ -304,8 +306,8 @@ export default function DashboardQG() {
             )}
           </div>
 
-          {/* Saisie SOS PC Rapide */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24]">
+          {/* Formulaire Saisie Express */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md">
             <div className="text-xs font-display text-red-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS Interrain</div>
             <form onSubmit={declencherSosManuel} className="space-y-2 text-xs">
               <div className="grid grid-cols-2 gap-2">
@@ -320,20 +322,20 @@ export default function DashboardQG() {
                 </select>
               </div>
               <div className="flex gap-2">
-                <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200" value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Indicatif Radio / Source" />
+                <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200" value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Radio / Source" />
                 <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-mono font-bold text-white shadow-md">ALERTER</button>
               </div>
-              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions de la situation terrain..." required />
+              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions terrain..." required />
             </form>
           </div>
 
-          {/* Gestion des Équipes Volantes */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+          {/* Volante */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
             {consigne ? (
               <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
                 <div>
-                  <div className="text-amber-300">Volante en transit : <strong className="text-slate-100">{consigne.prv}</strong></div>
+                  <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
                   {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
                 </div>
                 <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
@@ -348,8 +350,8 @@ export default function DashboardQG() {
           </div>
         </div>
 
-        {/* ==================== COLONNE 2 : SUIVI PARCOURS & CROWD ==================== */}
-        <div className="space-y-4">
+        {/* ==================== COLONNE 2 : FLUX & PARCOURS 🗺️ ==================== */}
+        <div className="space-y-4 w-full">
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5">
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
@@ -358,7 +360,7 @@ export default function DashboardQG() {
               <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} Pax Forêt</span>
             </div>
 
-            {/* Frise linéaire d'avancement des vagues */}
+            {/* Frise linéaire d'avancement */}
             <div className="relative h-14 mt-4 mb-2">
               <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
               {REPERES.map((r, i) => (
@@ -384,8 +386,8 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* Seuils et saturation des étapes de ravitaillement */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+          {/* Seuils et saturation */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5"><CircleDot className="w-3.5 h-3.5 text-slate-400" /> Seuils des Étapes</h3>
             <div className="space-y-2 text-xs">
               {["e1", "e2", "e3"].map((eid, idx) => {
@@ -407,11 +409,11 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* Bloc Sanitaire */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
-            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Signalements Sanitaires Bloquants</h3>
+          {/* Sanitaire */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Signalements Sanitaires</h3>
             {sanTop.length === 0 ? (
-              <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune anomalie rembobinée sur les blocs WC.</div>
+              <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune anomalie remontée sur les blocs WC.</div>
             ) : (
               <div className="space-y-1">
                 {sanTop.map(([lieu, count]) => (
@@ -425,8 +427,8 @@ export default function DashboardQG() {
           </div>
         </div>
 
-        {/* ==================== COLONNE 3 : MÉTÉO, LOGISTIQUE & MÉDIAS ==================== */}
-        <div className="space-y-4">
+        {/* ==================== COLONNE 3 : ENVIRONNEMENT & LOGISTIQUE 📦 ==================== */}
+        <div className="space-y-4 w-full">
           {/* Panneau IRM Cliquable */}
           <a 
             href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
@@ -445,7 +447,7 @@ export default function DashboardQG() {
           </a>
 
           {/* Tâches Logistiques Ouvertes */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
               <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
               <span className="font-mono text-xxs text-slate-400">{logOuvertes.length} Ops</span>
@@ -459,13 +461,13 @@ export default function DashboardQG() {
                     <span className="text-slate-300 truncate flex-1">{m.nature}</span>
                     <span className="text-[10px] font-mono bg-red-500/10 text-red-400 px-1.5 rounded">{m.priorite || "P3"}</span>
                   </div>
-                )
-              ))}
+                ))
+              )}
             </div>
           </div>
 
           {/* Veille Médias */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><Rss className="w-3.5 h-3.5 text-slate-400" /> Veille Réseaux</h3>
               <span className="text-xxs font-mono bg-emerald-500/10 text-emerald-400 px-1.5 rounded border border-emerald-500/20 capitalize">{MEDIAS.ambiance}</span>
@@ -478,8 +480,8 @@ export default function DashboardQG() {
             ))}
           </div>
 
-          {/* Plan Radio Compact */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5">
+          {/* Plan Radio */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Radio className="w-3.5 h-3.5 text-slate-400" /> Plan d'Urgence Radio</h3>
             <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
               {CANAUX_RADIO.map((c) => (
