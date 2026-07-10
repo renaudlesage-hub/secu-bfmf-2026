@@ -62,38 +62,31 @@ const MOTIFS_ALERTE = [
 
 const STATUTS = ["A traiter", "Attribuee", "En cours", "Resolue"];
 
-const FONCTIONS = [
-  "QG / PCE",
-  "Coordination générale",
-  "Volante",
-  "Responsable scène 1",
-  "Responsable scène 2",
-  "Responsable Étape 1",
-  "Responsable Étape 2",
-  "Responsable Étape 3",
-  "Bénévole parking",
-  "Bénévole sanitaire",
-  "Sécurité privée",
-  "Gestion artistique / backstage",
-  "Technique",
-  "Bar / restauration",
-  "Foodtruck",
-  "Logistique",
-  "Médical / secouriste",
-  "Autre",
-];
-
-const CANAUX_REMONTEE = [
-  "PMR4.1",
-  "PMR5",
-  "PMR7.1",
-  "PMR15",
-  "PMR333",
-  "PMR x",
-  "Telephone",
-  "En direct",
-  "Autre",
-];
+// Synchronisation complète des localisations avec le Dashboard QG
+const POINTS_GPS = {
+  "Site grande scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Grande Scène" },
+  "Site petite scène": { lat: 50.3832, lon: 5.6219, km: 0, segment: "Plaine centrale — Petite Scène" },
+  "Site plaine": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Zone Public / Pelouse" },
+  "Site bar": { lat: 50.3836, lon: 5.6222, km: 0, segment: "Zone Débit de Boissons" },
+  "Site foodtrucks": { lat: 50.3831, lon: 5.6208, km: 0, segment: "Allée Restauration" },
+  "Site sanitaires": { lat: 50.3841, lon: 5.6211, km: 0, segment: "Blocs WC Publics" },
+  "Site backstage": { lat: 50.3842, lon: 5.6201, km: 0, segment: "Coulisses / Loges" },
+  "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie" },
+  "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public" },
+  "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes" },
+  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
+  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt" },
+  "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Balisage Secours #4" },
+  "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
+  "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé Sud - Vers Étape 2" },
+  "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Balisage Secours #5" },
+  "Etape 2": { lat: 50.37828, lon: 5.64549, km: 2.53, segment: "Ravitaillement 2" },
+  "Parcours Balade secteur C": { lat: 50.3823, lon: 5.6457, km: 3.5, segment: "Tracé Est Crête" },
+  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Balisage Secours #6" },
+  "Etape 3": { lat: 50.38817, lon: 5.62891, km: 5.06, segment: "Ravitaillement 3" },
+  "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Secteur Nord Retour P0" },
+  "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
+};
 
 const PRIORITES = {
   "P1 - immediat / critique": { dot: "bg-red-400", text: "text-red-300", ring: "ring-red-400/30", bg: "bg-red-400/10" },
@@ -149,62 +142,6 @@ const CATEGORIE_ICONS = {
   "Meteo / adaptation": TriangleAlert,
   Autre: ClipboardList,
 };
-
-const NATURES_BESOIN = [
-  "Manque",
-  "Panne",
-  "Dysfonctionnement",
-  "Saturation",
-  "Degradation",
-  "Demande de renfort",
-  "Deplacement / repositionnement",
-  "Remplacement",
-  "Reapprovisionnement",
-  "Nettoyage",
-  "Securisation",
-  "Information manquante",
-  "A verifier",
-  "Autre",
-];
-
-const ZONES = [
-  "Point 0",
-  "Parking public",
-  "Scene 1",
-  "Scene 2",
-  "Plaine / public",
-  "Bar",
-  "Foodtrucks",
-  "Sanitaires",
-  "Backstage",
-  "Zone logistique",
-  "Parcours secteur A",
-  "Parcours secteur B",
-  "Parcours secteur C",
-  "Parcours secteur D",
-  "Etape 1",
-  "Etape 2",
-  "Etape 3",
-  "Voie d'acces secours",
-  "Hors site",
-  "Autre",
-];
-
-const EQUIPES = [
-  "Volante",
-  "Technique",
-  "Logistique",
-  "Responsable Étape 1",
-  "Responsable Étape 2",
-  "Responsable Étape 3",
-  "Benevole parking",
-  "Benevole sanitaire",
-  "Bar / restauration",
-  "Responsable scene 1",
-  "Responsable scene 2",
-  "Securite privee",
-  "QG / PCE",
-];
 
 const METEO_FALLBACK = {
   live: true,
@@ -315,7 +252,6 @@ export default function LogistiqueMissions() {
 
   const signature = profile ? `${profile.nom} (${profile.role})` : "?";
 
-  // Corrections mineures sur l'historique et évite le crash du .find si vide
   function updateMission(id, changes, logTexte) {
     const next = missions.map((m) => {
       if (m.id !== id) return m;
@@ -364,7 +300,7 @@ export default function LogistiqueMissions() {
       ...data,
       id: `m${Date.now()}`,
       ref: genRef(missions.length),
-      heureConstat: data.heureConstat || nowHM(),
+      heureConstat: nowHM(),
       statut: "A traiter",
       attribueA: "",
       responsableSuivi: "",
@@ -378,7 +314,7 @@ export default function LogistiqueMissions() {
       historique: [
         {
           heure: nowHM(),
-          texte: `Demande creee par ${data.emetteurNom || "?"} (${data.equipeOrigine || "?"}) -- saisie: ${signature}`,
+          texte: `Demande creee automatiquement par profil de session: ${signature}`,
         },
       ],
     };
@@ -531,7 +467,7 @@ export default function LogistiqueMissions() {
         </section>
       </main>
 
-      {showForm && <FormNouvelle onClose={() => setShowForm(false)} onSubmit={addMission} />}
+      {showForm && <FormNouvelle onClose={() => setShowForm(false)} onSubmit={addMission} signature={signature} />}
       {showAlarme && <AlarmeForm onClose={() => setShowAlarme(false)} onDeclencher={declencherAlerte} />}
       {selected && (
         <MissionDetail
@@ -591,33 +527,86 @@ function StatutBadge({ statut }) {
   return <span className="text-[10px] font-mono px-1.5 py-0.5 bg-slate-800 rounded">{statut}</span>;
 }
 
+// Composant d'encapsulation de champ modifié pour plus de clarté
 function Field({ label, children }) {
   return (
-    <label className="block">
+    <div>
       <div className="text-[11px] font-mono text-slate-300 uppercase mb-1">{label}</div>
       {children}
-    </label>
+    </div>
   );
 }
 
-function FormNouvelle({ onClose, onSubmit }) {
+// FORMULAIRE MIS À JOUR AVEC SYNCHRONISATION GPS ET AUTOMATISATION LOGIN
+function FormNouvelle({ onClose, onSubmit, signature }) {
   const [nature, setNature] = useState("");
-  const [emetteurNom, setEmetteurNom] = useState("");
-  const [localisation, setLocalisation] = useState("");
+  const [zone, setZone] = useState("Site zone logistique");
+  const [formPriorite, setFormPriorite] = useState("P3 - important non bloquant");
+  const [formCategorie, setFormCategorie] = useState("Autre");
+  const [formBloquant, setFormBloquant] = useState("Non");
+
+  const executerCreation = () => {
+    if (!nature) return;
+    onSubmit({
+      nature,
+      zone,
+      localisation: POINTS_GPS[zone]?.segment || "",
+      priorite: formPriorite,
+      categorie: formCategorie,
+      bloquant: formBloquant,
+      emetteurNom: signature,
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-[#1a212b] p-5 rounded-lg max-w-md w-full space-y-3 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-white font-display text-lg">Nouvelle Demande</h3>
-        <Field label="Titre court / Nature de l'incident *">
-          <input className={inputCls} value={nature} onChange={(e) => setNature(e.target.value)} placeholder="Ex : Panne éclairage" />
+      <div className="bg-[#1a212b] p-5 rounded-lg max-w-md w-full space-y-3.5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center border-b border-white/5 pb-2">
+          <h3 className="text-white font-display text-lg">Nouvelle Demande Logistique</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+        </div>
+
+        <Field label="Nature de l'incident / Besoin matériel *">
+          <input className={inputCls} value={nature} onChange={(e) => setNature(e.target.value)} placeholder="Ex: Panne éclairage, manque gobelets..." required />
         </Field>
-        <Field label="Qui signale ? *">
-          <input className={inputCls} value={emetteurNom} onChange={(e) => setEmetteurNom(e.target.value)} placeholder="Nom" />
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Localisation (Synchro Dashboard)">
+            <select className={inputCls} value={zone} onChange={(e) => setZone(e.target.value)}>
+              {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </Field>
+
+          <Field label="Degré de Priorité">
+            <select className={inputCls} value={formPriorite} onChange={(e) => setFormPriorite(e.target.value)}>
+              {Object.keys(PRIORITES).map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Catégorie Métier">
+            <select className={inputCls} value={formCategorie} onChange={(e) => setFormCategorie(e.target.value)}>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </Field>
+
+          <Field label="Incident Bloquant ?">
+            <select className={inputCls} value={formBloquant} onChange={(e) => setFormBloquant(e.target.value)}>
+              <option value="Non">Non</option>
+              <option value="Oui">Oui</option>
+            </select>
+          </Field>
+        </div>
+
+        {/* RECOUVREMENT AUTOMATIQUE DU PROFIL DE SESSION */}
+        <Field label="Qui signale ? (Lecture Seule - Auto)">
+          <input className="w-full bg-black/40 ring-1 ring-white/10 rounded px-3 py-2.5 text-[14px] text-slate-400 font-mono select-none" value={signature} disabled />
         </Field>
-        <Field label="Localisation précise *">
-          <input className={inputCls} value={localisation} onChange={(e) => setLocalisation(e.target.value)} placeholder="Lieu" />
-        </Field>
-        <button onClick={() => nature && emetteurNom && localisation && onSubmit({ nature, emetteurNom, localisation })} className="w-full py-2 bg-emerald-600 text-white rounded">Créer</button>
+
+        <button onClick={executerCreation} disabled={!nature} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 font-mono text-white rounded font-bold transition-colors shadow-md disabled:opacity-50">
+          INJECTER LA DEMANDE
+        </button>
       </div>
     </div>
   );
@@ -628,15 +617,28 @@ function MissionDetail({ mission, onClose, onAttribuer, onDemarrer, onResoudre }
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={onClose}>
       <div className="bg-[#151b23] p-5 rounded-lg max-w-md w-full space-y-4" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-white font-display text-lg">{mission.nature}</h3>
-        <p className="text-xs text-slate-400">Signalé par {mission.emetteurNom} — Lieu : {mission.localisation}</p>
-        <div className="space-y-2 pt-2 border-t border-white/10">
-          {mission.statut === "A traiter" && <button onClick={() => onAttribuer(mission.id, { statut: "Attribuee" })} className="w-full py-2 bg-sky-600 text-white rounded text-xs font-mono">Prendre la mission</button>}
-          {mission.statut === "Attribuee" && <button onClick={() => onDemarrer(mission.id)} className="w-full py-2 bg-amber-600 text-white rounded text-xs font-mono">Démarrer le traitement</button>}
+        <div className="flex justify-between items-start border-b border-white/5 pb-2">
+          <div>
+            <span className="text-[10px] font-mono text-slate-500 block mb-0.5">{mission.ref}</span>
+            <h3 className="text-white font-display text-lg leading-tight">{mission.nature}</h3>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
+        </div>
+        
+        <div className="text-xs space-y-1 bg-black/20 p-2.5 rounded border border-white/5 text-slate-300">
+          <div>📍 <span className="font-semibold">Zone :</span> {mission.zone}</div>
+          {mission.localisation && <div>🗺️ <span className="font-semibold">Localisation :</span> {mission.localisation}</div>}
+          <div>👤 <span className="font-semibold">Auteur :</span> {mission.emetteurNom}</div>
+          <div>⚠️ <span className="font-semibold">Priorité :</span> {mission.priorite}</div>
+        </div>
+
+        <div className="space-y-2 pt-2">
+          {mission.statut === "A traiter" && <button onClick={() => onAttribuer(mission.id, { statut: "Attribuee" }, "Pris en charge")} className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white rounded text-xs font-mono transition-colors">Prendre la mission</button>}
+          {mission.statut === "Attribuee" && <button onClick={() => onDemarrer(mission.id)} className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-mono transition-colors">Démarrer le traitement</button>}
           {mission.statut === "En cours" && (
             <div className="space-y-2">
               <input className={inputCls} value={action} onChange={(e) => setAction(e.target.value)} placeholder="Action effectuée" />
-              <button onClick={() => onResoudre(mission.id, { action })} className="w-full py-2 bg-emerald-600 text-white rounded text-xs font-mono">Clôturer résolue</button>
+              <button onClick={() => action.trim() && onResoudre(mission.id, { action: action.trim() })} disabled={!action.trim()} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-mono transition-colors disabled:opacity-40">Clôturer résolue</button>
             </div>
           )}
         </div>
