@@ -17,10 +17,12 @@ import {
   Rss,
   Wrench,
   AlertTriangle,
+  Sun,
+  Sunset,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - Avec Panel Alerte IRM Officiel Cliquable)
+   DASHBOARD QG (Version - Avec Panel IRM + Éphémérides & Indice UV)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -108,6 +110,9 @@ const DATA_IRM_SCRAPED = {
   source: "Institut Royal Météorologique de Belgique (IRM)",
   obsHeure: "09h00",
   obsResume: "Temps ensoleillé et sec — 21°C (Vent 6 km/h NNE)",
+  obsLever: "05h38",
+  obsCoucher: "21h52",
+  obsUV: "6.8 (Élevé)",
   urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
@@ -132,7 +137,7 @@ const CODE_METEO = {
   vert: { text: "text-emerald-300", bg: "bg-emerald-400/10", ring: "ring-emerald-400/30", dot: "bg-emerald-400", label: "VERT" },
   jaune: { text: "text-amber-300", bg: "bg-amber-400/10", ring: "ring-amber-400/40", dot: "bg-amber-400", label: "JAUNE" },
   orange: { text: "text-orange-300", bg: "bg-orange-400/10", ring: "ring-orange-400/40", dot: "bg-orange-400", label: "ORANGE" },
-  rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/40", dot: "bg-red-400", label: "ROUGE" },
+  rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
 };
 
 function pad(n) { return n.toString().padStart(2, "0"); }
@@ -409,14 +414,35 @@ export default function DashboardQG() {
               </div>
             </div>
             
-            <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between">
+            <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between space-y-3">
               <div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Météo en ce moment</div>
-                <div className="text-xs font-medium text-slate-200 mt-0.5">{DATA_IRM_SCRAPED.obsResume}</div>
+                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Météo & Données Clés</div>
+                <div className="text-xs font-medium text-slate-200">{DATA_IRM_SCRAPED.obsResume}</div>
+                
+                {/* Éphémérides et Indice UV */}
+                <div className="mt-2 pt-2 border-t border-white/5 space-y-1 text-[11px]">
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <Sun className="w-3 h-3 text-amber-400" /> Lever :
+                    </span>
+                    <span className="font-mono font-medium">{DATA_IRM_SCRAPED.obsLever}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <Sunset className="w-3 h-3 text-orange-400" /> Coucher :
+                    </span>
+                    <span className="font-mono font-medium">{DATA_IRM_SCRAPED.obsCoucher}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300 pt-0.5">
+                    <span className="text-slate-400">Indice UV max :</span>
+                    <span className="font-mono font-bold text-amber-400">{DATA_IRM_SCRAPED.obsUV}</span>
+                  </div>
+                </div>
               </div>
-              <div className="text-[9px] font-mono text-slate-500 mt-2 pt-2 border-t border-white/5">
+              
+              <div className="text-[9px] font-mono text-slate-500 pt-1.5 border-t border-white/5">
                 Source : {DATA_IRM_SCRAPED.source} <br/>
-                Dernière observation : {DATA_IRM_SCRAPED.obsHeure}
+                Observation : {DATA_IRM_SCRAPED.obsHeure}
               </div>
             </div>
           </div>
