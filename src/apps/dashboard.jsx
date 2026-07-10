@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - Avec Panel Alerte IRM Officiel)
+   DASHBOARD QG (Version - Avec Panel Alerte IRM Officiel Cliquable)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -99,16 +99,16 @@ const METEO_FALLBACK = {
   ],
 };
 
-// Données extraites en temps réel de votre dump HTML de la page IRM Ferrières
 const DATA_IRM_SCRAPED = {
   station: "Ferrières (Province de Liège)",
-  statutAlerte: "jaune", // level="watchout" maps to jaune
+  statutAlerte: "jaune",
   titre: "Avertissement Chaleur",
   validite: "Du 10/07/2026 00:00 au 15/07/2026 00:00",
   description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur et Pics d'Ozone. De plus, les maxima atteindront ou dépasseront les 32 degrés à partir de samedi.",
   source: "Institut Royal Météorologique de Belgique (IRM)",
   obsHeure: "09h00",
-  obsResume: "Temps ensoleillé et sec — 21°C (Vent 6 km/h NNE)"
+  obsResume: "Temps ensoleillé et sec — 21°C (Vent 6 km/h NNE)",
+  urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
 const MEDIAS_FALLBACK = {
@@ -375,13 +375,19 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
         
-        {/* NOUVEAU PANEL : FLUX LIVE IRM BELGIQUE — SURVEILLANCE AUTOMATIQUE */}
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-amber-400/30 border-t-4 border-amber-400 shadow-xl">
+        {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE */}
+        <a 
+          href={DATA_IRM_SCRAPED.urlFerrieres}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block bg-[#151b23] rounded-lg p-4 ring-1 ring-amber-400/30 border-t-4 border-amber-400 shadow-xl hover:bg-[#1b222c] hover:ring-amber-400/50 transition-all cursor-pointer group"
+        >
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 pulse-slow" />
-              <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase">
+              <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase flex items-center gap-1.5">
                 IRM LIVE — AVERTISSEMENTS OFFICIELS ({DATA_IRM_SCRAPED.station})
+                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-300 transition-colors inline" />
               </h2>
             </div>
             <div className="text-[10px] font-mono bg-amber-400/10 text-amber-300 px-2 py-0.5 rounded border border-amber-400/20 uppercase tracking-wider">
@@ -414,7 +420,7 @@ export default function DashboardQG() {
               </div>
             </div>
           </div>
-        </section>
+        </a>
         
         {/* GRILLE : PANNEAUX DE SAISIE CÔTE À CÔTE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
