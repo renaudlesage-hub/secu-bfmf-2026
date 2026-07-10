@@ -15,10 +15,11 @@ import {
   Meh,
   Frown,
   Rss,
+  Wrench,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version Finale Consolidée - Protection Clés Brutes Météo)
+   DASHBOARD QG (Version avec Console de Report Météo Interne)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -88,15 +89,12 @@ const POINTS_GPS = {
 const CAPACITE_ETAPE = 300;
 
 const METEO_FALLBACK = {
+  live: true,
   province: "Liege",
-  codeActuel: "jaune",
-  phenomenes: ["orages", "vent"],
-  maj: "il y a 12 min",
+  codeActuel: "vert",
+  maj: "Initialisation",
   timeline: [
-    { creneau: "Dans les 2 prochaines heures (+2h)", code: "vert", phenomene: "RAS" },
-    { creneau: "Dans les 4 prochaines heures (+4h)", code: "jaune", phenomene: "Risque d'orages locaux" },
-    { creneau: "Dans les 8 prochaines heures (+8h)", code: "jaune", phenomene: "Rafales de vent soutenues" },
-    { creneau: "Dans les 12 prochaines heures (+12h)", code: "vert", phenomene: "Retour au calme / RAS" },
+    { creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }
   ],
 };
 
@@ -140,54 +138,103 @@ export default function DashboardQG() {
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
 
+  // States Formulaire SOS
   const [formMotif, setFormMotif] = useState("médical");
   const [formLieu, setFormLieu] = useState("Site grande scène");
   const [formNom, setFormNom] = useState("Radio-PC");
   const [formDetails, setFormDetails] = useState("");
+
+  // States Formulaire Console Météo Interne
+  const [mgtVigilance, setMgtVigilance] = useState("vert");
+  const [mgtCreneau, setMgtCreneau] = useState("Dans les 2h (+2h)");
+  const [mgtCouleurLigne, setMgtCouleurLigne] = useState("vert");
+  const [mgtTexteAlea, setMgtTexteAlea] = useState("Conditions normales / RAS");
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    let stop = false;
-    async function pull() {
-      try {
-        const [mi, gr, aLog, aBal, sosP, co, mto, san, med] = await Promise.all([
-          kvGet(KEY_MISSIONS),
-          kvGet(KEY_GROUPES),
-          kvGet(KEY_ALERTE_LOG),
-          kvGet(KEY_ALERTE_BAL),
-          kvGet(KEY_SOS_PART),
-          kvGet(KEY_CONSIGNE),
-          kvGet(KEY_METEO),
-          kvGet(KEY_SANITAIRE),
-          kvGet(KEY_MEDIAS),
-        ]);
-        if (stop) return;
-        setMissionsLog(Array.isArray(mi) ? mi : []);
-        setGroupesBalade(Array.isArray(gr) ? gr : []);
-        setSosParticipants(Array.isArray(sosP) ? sosP : []);
-        setConsigne(co && co.active ? co : null);
-        setMeteoLive(mto && mto.live ? mto : null);
-        setMediasLive(med && med.canaux ? med : null);
-        setSanitaire(Array.isArray(san) ? san : []);
-        setAlertes(
-          [
-            aLog && aLog.active ? { ...aLog, source: "Logistique" } : null,
-            aBal && aBal.active ? { ...aBal, source: "Balade" } : null,
-          ].filter(Boolean)
-        );
-        setSbError(false);
-      } catch (e) {
-        if (!stop) setSbError(true);
-      }
+  async function pullAllData() {
+    try {
+      const [mi, gr, aLog, aBal, sosP, co, mto, san, med] = await Promise.all([
+        kvGet(KEY_MISSIONS),
+        kvGet(KEY_GROUPES),
+        kvGet(KEY_ALERTE_LOG),
+        kvGet(KEY_ALERTE_BAL),
+        kvGet(KEY_SOS_PART),
+        kvGet(KEY_CONSIGNE),
+        kvGet(KEY_METEO),
+        kvGet(KEY_SANITAIRE),
+        kvGet(KEY_MEDIAS),
+      ]);
+      setMissionsLog(Array.isArray(mi) ? mi : []);
+      setGroupesBalade(Array.isArray(gr) ? gr : []);
+      setSosParticipants(Array.isArray(sosP) ? sosP : []);
+      setConsigne(co && co.active ? co : null);
+      setMeteoLive(mto && mto.live ? mto : null);
+      setMediasLive(med && med.canaux ? med : null);
+      setSanitaire(Array.isArray(san) ? san : []);
+      setAlertes(
+        [
+          aLog && aLog.active ? { ...aLog, source: "Logistique" } : null,
+          aBal && aBal.active ? { ...aBal, source: "Balade" } : null,
+        ].filter(Boolean)
+      );
+      setSbError(false);
+    } catch (e) {
+      setSbError(true);
     }
-    pull();
-    const t = setInterval(pull, 10000);
-    return () => { stop = true; clearInterval(t); };
+  }
+
+  useEffect(() => {
+    pullAllData();
+    const t = setInterval(pullAllData, 10000);
+    return () => clearInterval(t);
   }, []);
+
+  // FONCTION DE PUSH RAPIDE METEO SUR SUPABASE
+  async function soumettreAjustementMeteo(e) {
+    e.preventDefault();
+    const heureMaj = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    
+    // On récupère la timeline existante ou on repart à blanc
+    const baseMeteo = meteoLive || { timeline: [] };
+    const timelineExistante = Array.isArray(baseMeteo.timeline) ? baseMeteo.timeline : [];
+
+    // Nouvel objet à injecter dans la timeline
+    const nouvelleLigneTimeline = {
+      creneau: mgtCreneau,
+      code: mgtCouleurLigne,
+      phenomene: mgtTexteAlea.trim()
+    };
+
+    // On prépare le payload final
+    const payloadMeteo = {
+      live: true,
+      province: "Liege",
+      codeActuel: mgtVigilance,
+      maj: `Mise à jour QG à ${heureMaj}`,
+      timeline: [nouvelleLigneTimeline, ...timelineExistante].slice(0, 5) // Garde les 5 derniers reports
+    };
+
+    setMeteoLive(payloadMeteo);
+    await kvSet(KEY_METEO, payloadMeteo);
+    setMgtTexteAlea(""); // reset input texte
+  }
+
+  async function purgerTimelineMeteo() {
+    const heureMaj = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const payloadVierge = {
+      live: true,
+      province: "Liege",
+      codeActuel: "vert",
+      maj: `Purger par le QG à ${heureMaj}`,
+      timeline: [{ creneau: "Actuel", code: "vert", phenomene: "Conditions normales / RAS" }]
+    };
+    setMeteoLive(payloadVierge);
+    await kvSet(KEY_METEO, payloadVierge);
+  }
 
   async function declencherSosManuel(e) {
     e.preventDefault();
@@ -396,6 +443,69 @@ export default function DashboardQG() {
           </form>
         </section>
 
+        {/* PANNEAU D'ADMINISTRATION METEO INTERNE (NOUVEAU) */}
+        <section className="bg-[#1a1f26] border-l-4 border-sky-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-sky-400 font-display text-sm tracking-wide">
+              <Wrench className="w-4 h-4" /> CONSOLE DE REPORT MÉTÉO INTERNE QG
+            </div>
+            <button onClick={purgerTimelineMeteo} className="text-[10px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-0.5 rounded transition-all">
+              Réinitialiser à Zéro
+            </button>
+          </div>
+          <form onSubmit={soumettreAjustementMeteo} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+            <div>
+              <label className="block text-[11px] font-mono text-slate-400 mb-1">Vigilance Générale</label>
+              <select 
+                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}
+              >
+                <option value="vert">VERT (Normal)</option>
+                <option value="jaune">JAUNE (Attention)</option>
+                <option value="orange">ORANGE (Danger)</option>
+                <option value="rouge">ROUGE (Alerte Majeure)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-mono text-slate-400 mb-1">Créneau Événement</label>
+              <select 
+                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}
+              >
+                <option value="En cours (Direct)">En cours (Direct)</option>
+                <option value="Dans les 2h (+2h)">Dans les 2h (+2h)</option>
+                <option value="Dans les 4h (+4h)">Dans les 4h (+4h)</option>
+                <option value="Dans les 8h (+8h)">Dans les 8h (+8h)</option>
+                <option value="Dans les 12h (+12h)">Dans les 12h (+12h)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-mono text-slate-400 mb-1">Gravité Ligne</label>
+              <select 
+                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value={mgtCouleurLigne} onChange={(e) => setMgtCouleurLigne(e.target.value)}
+              >
+                <option value="vert">Vert (RAS)</option>
+                <option value="jaune">Jaune (Risque discret)</option>
+                <option value="orange">Orange (Fort impact)</option>
+                <option value="rouge">Rouge (Urgence)</option>
+              </select>
+            </div>
+            <div>
+              <button type="submit" className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold font-mono rounded tracking-wide transition-colors shadow">
+                POUSSER REPORT MÉTÉO
+              </button>
+            </div>
+            <div className="sm:col-span-4">
+              <input 
+                type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} 
+                placeholder="Ex: Risque d'orages violents / Forte chaleur 34°C / Précipitations intenses..." required
+              />
+            </div>
+          </form>
+        </section>
+
         {/* SOS PARTICIPANTS ACTIFS */}
         {sosVisibles.length > 0 && (
           <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
@@ -565,53 +675,49 @@ export default function DashboardQG() {
           </div>
         </section>
 
-        {/* SUIVI MÉTÉO IRM AVEC NETTOYAGE DES CHAÎNES BRUTES "PHENOMENE" */}
+        {/* SUIVI MÉTÉO - EXPLOITATION DU PANEL INTERNE MAISON */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM</h2>
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO BFMF</h2>
             <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
           </div>
+          
+          <div className="text-[11px] font-mono text-slate-400 mb-2 px-1">
+            Status : {METEO.maj}
+          </div>
+
           <div className="space-y-2">
             {METEO.timeline && METEO.timeline.map((t, i) => {
               if (!t) return null;
               
               const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
-              let nomDuPhenomene = t.phenomene || t.label || t.title || "Alerte";
-              const labelCreneau = t.creneau || "En cours";
+              const texteAlerteDefinitif = t.phenomene || "Pas de précisions terrain";
+              const labelCreneau = t.creneau || "Horizon en cours";
 
-              // INTERCEPTION DU BUG SUPABASE : Si l'objet de la bdd contient le mot générique brut "phenomene"
-              if (nomDuPhenomene.toLowerCase().trim() === "phenomene") {
-                if (t.code === "jaune" || t.code === "orange" || t.code === "rouge") {
-                  nomDuPhenomene = `Vigilance ${t.code.toUpperCase()} — Alerte météo en cours`;
-                } else {
-                  nomDuPhenomene = "Conditions normales / RAS";
-                }
-              }
-
-              // Analyse sémantique secondaire pour réinjecter le badge d'aléa approprié
-              const lowerText = nomDuPhenomene.toLowerCase();
+              // Extraction sémantique des mots clés pour forcer le badge d'aléa parfait
+              const lowerText = texteAlerteDefinitif.toLowerCase();
               let typeAlea = "";
               let aleaClass = "bg-slate-500/10 text-slate-400 border-slate-500/20";
 
               if (lowerText.includes("orage")) {
                 typeAlea = "Orages";
                 aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-              } else if (lowerText.includes("chaleur") || lowerText.includes("canicule") || lowerText.includes("température")) {
+              } else if (lowerText.includes("chaleur") || lowerText.includes("canicule") || lowerText.includes("température") || lowerText.includes("chaud")) {
                 typeAlea = "Chaleur";
                 aleaClass = "bg-orange-500/10 text-orange-400 border-orange-500/20";
-              } else if (lowerText.includes("pluie") || lowerText.includes("précipit") || lowerText.includes("inond")) {
+              } else if (lowerText.includes("pluie") || lowerText.includes("précipit") || lowerText.includes("inond") || lowerText.includes("flotte")) {
                 typeAlea = "Précipitations";
                 aleaClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-              } else if (lowerText.includes("vent") || lowerText.includes("rafale") || lowerText.includes("tempête")) {
+              } else if (lowerText.includes("vent") || lowerText.includes("rafale") || lowerText.includes("tempête") || lowerText.includes("coup de vent")) {
                 typeAlea = "Vent";
                 aleaClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
-              } else if (t.code === "jaune" || t.code === "orange") {
+              } else if (t.code === "jaune" || t.code === "orange" || t.code === "rouge") {
                 typeAlea = "Vigilance";
                 aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
               }
 
               return (
-                <a key={i} href="https://www.meteo.be/fr/ferrieres" target="_blank" rel="noreferrer" className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 hover:bg-white/[0.06] transition-all group">
+                <div key={i} className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 transition-all">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className={`w-2 h-2 rounded-full ${tc.dot} shrink-0`} />
                     {typeAlea && (
@@ -619,13 +725,12 @@ export default function DashboardQG() {
                         {typeAlea}
                       </span>
                     )}
-                    <span className="text-slate-100 font-medium group-hover:text-amber-300 truncate">
-                      {nomDuPhenomene}
+                    <span className="text-slate-100 font-medium truncate">
+                      {texteAlerteDefinitif}
                     </span>
-                    <ExternalLink className="w-3 h-3 text-slate-600 group-hover:text-amber-400 shrink-0" />
                   </div>
                   <span className="text-slate-500 font-mono text-[10px] shrink-0 ml-2">{labelCreneau}</span>
-                </a>
+                </div>
               );
             })}
           </div>
