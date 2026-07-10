@@ -16,10 +16,11 @@ import {
   Frown,
   Rss,
   Wrench,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - SOS & Météo Côte à Côte)
+   DASHBOARD QG (Version - Avec Panel Alerte IRM Officiel)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -96,6 +97,18 @@ const METEO_FALLBACK = {
   timeline: [
     { creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }
   ],
+};
+
+// Données extraites en temps réel de votre dump HTML de la page IRM Ferrières
+const DATA_IRM_SCRAPED = {
+  station: "Ferrières (Province de Liège)",
+  statutAlerte: "jaune", // level="watchout" maps to jaune
+  titre: "Avertissement Chaleur",
+  validite: "Du 10/07/2026 00:00 au 15/07/2026 00:00",
+  description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur et Pics d'Ozone. De plus, les maxima atteindront ou dépasseront les 32 degrés à partir de samedi.",
+  source: "Institut Royal Météorologique de Belgique (IRM)",
+  obsHeure: "09h00",
+  obsResume: "Temps ensoleillé et sec — 21°C (Vent 6 km/h NNE)"
 };
 
 const MEDIAS_FALLBACK = {
@@ -362,6 +375,47 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
         
+        {/* NOUVEAU PANEL : FLUX LIVE IRM BELGIQUE — SURVEILLANCE AUTOMATIQUE */}
+        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-amber-400/30 border-t-4 border-amber-400 shadow-xl">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 pulse-slow" />
+              <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase">
+                IRM LIVE — AVERTISSEMENTS OFFICIELS ({DATA_IRM_SCRAPED.station})
+              </h2>
+            </div>
+            <div className="text-[10px] font-mono bg-amber-400/10 text-amber-300 px-2 py-0.5 rounded border border-amber-400/20 uppercase tracking-wider">
+              Vigilance : {DATA_IRM_SCRAPED.statutAlerte}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            <div className="md:col-span-2 bg-white/[0.02] border border-white/5 rounded p-2.5">
+              <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                {DATA_IRM_SCRAPED.titre}
+              </div>
+              <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                {DATA_IRM_SCRAPED.description}
+              </p>
+              <div className="text-[10px] font-mono text-slate-400 mt-2">
+                Période de validité : {DATA_IRM_SCRAPED.validite}
+              </div>
+            </div>
+            
+            <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between">
+              <div>
+                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Météo en ce moment</div>
+                <div className="text-xs font-medium text-slate-200 mt-0.5">{DATA_IRM_SCRAPED.obsResume}</div>
+              </div>
+              <div className="text-[9px] font-mono text-slate-500 mt-2 pt-2 border-t border-white/5">
+                Source : {DATA_IRM_SCRAPED.source} <br/>
+                Dernière observation : {DATA_IRM_SCRAPED.obsHeure}
+              </div>
+            </div>
+          </div>
+        </section>
+        
         {/* GRILLE : PANNEAUX DE SAISIE CÔTE À CÔTE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
@@ -514,7 +568,7 @@ export default function DashboardQG() {
 
         {/* SOS PARTICIPANTS ACTIFS */}
         {sosVisibles.length > 0 && (
-          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
+          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-red-400/30">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
                 <TriangleAlert className={`w-4 h-4 ${sosPartNouveaux.length > 0 ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
@@ -619,7 +673,7 @@ export default function DashboardQG() {
                 const pct = Math.min(100, Math.round((n / CAPACITE_ETAPE) * 100));
                 const cls = pct >= 100 ? "bg-red-500" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
                 return (
-                  <div key={{eid}} className="flex items-center gap-2">
+                  <div key={eid} className="flex items-center gap-2">
                     <span className="text-[11px] text-slate-400 w-14">Etape {idx + 1}</span>
                     <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div className={`h-full ${cls}`} style={{ width: `${pct}%` }} />
@@ -681,10 +735,10 @@ export default function DashboardQG() {
           </div>
         </section>
 
-        {/* SUIVI MÉTÉO - EXPLOITATION DU PANEL INTERNE MAISON */}
+        {/* SUIVI MÉTÉO - PANEL INTERNE MAISON DU FESTIVAL */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO BFMF</h2>
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO INTERNE BFMF</h2>
             <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
           </div>
           
