@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG — VERSION 3 COLONNES CONSOLIDÉE ET INTERACTIVE
+   DASHBOARD QG — CONSOLE DE SUPERVISION INTERACTIVE AVEC ACQUITTEMENT
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -114,7 +114,7 @@ const REPERES = [
 
 const METEO_FALLBACK = {
   live: true, province: "Liege", codeActuel: "vert", maj: "Initialisation",
-  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales" }],
+  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }],
   station: "Ferrières (Province de Liège)", statutAlerte: "jaune", titre: "Suivi Météo",
   description: "Conditions météo normales sur la plaine de Ferrières.",
   source: "Institut Royal Météorologique (IRM)", obsHeure: "--h--", obsResume: "Calcul...",
@@ -155,7 +155,7 @@ export default function DashboardQG() {
   const [formNom, setFormNom] = useState(SESS_USER.nom);
   const [formDetails, setFormDetails] = useState("");
 
-  // States Formulaire Nouvelle Mission Logistique
+  // States Formulaire Nouvelle Demande Logistique
   const [formLogNature, setFormLogNature] = useState("");
   const [formLogLieu, setFormLogLieu] = useState("Site zone logistique");
   const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
@@ -203,6 +203,29 @@ export default function DashboardQG() {
     return () => clearInterval(t);
   }, []);
 
+  // 🚨 CORRECTIF : Prise en charge de l'acquittement ou de la levée d'alerte générale logistique
+  async function acquitterAlerteQg(keyDb, objetAlerte) {
+    const tempsFige = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const alerteMiseAJour = {
+      ...objetAlerte,
+      acquittePar: `${SESS_USER.nom} (${SESS_USER.role})`,
+      heureAcquittement: tempsFige
+    };
+    await kvSet(keyDb, alerteMiseAJour);
+    pullAllData();
+  }
+
+  async function leverAlerteQg(keyDb, objetAlerte) {
+    const alerteMiseAJour = {
+      ...objetAlerte,
+      active: false,
+      leveePar: `${SESS_USER.nom} (${SESS_USER.role})`,
+      heureLevee: `${pad(now.getHours())}:${pad(now.getMinutes())}`
+    };
+    await kvSet(keyDb, alerteMiseAJour);
+    pullAllData();
+  }
+
   async function prendreEnCompteSos(id) {
     const next = safeSos.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
     setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
@@ -245,7 +268,6 @@ export default function DashboardQG() {
     setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
   }
 
-  // 🛠️ RETAILLE DES FONCTIONS D'ACTION DE L'APPLICATION LOGISTIQUE PRECEDENTE
   async function attribuerMissionLog(id, equipe) {
     const next = safeMissions.map((m) => m.id === id ? { ...m, statut: "En cours", attribueA: equipe, heurePriseEnCharge: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
     setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
@@ -326,15 +348,36 @@ export default function DashboardQG() {
         </div>
       </header>
 
-      {/* BANDEAU ALERTES CRITIQUES CRUCIALES */}
+      {/* BANDEAU ALERTES INTERACTIF AVEC BOUTON D'ACQUITTEMENT ET LEVÉE */}
       {alertesCrises.length > 0 && (
         <div className="p-3 bg-red-950/40 border-b border-red-500/30 space-y-1.5 w-full">
           {alertesCrises.map((al, i) => (
-            <div key={i} className="flex items-center justify-between bg-red-500/10 ring-1 ring-red-500/30 p-2 rounded text-xs">
-              <div className="flex items-center gap-2 truncate">
+            <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between bg-red-500/10 ring-1 ring-red-500/30 p-2 rounded text-xs gap-2">
+              <div className="flex items-center gap-2 truncate flex-1">
                 <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow shrink-0" />
-                <span className="font-bold text-red-200 uppercase">SOS {al.source} ({al.heure}) :</span>
-                <span className="text-slate-200 truncate">"{al.motif} — {al.details || 'Aucun détail'}"</span>
+                <span className="font-bold text-red-200 uppercase shrink-0">SOS {al.source} ({al.heure}) :</span>
+                <span className="text-slate-200 truncate">
+                  "{al.motif} — {al.details || 'Aucun détail'}" 
+                  {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
+                </span>
+              </div>
+              
+              {/* INTERACTION DU BANDEAU */}
+              <div className="flex gap-1.5 justify-end shrink-0">
+                {!al.acquittePar && (
+                  <button 
+                    onClick={() => acquitterAlerteQg(al.keyDb, al)} 
+                    className="text-[10px] font-mono bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30"
+                  >
+                    Acquitter
+                  </button>
+                )}
+                <button 
+                  onClick={() => leverAlerteQg(al.keyDb, al)} 
+                  className="text-[10px] font-mono bg-white/5 hover:bg-white/10 text-slate-300 px-2 py-0.5 rounded border border-white/10"
+                >
+                  Lever l'alerte
+                </button>
               </div>
             </div>
           ))}
@@ -391,7 +434,7 @@ export default function DashboardQG() {
                 </select>
               </div>
               <div className="flex gap-2">
-                <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-400 font-mono select-none" value={`${formNom} (${SESS_USER.role})`} disabled />
+                <input type="text" className="w-full bg-black/50 border border-white/5 rounded px-2 py-1 text-slate-400 font-mono text-[11px] select-none" value={`${formNom} (${SESS_USER.role})`} disabled />
                 <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-mono font-bold text-white shadow-md">ALERTER</button>
               </div>
               <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions terrain..." required />
@@ -494,6 +537,7 @@ export default function DashboardQG() {
               )}
             </div>
 
+            {/* Management météo */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Alerte Météo Interne</div>
@@ -517,7 +561,7 @@ export default function DashboardQG() {
           {/* ==================== CONTENU INTERNE COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* 🛠️ TABLEAU DE BORD DE L'APPLICATION LOGISTIQUE RESTAURÉ ET ACTIONNABLE */}
+            {/* 🛠️ TABLEAU DE BORD DE L'APPLICATION LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
@@ -541,7 +585,7 @@ export default function DashboardQG() {
                         <span className="text-xxs text-slate-500">Statut: <strong className="text-amber-400 font-normal">{m.attribueA ? `En cours (${m.attribueA})` : "En attente"}</strong></span>
                       </div>
 
-                      {/* ⚡ BOUTONS DE CYCLE DE VIE DE L'APP LOGISTIQUE (RÉTABLIS) */}
+                      {/* ACTIONS LOGISTIQUES */}
                       <div className="flex justify-end gap-1 pt-1.5 border-t border-white/5">
                         {!m.attribueA && (
                           <>
@@ -566,7 +610,7 @@ export default function DashboardQG() {
               <form onSubmit={ajouterMissionLogistique} className="space-y-2 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Localisation (Synchro)</label>
+                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Localisation (Synchro Dashboard)</label>
                     <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogLieu} onChange={(e) => setFormLogLieu(e.target.value)}>
                       {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
@@ -582,7 +626,7 @@ export default function DashboardQG() {
                 </div>
                 <div className="grid grid-cols-3 gap-2 items-end">
                   <div className="col-span-2">
-                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Qui signale ? (Lecture Seule)</label>
+                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Qui signale ? (Lecture Seule - Auto)</label>
                     <input type="text" className="w-full bg-black/50 border border-white/5 rounded px-2 py-1 text-slate-400 font-mono text-[11px] select-none" value={`${SESS_USER.nom} [${SESS_USER.role}]`} disabled />
                   </div>
                   <div>
