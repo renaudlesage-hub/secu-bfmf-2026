@@ -364,7 +364,7 @@ export default function DashboardQG() {
             </div>
             <div>
               <button type="submit" className="w-full py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-mono rounded tracking-wide transition-colors shadow">
-                INJECTER SOS INTERRAIN
+                INJECTER SOS TERRAIN
               </button>
             </div>
             <div className="sm:col-span-4">
