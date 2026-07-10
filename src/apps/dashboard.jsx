@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version avec Console de Report Météo Interne)
+   DASHBOARD QG (Version - SOS & Météo Côte à Côte)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -193,34 +193,30 @@ export default function DashboardQG() {
     return () => clearInterval(t);
   }, []);
 
-  // FONCTION DE PUSH RAPIDE METEO SUR SUPABASE
   async function soumettreAjustementMeteo(e) {
     e.preventDefault();
     const heureMaj = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     
-    // On récupère la timeline existante ou on repart à blanc
     const baseMeteo = meteoLive || { timeline: [] };
     const timelineExistante = Array.isArray(baseMeteo.timeline) ? baseMeteo.timeline : [];
 
-    // Nouvel objet à injecter dans la timeline
     const nouvelleLigneTimeline = {
       creneau: mgtCreneau,
       code: mgtCouleurLigne,
       phenomene: mgtTexteAlea.trim()
     };
 
-    // On prépare le payload final
     const payloadMeteo = {
       live: true,
       province: "Liege",
       codeActuel: mgtVigilance,
       maj: `Mise à jour QG à ${heureMaj}`,
-      timeline: [nouvelleLigneTimeline, ...timelineExistante].slice(0, 5) // Garde les 5 derniers reports
+      timeline: [nouvelleLigneTimeline, ...timelineExistante].slice(0, 5)
     };
 
     setMeteoLive(payloadMeteo);
     await kvSet(KEY_METEO, payloadMeteo);
-    setMgtTexteAlea(""); // reset input texte
+    setMgtTexteAlea("");
   }
 
   async function purgerTimelineMeteo() {
@@ -366,145 +362,155 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
         
-        {/* FORMULAIRE SOS RAPIDE PC */}
-        <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
-          <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide">
-            <PlusCircle className="w-4 h-4" /> LANCER UNE ALERTE SOS MANUELLE (APPELS RADIO / TÉLÉPHONE)
-          </div>
-          <form onSubmit={declencherSosManuel} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+        {/* GRILLE : PANNEAUX DE SAISIE CÔTE À CÔTE */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* COLONNE A : FORMULAIRE SOS RAPIDE PC */}
+          <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5 flex flex-col justify-between">
             <div>
-              <label className="block text-[11px] font-mono text-slate-400 mb-1">Nature de l'urgence</label>
-              <select 
-                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
-                value={formMotif} onChange={(e) => setFormMotif(e.target.value)}
-              >
-                <option value="médical">médical</option>
-                <option value="Incendie / fumée">Incendie / fumée</option>
-                <option value="Technique / énergie">Technique / énergie</option>
-                <option value="Gaz / Groupe électrogène">Gaz / Groupe électrogène</option>
-                <option value="météo">météo</option>
-                <option value="Mouvement de foule">Mouvement de foule</option>
-                <option value="Sûreté / violence">Sûreté / violence</option>
-                <option value="Enfant perdu / personne vulnérable">Enfant perdu / personne vulnérable</option>
-                <option value="accident circulation / parking">accident circulation / parking</option>
-                <option value="logistique">logistique</option>
-                <option value="communication">communication</option>
-                <option value="environnement">environnement</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-mono text-slate-400 mb-1">Localisation / Repère</label>
-              <select 
-                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
-                value={formLieu} onChange={(e) => setFormLieu(e.target.value)}
-              >
-                <option value="Site grande scène">Site grande scène</option>
-                <option value="Site petite scène">Site petite scène</option>
-                <option value="Site plaine">Site plaine</option>
-                <option value="Site bar">Site bar</option>
-                <option value="Site foodtrucks">Site foodtrucks</option>
-                <option value="Site sanitaires">Site sanitaires</option>
-                <option value="Site backstage">Site backstage</option>
-                <option value="Site zone logistique">Site zone logistique</option>
-                <option value="Parking public">Parking public</option>
-                <option value="Parking artistes">Parking artistes</option>
-                <option value="Parcours Balade secteur A">Parcours Balade secteur A</option>
-                <option value="Parcours Balade secteur B">Parcours Balade secteur B</option>
-                <option value="Parcours Balade secteur C">Parcours Balade secteur C</option>
-                <option value="Parcours Balade secteur D">Parcours Balade secteur D</option>
-                <option value="Etape 1">Etape 1</option>
-                <option value="Etape 2">Etape 2</option>
-                <option value="Etape 3">Etape 3</option>
-                <option value="Point 0">Point 0</option>
-                <option value="PRV#4">PRV#4</option>
-                <option value="PRV#5">PRV#5</option>
-                <option value="PRV#6">PRV#6</option>
-                <option value="PRV#7">PRV#7</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-mono text-slate-400 mb-1">Origine / Indicatif</label>
-              <input 
-                type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
-                value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Ex: PMR 333 / Secu"
-              />
-            </div>
-            <div>
-              <button type="submit" className="w-full py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-mono rounded tracking-wide transition-colors shadow">
-                INJECTER SOS INTERRAIN
-              </button>
-            </div>
-            <div className="sm:col-span-4">
-              <input 
-                type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Détails descriptifs de la situation terrain..." required
-              />
-            </div>
-          </form>
-        </section>
+              <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide">
+                <PlusCircle className="w-4 h-4" /> INJECTER SOS INTERRAIN
+              </div>
+              <form onSubmit={declencherSosManuel} className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Urgence</label>
+                    <select 
+                      className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-red-500"
+                      value={formMotif} onChange={(e) => setFormMotif(e.target.value)}
+                    >
+                      <option value="médical">médical</option>
+                      <option value="Incendie / fumée">Incendie / fumée</option>
+                      <option value="Technique / énergie">Technique / énergie</option>
+                      <option value="Gaz / G.E.">Gaz / G.E.</option>
+                      <option value="météo">météo</option>
+                      <option value="Mouvement de foule">Mouvement de foule</option>
+                      <option value="Sûreté / violence">Sûreté / violence</option>
+                      <option value="Enfant perdu">Enfant perdu</option>
+                      <option value="Accident circulation">Accident circulation</option>
+                      <option value="logistique">logistique</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Localisation / Repère</label>
+                    <select 
+                      className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-red-500"
+                      value={formLieu} onChange={(e) => setFormLieu(e.target.value)}
+                    >
+                      <option value="Site grande scène">Site grande scène</option>
+                      <option value="Site petite scène">Site petite scène</option>
+                      <option value="Site plaine">Site plaine</option>
+                      <option value="Site bar">Site bar</option>
+                      <option value="Site foodtrucks">Site foodtrucks</option>
+                      <option value="Site sanitaires">Site sanitaires</option>
+                      <option value="Site backstage">Site backstage</option>
+                      <option value="Site zone logistique">Site zone logistique</option>
+                      <option value="Parking public">Parking public</option>
+                      <option value="Etape 1">Etape 1</option>
+                      <option value="Etape 2">Etape 2</option>
+                      <option value="Etape 3">Etape 3</option>
+                      <option value="Point 0">Point 0</option>
+                      <option value="PRV#4">PRV#4</option>
+                      <option value="PRV#5">PRV#5</option>
+                      <option value="PRV#6">PRV#6</option>
+                      <option value="PRV#7">PRV#7</option>
+                    </select>
+                  </div>
+                </div>
 
-        {/* PANNEAU D'ADMINISTRATION METEO INTERNE (NOUVEAU) */}
-        <section className="bg-[#1a1f26] border-l-4 border-sky-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-sky-400 font-display text-sm tracking-wide">
-              <Wrench className="w-4 h-4" /> CONSOLE DE REPORT MÉTÉO INTERNE QG
+                <div className="grid grid-cols-3 gap-2 items-end">
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Origine / Indicatif</label>
+                    <input 
+                      type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-red-500"
+                      value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Ex: PMR 333 / Secu"
+                    />
+                  </div>
+                  <button type="submit" className="py-1 bg-red-600 hover:bg-red-500 text-white text-[11px] font-bold font-mono rounded tracking-wide transition-colors shadow">
+                    LANCER SOS
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Détails de la situation</label>
+                  <input 
+                    type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                    value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Descriptif de l'événement interterrain..." required
+                  />
+                </div>
+              </form>
             </div>
-            <button onClick={purgerTimelineMeteo} className="text-[10px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-2 py-0.5 rounded transition-all">
-              Réinitialiser à Zéro
-            </button>
-          </div>
-          <form onSubmit={soumettreAjustementMeteo} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+          </section>
+
+          {/* COLONNE B : CONSOLE DE REPORT MÉTÉO INTERNE QG */}
+          <section className="bg-[#1a1f26] border-l-4 border-sky-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5 flex flex-col justify-between">
             <div>
-              <label className="block text-[11px] font-mono text-slate-400 mb-1">Vigilance Générale</label>
-              <select 
-                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}
-              >
-                <option value="vert">VERT (Normal)</option>
-                <option value="jaune">JAUNE (Attention)</option>
-                <option value="orange">ORANGE (Danger)</option>
-                <option value="rouge">ROUGE (Alerte Majeure)</option>
-              </select>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-sky-400 font-display text-sm tracking-wide">
+                  <Wrench className="w-4 h-4" /> MANAGEMENT MÉTÉO INTERNE
+                </div>
+                <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded transition-all">
+                  Purger tout
+                </button>
+              </div>
+              <form onSubmit={soumettreAjustementMeteo} className="space-y-2.5">
+                <div className="grid grid-cols-3 gap-1.5">
+                  <div>
+                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Global</label>
+                    <select 
+                      className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}
+                    >
+                      <option value="vert">VERT</option>
+                      <option value="jaune">JAUNE</option>
+                      <option value="orange">ORANGE</option>
+                      <option value="rouge">ROUGE</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Créneau</label>
+                    <select 
+                      className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}
+                    >
+                      <option value="En cours">Direct</option>
+                      <option value="Dans les 2h (+2h)">+2h</option>
+                      <option value="Dans les 4h (+4h)">+4h</option>
+                      <option value="Dans les 8h (+8h)">+8h</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Ligne</label>
+                    <select 
+                      className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      value={mgtCouleurLigne} onChange={(e) => setMgtCouleurLigne(e.target.value)}
+                    >
+                      <option value="vert">Vert</option>
+                      <option value="jaune">Jaune</option>
+                      <option value="orange">Orange</option>
+                      <option value="rouge">Rouge</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 items-end">
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-mono text-slate-400 mb-0.5">Texte descriptif de l'aléa</label>
+                    <input 
+                      type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} 
+                      placeholder="Ex: Orages isolés / Canicule..." required
+                    />
+                  </div>
+                  <button type="submit" className="py-1 bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold font-mono rounded tracking-wide transition-colors shadow">
+                    POUSSER
+                  </button>
+                </div>
+              </form>
             </div>
-            <div>
-              <label className="block text-[11px] font-mono text-slate-400 mb-1">Créneau Événement</label>
-              <select 
-                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}
-              >
-                <option value="En cours (Direct)">En cours (Direct)</option>
-                <option value="Dans les 2h (+2h)">Dans les 2h (+2h)</option>
-                <option value="Dans les 4h (+4h)">Dans les 4h (+4h)</option>
-                <option value="Dans les 8h (+8h)">Dans les 8h (+8h)</option>
-                <option value="Dans les 12h (+12h)">Dans les 12h (+12h)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-mono text-slate-400 mb-1">Gravité Ligne</label>
-              <select 
-                className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                value={mgtCouleurLigne} onChange={(e) => setMgtCouleurLigne(e.target.value)}
-              >
-                <option value="vert">Vert (RAS)</option>
-                <option value="jaune">Jaune (Risque discret)</option>
-                <option value="orange">Orange (Fort impact)</option>
-                <option value="rouge">Rouge (Urgence)</option>
-              </select>
-            </div>
-            <div>
-              <button type="submit" className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold font-mono rounded tracking-wide transition-colors shadow">
-                POUSSER REPORT MÉTÉO
-              </button>
-            </div>
-            <div className="sm:col-span-4">
-              <input 
-                type="text" className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2.5 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} 
-                placeholder="Ex: Risque d'orages violents / Forte chaleur 34°C / Précipitations intenses..." required
-              />
-            </div>
-          </form>
-        </section>
+          </section>
+
+        </div>
 
         {/* SOS PARTICIPANTS ACTIFS */}
         {sosVisibles.length > 0 && (
@@ -613,7 +619,7 @@ export default function DashboardQG() {
                 const pct = Math.min(100, Math.round((n / CAPACITE_ETAPE) * 100));
                 const cls = pct >= 100 ? "bg-red-500" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
                 return (
-                  <div key={eid} className="flex items-center gap-2">
+                  <div key={{eid}} className="flex items-center gap-2">
                     <span className="text-[11px] text-slate-400 w-14">Etape {idx + 1}</span>
                     <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div className={`h-full ${cls}`} style={{ width: `${pct}%` }} />
@@ -694,7 +700,6 @@ export default function DashboardQG() {
               const texteAlerteDefinitif = t.phenomene || "Pas de précisions terrain";
               const labelCreneau = t.creneau || "Horizon en cours";
 
-              // Extraction sémantique des mots clés pour forcer le badge d'aléa parfait
               const lowerText = texteAlerteDefinitif.toLowerCase();
               let typeAlea = "";
               let aleaClass = "bg-slate-500/10 text-slate-400 border-slate-500/20";
