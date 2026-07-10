@@ -1,7 +1,7 @@
 // Catalogue des points sanitaires equipes d'un QR code.
 // L'ID est encode dans l'URL du QR : https://votre-site/#signaler/ID
 export const LIEUX = [
-  { id: "wc-p0-a", nom: "WC Point 0 — bloc A", zone: "Point 0", equip: "wc" },
+  { id: "wc-plaine-a", nom: "WC Plaine — bloc A", zone: "Plaine", equip: "wc" },
   { id: "wc-p0-b", nom: "WC Point 0 — bloc B", zone: "Point 0", equip: "wc" },
   { id: "lm-p0", nom: "Lave-mains Point 0", zone: "Point 0", equip: "lave-mains" },
   { id: "pb-p0", nom: "Poubelles Point 0 / accueil", zone: "Point 0", equip: "poubelle" },
