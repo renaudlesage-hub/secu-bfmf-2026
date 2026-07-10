@@ -14,7 +14,7 @@ import {
   Smile,
   Meh,
   Frown,
-  Rss, // <-- Correction : Ajouté ici pour éviter la page blanche
+  Rss,
   Wrench,
   AlertTriangle,
   Sun,
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - SOS en haut & Panneaux corrigés)
+   DASHBOARD QG (Version - Alignement Tactique Volante & SOS)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -393,7 +393,7 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
 
-        {/* 1. PANNEAU PANNEAU CRISES SOS ÉQUIPES (PROVENANT DE LA LOGISTIQUE OU BALADE) */}
+        {/* 1. PANNEAU CRISES SOS ÉQUIPES (PROVENANT DE LA LOGISTIQUE OU BALADE) */}
         {alertesCrises.map((al, idx) => (
           <div key={idx} className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4 border-l-4 border-red-500">
             <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
@@ -417,8 +417,9 @@ export default function DashboardQG() {
                 </div>
               </div>
               <div className="flex gap-2 self-center shrink-0">
+                {/* CORRECTION : Liaison explicite à la fonction synchrone de traitement Supabase */}
                 {!al.acquittePar && (
-                  <button onClick={() => alerteCrises(al)} className="text-xs font-mono px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-all">
+                  <button onClick={() => acquitterAlerteEquipe(al)} className="text-xs font-mono px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-all">
                     Acquitter
                   </button>
                 )}
@@ -442,6 +443,8 @@ export default function DashboardQG() {
             <div className="space-y-2">
               {sosVisibles.map((s) => {
                 if (!s) return null;
+                
+                // CORRECTION TACTIQUE : Traduction et tolérance aux statuts de la Volante (minuscules)
                 const st = (s.statut || "").toLowerCase();
                 
                 let libelleStatutInterterrain = "Pris en compte par le QG";
@@ -449,6 +452,7 @@ export default function DashboardQG() {
                 else if (st === "en route") libelleStatutInterterrain = `Volante en route (${s.heureEnRoute || ""})`;
                 else if (st === "sur place") libelleStatutInterterrain = `Volante sur place (${s.heureArrivee || ""})`;
                 else if (st === "prise en charge") libelleStatutInterterrain = `Victime prise en charge / Soins (${s.heurePriseEnCharge || ""})`;
+                else if (st === "retour a la normale") libelleStatutInterterrain = `Retour à la normale terrain (${s.heureRetourNormale || ""})`;
                 else if (st === "pris en compte" && s.heurePriseEnCompte) libelleStatutInterterrain = `Pris en compte par le QG (${s.heurePriseEnCompte})`;
 
                 return (
@@ -465,7 +469,7 @@ export default function DashboardQG() {
                         <button onClick={() => cloturerSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20">Clôturer</button>
                       </div>
                     </div>
-                    {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · Repère : {s.surTrace.reperePlusProche} · {s.surTrace.segment}</div>}
+                    {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · Repère : {s.surTrace.reperePlusProche} · {s.surTrace.segment || s.surTrace.reperePlusProche}</div>}
                     {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
                     <div className="text-[11px] font-mono mt-1.5 text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded w-fit border border-amber-500/10">
                       Statut : {libelleStatutInterterrain}
