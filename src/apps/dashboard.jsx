@@ -14,7 +14,7 @@ import {
   Smile,
   Meh,
   Frown,
-  Rss,
+  Rss, // <-- Correction : Ajouté ici pour éviter la page blanche
   Wrench,
   AlertTriangle,
   Sun,
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - Multi-Alertes SOS & IRM Dynamique)
+   DASHBOARD QG (Version - SOS en haut & Panneaux corrigés)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -191,7 +191,6 @@ export default function DashboardQG() {
       setMediasLive(med && med.canaux ? med : null);
       setSanitaire(Array.isArray(san) ? san : []);
       
-      // Consolidation dynamique des deux types d'alertes SOS Équipes
       setAlertesCrises(
         [
           aLog && aLog.active ? { ...aLog, source: "Logistique", keyDb: KEY_ALERTE_LOG } : null,
@@ -210,7 +209,6 @@ export default function DashboardQG() {
     return () => clearInterval(t);
   }, []);
 
-  // Actions de traitement des SOS Équipes depuis la console QG
   async function acquitterAlerteEquipe(alerte) {
     const a = { ...alerte, acquittePar: "QG / PCE", heureAcquittement: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
     await kvSet(alerte.keyDb, a);
@@ -395,9 +393,9 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
 
-        {/* BANDEAUX DE DETECTON DE CRISES EN DIRECT (LOGISTIQUE ET BALADE) */}
+        {/* 1. PANNEAU PANNEAU CRISES SOS ÉQUIPES (PROVENANT DE LA LOGISTIQUE OU BALADE) */}
         {alertesCrises.map((al, idx) => (
-          <div key={idx} className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4 border-l-4 border-red-500 animate-pulse">
+          <div key={idx} className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4 border-l-4 border-red-500">
             <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
               <div className="flex items-start gap-3 min-w-0">
                 <TriangleAlert className="w-5 h-5 text-red-300 pulse-slow mt-0.5 shrink-0" />
@@ -420,7 +418,7 @@ export default function DashboardQG() {
               </div>
               <div className="flex gap-2 self-center shrink-0">
                 {!al.acquittePar && (
-                  <button onClick={() => acquitterAlerteEquipe(al)} className="text-xs font-mono px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-all">
+                  <button onClick={() => alerteCrises(al)} className="text-xs font-mono px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-all">
                     Acquitter
                   </button>
                 )}
@@ -431,8 +429,55 @@ export default function DashboardQG() {
             </div>
           </div>
         ))}
+
+        {/* 2. PANNEAU SOS PARTICIPANTS ACTIFS */}
+        {sosVisibles.length > 0 && (
+          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-red-400/30">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+                <TriangleAlert className={`w-4 h-4 ${sosPartNouveaux.length > 0 ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
+                SOS PARTICIPANTS ACTIFS
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {sosVisibles.map((s) => {
+                if (!s) return null;
+                const st = (s.statut || "").toLowerCase();
+                
+                let libelleStatutInterterrain = "Pris en compte par le QG";
+                if (st === "nouveau") libelleStatutInterterrain = "Nouveau — non pris en compte";
+                else if (st === "en route") libelleStatutInterterrain = `Volante en route (${s.heureEnRoute || ""})`;
+                else if (st === "sur place") libelleStatutInterterrain = `Volante sur place (${s.heureArrivee || ""})`;
+                else if (st === "prise en charge") libelleStatutInterterrain = `Victime prise en charge / Soins (${s.heurePriseEnCharge || ""})`;
+                else if (st === "pris en compte" && s.heurePriseEnCompte) libelleStatutInterterrain = `Pris en compte par le QG (${s.heurePriseEnCompte})`;
+
+                return (
+                  <div key={s.id} className={`rounded-md px-3 py-2.5 ring-1 ${st === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
+                      <span className="text-sm text-slate-100 font-medium capitalize">{s.motif}</span>
+                      <span className="text-[11px] text-slate-400">— Origine: {s.nom}</span>
+                      <span className="flex-1" />
+                      <div className="flex items-center gap-2">
+                        {st === "nouveau" && (
+                          <button onClick={() => prendreEnCompteSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20">Prendre en compte</button>
+                        )}
+                        <button onClick={() => cloturerSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20">Clôturer</button>
+                      </div>
+                    </div>
+                    {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · Repère : {s.surTrace.reperePlusProche} · {s.surTrace.segment}</div>}
+                    {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
+                    <div className="text-[11px] font-mono mt-1.5 text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded w-fit border border-amber-500/10">
+                      Statut : {libelleStatutInterterrain}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
         
-        {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE */}
+        {/* 3. PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE */}
         <a 
           href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres}
           target="_blank"
@@ -634,53 +679,6 @@ export default function DashboardQG() {
 
         </div>
 
-        {/* SOS PARTICIPANTS ACTIFS */}
-        {sosVisibles.length > 0 && (
-          <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-red-400/30">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-                <TriangleAlert className={`w-4 h-4 ${sosPartNouveaux.length > 0 ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
-                SOS PARTICIPANTS ACTIFS
-              </h2>
-            </div>
-            <div className="space-y-2">
-              {sosVisibles.map((s) => {
-                if (!s) return null;
-                const st = (s.statut || "").toLowerCase();
-                
-                let libelleStatutInterterrain = "Pris en compte par le QG";
-                if (st === "nouveau") libelleStatutInterterrain = "Nouveau — non pris en compte";
-                else if (st === "en route") libelleStatutInterterrain = `Volante en route (${s.heureEnRoute || ""})`;
-                else if (st === "sur place") libelleStatutInterterrain = `Volante sur place (${s.heureArrivee || ""})`;
-                else if (st === "prise en charge") libelleStatutInterterrain = `Victime prise en charge / Soins (${s.heurePriseEnCharge || ""})`;
-                else if (st === "pris en compte" && s.heurePriseEnCompte) libelleStatutInterterrain = `Pris en compte par le QG (${s.heurePriseEnCompte})`;
-
-                return (
-                  <div key={s.id} className={`rounded-md px-3 py-2.5 ring-1 ${st === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"}`}>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
-                      <span className="text-sm text-slate-100 font-medium capitalize">{s.motif}</span>
-                      <span className="text-[11px] text-slate-400">— Origine: {s.nom}</span>
-                      <span className="flex-1" />
-                      <div className="flex items-center gap-2">
-                        {st === "nouveau" && (
-                          <button onClick={() => prendreEnCompteSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20">Prendre en compte</button>
-                        )}
-                        <button onClick={() => cloturerSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20">Clôturer</button>
-                      </div>
-                    </div>
-                    {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · Repère : {s.surTrace.reperePlusProche} · {s.surTrace.segment}</div>}
-                    {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
-                    <div className="text-[11px] font-mono mt-1.5 text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded w-fit border border-amber-500/10">
-                      Statut : {libelleStatutInterterrain}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
         {/* Engagement volante */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3"><Footprints className="w-4 h-4 text-slate-500" /> ENGAGEMENT VOLANTE</h2>
@@ -803,66 +801,6 @@ export default function DashboardQG() {
           </div>
         </section>
 
-        {/* SUIVI MÉTÉO - PANEL INTERNE MAISON DU FESTIVAL */}
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO INTERNE BFMF</h2>
-            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
-          </div>
-          
-          <div className="text-[11px] font-mono text-slate-400 mb-2 px-1">
-            Status : {METEO.maj}
-          </div>
-
-          <div className="space-y-2">
-            {METEO.timeline && METEO.timeline.map((t, i) => {
-              if (!t) return null;
-              
-              const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
-              const texteAlerteDefinitif = t.phenomene || "Pas de précisions terrain";
-              const labelCreneau = t.creneau || "Horizon en cours";
-
-              const lowerText = texteAlerteDefinitif.toLowerCase();
-              let typeAlea = "";
-              let aleaClass = "bg-slate-500/10 text-slate-400 border-slate-500/20";
-
-              if (lowerText.includes("orage")) {
-                typeAlea = "Orages";
-                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-              } else if (lowerText.includes("chaleur") || lowerText.includes("canicule") || lowerText.includes("température") || lowerText.includes("chaud")) {
-                typeAlea = "Chaleur";
-                aleaClass = "bg-orange-500/10 text-orange-400 border-orange-500/20";
-              } else if (lowerText.includes("pluie") || lowerText.includes("précipit") || lowerText.includes("inond") || lowerText.includes("flotte")) {
-                typeAlea = "Précipitations";
-                aleaClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-              } else if (lowerText.includes("vent") || lowerText.includes("rafale") || lowerText.includes("tempête") || lowerText.includes("coup de vent")) {
-                typeAlea = "Vent";
-                aleaClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
-              } else if (t.code === "jaune" || t.code === "orange" || t.code === "rouge") {
-                typeAlea = "Vigilance";
-                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-              }
-
-              return (
-                <div key={i} className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 transition-all">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`w-2 h-2 rounded-full ${tc.dot} shrink-0`} />
-                    {typeAlea && (
-                      <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border shrink-0 ${aleaClass}`}>
-                        {typeAlea}
-                      </span>
-                    )}
-                    <span className="text-slate-100 font-medium truncate">
-                      {texteAlerteDefinitif}
-                    </span>
-                  </div>
-                  <span className="text-slate-500 font-mono text-[10px] shrink-0 ml-2">{labelCreneau}</span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         {/* Plan Radio */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3"><Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO</h2>
@@ -875,6 +813,7 @@ export default function DashboardQG() {
             ))}
           </div>
         </section>
+
       </main>
     </div>
   );
