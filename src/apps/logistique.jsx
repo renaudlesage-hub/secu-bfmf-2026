@@ -28,11 +28,7 @@ import {
 --------------------------------------------------------------------- */
 
 const STORAGE_KEY = "bfmf2026-missions-logistique";
-// ❌ AVANT (Crée une alerte isolée)
-// const ALERT_KEY = "bfmf2026-logistique-alerte";
-
-//  APRÈS (Connecté directement au Dashboard du QG)
-const ALERT_KEY = "bfmf2026-alerte";
+const ALERT_KEY = "bfmf2026-logistique-alerte";
 const PROFILE_KEY = "bfmf2026-profil";
 const KEY_METEO = "bfmf2026-meteo";
 

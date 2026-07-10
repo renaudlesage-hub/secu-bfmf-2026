@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - Avec Panel IRM + Éphémérides & Indice UV)
+   DASHBOARD QG (Version - Multi-Alertes SOS & IRM Dynamique)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -99,15 +99,12 @@ const METEO_FALLBACK = {
   timeline: [
     { creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }
   ],
-};
-
-const DATA_IRM_SCRAPED = {
   station: "Ferrières (Province de Liège)",
   statutAlerte: "jaune",
   titre: "Avertissement Chaleur",
   validite: "Du 10/07/2026 00:00 au 15/07/2026 00:00",
   description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur et Pics d'Ozone. De plus, les maxima atteindront ou dépasseront les 32 degrés à partir de samedi.",
-  source: "Institut Royal Météorologique de Belgique (IRM)",
+  source: "Institut Royal Météorologique (IRM)",
   obsHeure: "09h00",
   obsResume: "Temps ensoleillé et sec — 21°C (Vent 6 km/h NNE)",
   obsLever: "05h38",
@@ -146,7 +143,7 @@ export default function DashboardQG() {
   const [now, setNow] = useState(new Date());
   const [missionsLog, setMissionsLog] = useState([]);
   const [groupesBalade, setGroupesBalade] = useState([]);
-  const [alertes, setAlertes] = useState([]);
+  const [alertesCrises, setAlertesCrises] = useState([]);
   const [sosParticipants, setSosParticipants] = useState([]);
   const [consigne, setConsigne] = useState(null);
   const [meteoLive, setMeteoLive] = useState(null);
@@ -193,10 +190,12 @@ export default function DashboardQG() {
       setMeteoLive(mto && mto.live ? mto : null);
       setMediasLive(med && med.canaux ? med : null);
       setSanitaire(Array.isArray(san) ? san : []);
-      setAlertes(
+      
+      // Consolidation dynamique des deux types d'alertes SOS Équipes
+      setAlertesCrises(
         [
-          aLog && aLog.active ? { ...aLog, source: "Logistique" } : null,
-          aBal && aBal.active ? { ...aBal, source: "Balade" } : null,
+          aLog && aLog.active ? { ...aLog, source: "Logistique", keyDb: KEY_ALERTE_LOG } : null,
+          aBal && aBal.active ? { ...aBal, source: "Balade / Secours", keyDb: KEY_ALERTE_BAL } : null,
         ].filter(Boolean)
       );
       setSbError(false);
@@ -211,11 +210,24 @@ export default function DashboardQG() {
     return () => clearInterval(t);
   }, []);
 
+  // Actions de traitement des SOS Équipes depuis la console QG
+  async function acquitterAlerteEquipe(alerte) {
+    const a = { ...alerte, acquittePar: "QG / PCE", heureAcquittement: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
+    await kvSet(alerte.keyDb, a);
+    pullAllData();
+  }
+
+  async function leverAlerteEquipe(alerte) {
+    const a = { ...alerte, active: false, leveePar: "QG / PCE", heureLevee: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
+    await kvSet(alerte.keyDb, a);
+    pullAllData();
+  }
+
   async function soumettreAjustementMeteo(e) {
     e.preventDefault();
     const heureMaj = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     
-    const baseMeteo = meteoLive || { timeline: [] };
+    const baseMeteo = meteoLive || METEO_FALLBACK;
     const timelineExistante = Array.isArray(baseMeteo.timeline) ? baseMeteo.timeline : [];
 
     const nouvelleLigneTimeline = {
@@ -225,6 +237,7 @@ export default function DashboardQG() {
     };
 
     const payloadMeteo = {
+      ...baseMeteo,
       live: true,
       province: "Liege",
       codeActuel: mgtVigilance,
@@ -240,10 +253,9 @@ export default function DashboardQG() {
   async function purgerTimelineMeteo() {
     const heureMaj = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const payloadVierge = {
+      ...METEO_FALLBACK,
       live: true,
-      province: "Liege",
-      codeActuel: "vert",
-      maj: `Purger par le QG à ${heureMaj}`,
+      maj: `Purgé par le QG à ${heureMaj}`,
       timeline: [{ creneau: "Actuel", code: "vert", phenomene: "Conditions normales / RAS" }]
     };
     setMeteoLive(payloadVierge);
@@ -371,18 +383,58 @@ export default function DashboardQG() {
               <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · CONSOLE COORD</div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
-            <Clock className="w-4 h-4 text-slate-500" />
-            {pad(now.getHours())}:{pad(now.getMinutes())}
+          <div className="flex items-center gap-2 shrink-0">
+            {sbError && <span className="text-xxs text-amber-400 font-mono bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 mr-2">Erreur Sync</span>}
+            <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
+              <Clock className="w-4 h-4 text-slate-500" />
+              {pad(now.getHours())}:{pad(now.getMinutes())}
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
+
+        {/* BANDEAUX DE DETECTON DE CRISES EN DIRECT (LOGISTIQUE ET BALADE) */}
+        {alertesCrises.map((al, idx) => (
+          <div key={idx} className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4 border-l-4 border-red-500 animate-pulse">
+            <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
+              <div className="flex items-start gap-3 min-w-0">
+                <TriangleAlert className="w-5 h-5 text-red-300 pulse-slow mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-display text-sm tracking-wide text-red-200 uppercase font-bold">
+                      SOS CANAL {al.source.toUpperCase()}
+                    </span>
+                    <span className="text-[10px] font-mono bg-red-500/30 text-white px-2 py-0.2 rounded border border-red-400/30">
+                      CRITIQUE
+                    </span>
+                  </div>
+                  <div className="text-sm text-white font-semibold mt-1">{al.motif}</div>
+                  {al.details && <p className="text-xs text-red-200/80 mt-1 italic">"{al.details}"</p>}
+                  <div className="text-[10px] text-slate-400 font-mono mt-2">
+                    Déclenché par <span className="text-slate-300">{al.auteur}</span> à {al.heure}
+                    {al.acquittePar && <span className="text-emerald-400 ml-2">✓ Pris en compte par {al.acquittePar} ({al.heureAcquittement})</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 self-center shrink-0">
+                {!al.acquittePar && (
+                  <button onClick={() => acquitterAlerteEquipe(al)} className="text-xs font-mono px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-all">
+                    Acquitter
+                  </button>
+                )}
+                <button onClick={() => leverAlerteEquipe(al)} className="text-xs font-mono px-2.5 py-1 bg-red-600 hover:bg-red-500 rounded text-white font-bold transition-all shadow">
+                  Lever l'alerte
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
         
         {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE */}
         <a 
-          href={DATA_IRM_SCRAPED.urlFerrieres}
+          href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres}
           target="_blank"
           rel="noopener noreferrer"
           className="block bg-[#151b23] rounded-lg p-4 ring-1 ring-amber-400/30 border-t-4 border-amber-400 shadow-xl hover:bg-[#1b222c] hover:ring-amber-400/50 transition-all cursor-pointer group"
@@ -391,12 +443,12 @@ export default function DashboardQG() {
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 pulse-slow" />
               <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase flex items-center gap-1.5">
-                IRM LIVE — AVERTISSEMENTS OFFICIELS ({DATA_IRM_SCRAPED.station})
+                IRM LIVE — AVERTISSEMENTS OFFICIELS ({METEO.station || METEO_FALLBACK.station})
                 <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-300 transition-colors inline" />
               </h2>
             </div>
             <div className="text-[10px] font-mono bg-amber-400/10 text-amber-300 px-2 py-0.5 rounded border border-amber-400/20 uppercase tracking-wider">
-              Vigilance : {DATA_IRM_SCRAPED.statutAlerte}
+              Vigilance : {METEO.statutAlerte || METEO_FALLBACK.statutAlerte}
             </div>
           </div>
           
@@ -404,20 +456,20 @@ export default function DashboardQG() {
             <div className="md:col-span-2 bg-white/[0.02] border border-white/5 rounded p-2.5">
               <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                {DATA_IRM_SCRAPED.titre}
+                {METEO.titre || METEO_FALLBACK.titre}
               </div>
               <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                {DATA_IRM_SCRAPED.description}
+                {METEO.description || METEO_FALLBACK.description}
               </p>
               <div className="text-[10px] font-mono text-slate-400 mt-2">
-                Période de validité : {DATA_IRM_SCRAPED.validite}
+                Période de validité : {METEO.validite || METEO_FALLBACK.validite}
               </div>
             </div>
             
             <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between space-y-3">
               <div>
                 <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Météo & Données Clés</div>
-                <div className="text-xs font-medium text-slate-200">{DATA_IRM_SCRAPED.obsResume}</div>
+                <div className="text-xs font-medium text-slate-200">{METEO.obsResume || METEO_FALLBACK.obsResume}</div>
                 
                 {/* Éphémérides et Indice UV */}
                 <div className="mt-2 pt-2 border-t border-white/5 space-y-1 text-[11px]">
@@ -425,24 +477,24 @@ export default function DashboardQG() {
                     <span className="flex items-center gap-1 text-slate-400">
                       <Sun className="w-3 h-3 text-amber-400" /> Lever :
                     </span>
-                    <span className="font-mono font-medium">{DATA_IRM_SCRAPED.obsLever}</span>
+                    <span className="font-mono font-medium">{METEO.obsLever || METEO_FALLBACK.obsLever}</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="flex items-center gap-1 text-slate-400">
                       <Sunset className="w-3 h-3 text-orange-400" /> Coucher :
                     </span>
-                    <span className="font-mono font-medium">{DATA_IRM_SCRAPED.obsCoucher}</span>
+                    <span className="font-mono font-medium">{METEO.obsCoucher || METEO_FALLBACK.obsCoucher}</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300 pt-0.5">
                     <span className="text-slate-400">Indice UV max :</span>
-                    <span className="font-mono font-bold text-amber-400">{DATA_IRM_SCRAPED.obsUV}</span>
+                    <span className="font-mono font-bold text-amber-400">{METEO.obsUV || METEO_FALLBACK.obsUV}</span>
                   </div>
                 </div>
               </div>
               
               <div className="text-[9px] font-mono text-slate-500 pt-1.5 border-t border-white/5">
-                Source : {DATA_IRM_SCRAPED.source} <br/>
-                Observation : {DATA_IRM_SCRAPED.obsHeure}
+                Source : {METEO.source || METEO_FALLBACK.source} <br/>
+                Observation Synchro : {METEO.maj}
               </div>
             </div>
           </div>
@@ -483,23 +535,7 @@ export default function DashboardQG() {
                       className="w-full bg-[#11151b] ring-1 ring-white/10 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-red-500"
                       value={formLieu} onChange={(e) => setFormLieu(e.target.value)}
                     >
-                      <option value="Site grande scène">Site grande scène</option>
-                      <option value="Site petite scène">Site petite scène</option>
-                      <option value="Site plaine">Site plaine</option>
-                      <option value="Site bar">Site bar</option>
-                      <option value="Site foodtrucks">Site foodtrucks</option>
-                      <option value="Site sanitaires">Site sanitaires</option>
-                      <option value="Site backstage">Site backstage</option>
-                      <option value="Site zone logistique">Site zone logistique</option>
-                      <option value="Parking public">Parking public</option>
-                      <option value="Etape 1">Etape 1</option>
-                      <option value="Etape 2">Etape 2</option>
-                      <option value="Etape 3">Etape 3</option>
-                      <option value="Point 0">Point 0</option>
-                      <option value="PRV#4">PRV#4</option>
-                      <option value="PRV#5">PRV#5</option>
-                      <option value="PRV#6">PRV#6</option>
-                      <option value="PRV#7">PRV#7</option>
+                      {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
                 </div>
@@ -604,7 +640,7 @@ export default function DashboardQG() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
                 <TriangleAlert className={`w-4 h-4 ${sosPartNouveaux.length > 0 ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
-                SOS PARTICIPANTS ACTIVES
+                SOS PARTICIPANTS ACTIFS
               </h2>
             </div>
             <div className="space-y-2">
