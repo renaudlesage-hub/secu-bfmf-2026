@@ -21,10 +21,11 @@ import {
   Sunset,
   Compass,
   MapPin,
+  Users,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - Panneau Parcours PCOps Sans Métriques Km)
+   DASHBOARD QG (Version - Panneau Intégré Frise Parcours PCOps)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -92,6 +93,18 @@ const POINTS_GPS = {
 };
 
 const CAPACITE_ETAPE = 300;
+const LONGUEUR_KM = 6.5;
+
+// Mappage de position linéaire pour la frise PCOps
+const POS_KM = { p0: 0, t1: 0.45, e1: 0.9, t2: 1.7, e2: 2.53, t3: 3.8, e3: 5.06, tr: 5.8, ret: 6.5 };
+
+const REPERES = [
+  { nom: "P0", km: 0 },
+  { nom: "E1", km: 0.9 },
+  { nom: "E2", km: 2.53 },
+  { nom: "E3", km: 5.06 },
+  { nom: "P0", km: 6.5 },
+];
 
 const METEO_FALLBACK = {
   live: true,
@@ -134,18 +147,6 @@ const CODE_METEO = {
   jaune: { text: "text-amber-300", bg: "bg-amber-400/10", ring: "ring-amber-400/40", dot: "bg-amber-400", label: "JAUNE" },
   orange: { text: "text-orange-300", bg: "bg-orange-400/10", ring: "ring-orange-400/40", dot: "bg-orange-400", label: "ORANGE" },
   rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
-};
-
-const DICT_POSITIONS = {
-  p0: { label: "Point 0 (Départ)", km: 0, pct: 0 },
-  a: { label: "Secteur A (Forêt)", km: 0.5, pct: 10 },
-  e1: { label: "Étape 1 (Ravitaillement)", km: 0.9, pct: 25 },
-  b: { label: "Secteur B (Tracé Sud)", km: 1.8, pct: 40 },
-  e2: { label: "Étape 2 (Ravitaillement)", km: 2.53, pct: 55 },
-  c: { label: "Secteur C (Crête Est)", km: 3.5, pct: 70 },
-  e3: { label: "Étape 3 (Ravitaillement)", km: 5.06, pct: 85 },
-  d: { label: "Secteur D (Retour)", km: 5.8, pct: 95 },
-  ret: { label: "Retour (Terminé)", km: 6.2, pct: 100 }
 };
 
 function pad(n) { return n.toString().padStart(2, "0"); }
@@ -327,6 +328,8 @@ export default function DashboardQG() {
   const logOuvertes = safeMissions.filter((m) => m && m.statut !== "Resolue" && m.statut !== "Résolue");
   const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
   const totalMarcheursEnForet = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
+  const persAttente = safeGroupes.filter((g) => g && g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
+  const persRentres = safeGroupes.filter((g) => g && g.position === "ret").reduce((s, g) => s + (Number(g.participants) || 0), 0);
 
   const parEtape = { e1: 0, e2: 0, e3: 0 };
   safeGroupes.forEach((g) => {
@@ -451,55 +454,46 @@ export default function DashboardQG() {
           </section>
         )}
 
-        {/* 2B. PANNEAU SITUATION DU PARCOURS (SANS MESSAGES DE TOTAL KILOMÉTRIQUE) */}
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10 shadow-xl">
-          <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-              <Compass className="w-4 h-4 text-sky-400" />
-              SITUATION STRATÉGIQUE DU PARCOURS (PCOPS)
-            </h2>
-            <div className="flex items-center gap-1 font-mono text-xs">
-              <span className="text-slate-400">Total Forêt: <strong className="text-sky-400">{totalMarcheursEnForet}</strong> pax</span>
-            </div>
+        {/* 2B. NOUVEAU PANNEAU INTÉGRÉ : SITUATION DU PARCOURS (FRISE TACTIQUE PCOPS) */}
+        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4 shadow-xl">
+          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+            <Footprints className="w-4 h-4 text-sky-400" /> PARCOURS 6,5 KM — SITUATION TACTIQUE (PCOPS)
+          </h2>
+
+          <div className="relative h-16 mb-2">
+            <div className="absolute top-8 left-0 right-0 h-1 bg-white/15 rounded-full" />
+            
+            {/* Repères kilométriques fixes (P0, E1, E2, E3) */}
+            {REPERES.map((r, i) => (
+              <div key={i} className="absolute top-5" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
+                <div className="w-2 h-2 rounded-full bg-slate-500 mx-auto mt-2" />
+                <div className="text-[9px] font-mono text-slate-500 text-center mt-1">{r.nom}</div>
+              </div>
+            ))}
+            
+            {/* Vagues de marcheurs actives */}
+            {grpDehors.map((g) => {
+              const km = POS_KM[g.position] ?? 0;
+              return (
+                <div key={g.id || g.nom} className="absolute top-1" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} · ${g.participants} pers.`}>
+                  <div className="flex items-center gap-0.5 bg-amber-400/20 ring-1 ring-amber-400/50 rounded px-1 py-0.5">
+                    <Users className="w-2.5 h-2.5 text-amber-300" />
+                    <span className="text-[9px] font-mono text-amber-200">{g.participants}</span>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Alertes SOS participantes actives projetées sur le tracé */}
+            {sosVisibles.filter((s) => s && s.surTrace && s.surTrace.km !== null).map((s) => (
+              <div key={s.id} className="absolute top-10" style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 6px)` }} title={s.motif}>
+                <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
+              </div>
+            ))}
           </div>
 
-          <div className="space-y-3">
-            {safeGroupes.length === 0 ? (
-              <div className="text-xs text-slate-500 italic text-center py-4">Aucune vague ni groupe actif sur la balade gourmande.</div>
-            ) : (
-              safeGroupes.map((g) => {
-                if (!g) return null;
-                const posMeta = DICT_POSITIONS[g.position] || { label: g.position, km: 0, pct: 0 };
-                
-                return (
-                  <div key={g.id || g.nom} className="bg-white/[0.01] border border-white/5 rounded px-3 py-2 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
-                    <div className="min-w-[160px]">
-                      <div className="font-bold text-slate-200 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                        Vague: {g.nom || "Anonyme"}
-                      </div>
-                      <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                        Effectif : <span className="text-slate-200 font-medium">{g.participants || 0} marcheurs</span>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 min-w-[200px]">
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mb-1">
-                        <span>Départ</span>
-                        <span className="text-sky-300 font-medium">{posMeta.label}</span>
-                        <span>Terminé</span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden ring-1 ring-white/10 p-0.5">
-                        <div 
-                          className="h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-400 transition-all duration-500" 
-                          style={{ width: `${posMeta.pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+          <div className="text-[11px] font-mono text-slate-500 mt-1 border-t border-white/5 pt-2">
+            {persAttente} en attente au Point 0 · <span className="text-sky-400 font-medium">{totalMarcheursEnForet} sur le parcours</span> · {persRentres} rentrés
           </div>
         </section>
         
@@ -717,10 +711,10 @@ export default function DashboardQG() {
           )}
         </section>
 
-        {/* VEILLE MÉDIAS */}
+        {/* ... (Veille médias et Plan Radio identiques) */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><Rss className="w-4 h-4 text-slate-500" /> VEILLE MÉDIAS</h2>
+            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><Rss className="w-4 h-4 text-slate-500" /> . VEILLE MÉDIAS</h2>
             <div className="flex items-center gap-1.5 text-[11px] font-mono bg-white/5 px-2 py-0.5 rounded text-slate-400">
               <span>Ambiance :</span>
               {MEDIAS.ambiance === "positive" && <Smile className="w-3.5 h-3.5 text-emerald-400" />}
@@ -741,7 +735,6 @@ export default function DashboardQG() {
           </div>
         </section>
 
-        {/* Plan Radio */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3"><Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
