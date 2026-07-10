@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version - Panneau Parcours PCOps & Alignement SOS)
+   DASHBOARD QG (Version - Panneau Parcours PCOps Sans Métriques Km)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -67,32 +67,31 @@ const KEY_MEDIAS = "bfmf2026-medias-live";
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
 const POINTS_GPS = {
-  "Site grande scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Grande Scène", ordre: 0 },
-  "Site petite scène": { lat: 50.3832, lon: 5.6219, km: 0, segment: "Plaine centrale — Petite Scène", ordre: 0 },
-  "Site plaine": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Zone Public / Pelouse", ordre: 0 },
-  "Site bar": { lat: 50.3836, lon: 5.6222, km: 0, segment: "Zone Débit de Boissons", ordre: 0 },
-  "Site foodtrucks": { lat: 50.3831, lon: 5.6208, km: 0, segment: "Allée Restauration", ordre: 0 },
-  "Site sanitaires": { lat: 50.3841, lon: 5.6211, km: 0, segment: "Blocs WC Publics", ordre: 0 },
-  "Site backstage": { lat: 50.3842, lon: 5.6201, km: 0, segment: "Coulisses / Loges", ordre: 0 },
-  "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie", ordre: 0 },
-  "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public", ordre: 0 },
-  "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes", ordre: 0 },
-  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ", ordre: 1 },
-  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt", ordre: 2 },
-  "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Balisage Secours #4", ordre: 3 },
-  "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1", ordre: 4 },
-  "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé Sud - Vers Étape 2", ordre: 5 },
-  "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Balisage Secours #5", ordre: 6 },
-  "Etape 2": { lat: 50.37828, lon: 5.64549, km: 2.53, segment: "Ravitaillement 2", ordre: 7 },
-  "Parcours Balade secteur C": { lat: 50.3823, lon: 5.6457, km: 3.5, segment: "Tracé Est Crête", ordre: 8 },
-  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Balisage Secours #6", ordre: 9 },
-  "Etape 3": { lat: 50.38817, lon: 5.62891, km: 5.06, segment: "Ravitaillement 3", ordre: 10 },
-  "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Secteur Nord Retour P0", ordre: 11 },
-  "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7", ordre: 12 }
+  "Site grande scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Grande Scène" },
+  "Site petite scène": { lat: 50.3832, lon: 5.6219, km: 0, segment: "Plaine centrale — Petite Scène" },
+  "Site plaine": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Zone Public / Pelouse" },
+  "Site bar": { lat: 50.3836, lon: 5.6222, km: 0, segment: "Zone Débit de Boissons" },
+  "Site foodtrucks": { lat: 50.3831, lon: 5.6208, km: 0, segment: "Allée Restauration" },
+  "Site sanitaires": { lat: 50.3841, lon: 5.6211, km: 0, segment: "Blocs WC Publics" },
+  "Site backstage": { lat: 50.3842, lon: 5.6201, km: 0, segment: "Coulisses / Loges" },
+  "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie" },
+  "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public" },
+  "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes" },
+  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
+  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt" },
+  "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Balisage Secours #4" },
+  "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
+  "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé Sud - Vers Étape 2" },
+  "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Balisage Secours #5" },
+  "Etape 2": { lat: 50.37828, lon: 5.64549, km: 2.53, segment: "Ravitaillement 2" },
+  "Parcours Balade secteur C": { lat: 50.3823, lon: 5.6457, km: 3.5, segment: "Tracé Est Crête" },
+  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Balisage Secours #6" },
+  "Etape 3": { lat: 50.38817, lon: 5.62891, km: 5.06, segment: "Ravitaillement 3" },
+  "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Secteur Nord Retour P0" },
+  "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
 };
 
 const CAPACITE_ETAPE = 300;
-const DISTANCE_TOTALE_BOUCLE = 6.2; // Distance totale théorique de la balade gourmande (km)
 
 const METEO_FALLBACK = {
   live: true,
@@ -104,7 +103,7 @@ const METEO_FALLBACK = {
   statutAlerte: "jaune",
   titre: "Avertissement Chaleur",
   validite: "Du 10/07/2026 00:00 au 15/07/2026 00:00",
-  description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur et Pics d'Ozone.",
+  description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur.",
   source: "Institut Royal Météorologique (IRM)",
   obsHeure: "17h00",
   obsResume: "Temps ensoleillé et sec — 22°C",
@@ -137,7 +136,6 @@ const CODE_METEO = {
   rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
 };
 
-// Libellés d'affichage propres pour les étapes et secteurs de balade
 const DICT_POSITIONS = {
   p0: { label: "Point 0 (Départ)", km: 0, pct: 0 },
   a: { label: "Secteur A (Forêt)", km: 0.5, pct: 10 },
@@ -329,12 +327,6 @@ export default function DashboardQG() {
   const logOuvertes = safeMissions.filter((m) => m && m.statut !== "Resolue" && m.statut !== "Résolue");
   const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
   const totalMarcheursEnForet = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
-  
-  // Calcul de la distance totale cumulée (PCOps Metrics)
-  const kmCumulesMarches = safeGroupes.reduce((sum, g) => {
-    const posMeta = DICT_POSITIONS[g.position] || { km: 0 };
-    return sum + (posMeta.km * (Number(g.participants) || 0));
-  }, 0);
 
   const parEtape = { e1: 0, e2: 0, e3: 0 };
   safeGroupes.forEach((g) => {
@@ -459,17 +451,15 @@ export default function DashboardQG() {
           </section>
         )}
 
-        {/* 2B. NOUVEAU PANNEAU INTEGRÉ : SITUATION DU PARCOURS (PCOPS METHODOLOGY) */}
+        {/* 2B. PANNEAU SITUATION DU PARCOURS (SANS MESSAGES DE TOTAL KILOMÉTRIQUE) */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10 shadow-xl">
           <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
               <Compass className="w-4 h-4 text-sky-400" />
               SITUATION STRATÉGIQUE DU PARCOURS (PCOPS)
             </h2>
-            <div className="flex items-center gap-3 font-mono text-xs">
+            <div className="flex items-center gap-1 font-mono text-xs">
               <span className="text-slate-400">Total Forêt: <strong className="text-sky-400">{totalMarcheursEnForet}</strong> pax</span>
-              <span className="text-slate-500">|</span>
-              <span className="text-slate-400">Marche Cumulée: <strong className="text-emerald-400">{kmCumulesMarches.toFixed(0)}</strong> km-pax</span>
             </div>
           </div>
 
@@ -482,7 +472,7 @@ export default function DashboardQG() {
                 const posMeta = DICT_POSITIONS[g.position] || { label: g.position, km: 0, pct: 0 };
                 
                 return (
-                  <div key={g.id || g.nom} className="bg-white/[0.01] border border-white/5 rounded px-3 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs">
+                  <div key={g.id || g.nom} className="bg-white/[0.01] border border-white/5 rounded px-3 py-2 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
                     <div className="min-w-[160px]">
                       <div className="font-bold text-slate-200 flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
@@ -493,11 +483,10 @@ export default function DashboardQG() {
                       </div>
                     </div>
 
-                    {/* Barre de progression tactique sur la boucle de 6.2 km */}
                     <div className="flex-1 min-w-[200px]">
                       <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mb-1">
                         <span>Départ</span>
-                        <span className="text-sky-300 font-medium">{posMeta.label} ({posMeta.km} km)</span>
+                        <span className="text-sky-300 font-medium">{posMeta.label}</span>
                         <span>Terminé</span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden ring-1 ring-white/10 p-0.5">
@@ -506,11 +495,6 @@ export default function DashboardQG() {
                           style={{ width: `${posMeta.pct}%` }}
                         />
                       </div>
-                    </div>
-
-                    <div className="text-right font-mono text-[11px] min-w-[100px] bg-white/5 px-2 py-1 rounded border border-white/5 self-end md:self-center">
-                      <span className="text-slate-400">Total : </span>
-                      <strong className="text-slate-200">{((g.participants || 0) * posMeta.km).toFixed(0)} km</strong>
                     </div>
                   </div>
                 );
@@ -574,7 +558,7 @@ export default function DashboardQG() {
           </div>
         </a>
         
-        {/* GRILLE : PANNEAUX DE SAISIE CÔTE À CÔTE */}
+        {/* GRILLE : PANNEAUX DE SAISIE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           {/* COLONNE A : FORMULAIRE SOS RAPIDE PC */}
@@ -678,7 +662,7 @@ export default function DashboardQG() {
           )}
         </section>
 
-        {/* Logistique + Balade en direct */}
+        {/* Logistique + Étapes */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
             <div className="flex items-center justify-between mb-3">
