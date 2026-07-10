@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Restauration stricte du format Météo Initial)
+   DASHBOARD QG (Version Finale Consolidée - Suivi Aléas Météo & Médias)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -319,7 +319,7 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
         
-        {/* FORMULAIRE SOS RAPIDE PC */}
+        {/* FORMULAIRE SOS MANUEL DETECTE */}
         <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
           <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide">
             <PlusCircle className="w-4 h-4" /> LANCER UNE ALERTE SOS MANUELLE (APPELS RADIO / TÉLÉPHONE)
@@ -565,7 +565,7 @@ export default function DashboardQG() {
           </div>
         </section>
 
-        {/* SUIVI MÉTÉO IRM (RESTAURÉ À LA PREMIÈRE MODIFICATION PARFAITE) */}
+        {/* SUIVI MÉTÉO IRM CORRIGÉ (SÉCURISÉ + DECODAGE DISCRET D'ALÉAS) */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM</h2>
@@ -575,15 +575,38 @@ export default function DashboardQG() {
             {METEO.timeline && METEO.timeline.map((t, i) => {
               if (!t) return null;
               
-              // Décodage strict de la structure originelle de la base de données
               const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
-              const nomDuPhenomene = t.phenomene || "Alerte météo";
-              const labelCreneau = t.creneau || "Horaire non précisé";
+              const nomDuPhenomene = t.phenomene || t.label || t.title || "Alerte";
+              const labelCreneau = t.creneau || "En cours";
+
+              // Extraction autonome et cloisonnée du type d'aléa pour affichage de badge
+              const lowerText = nomDuPhenomene.toLowerCase();
+              let typeAlea = "";
+              let aleaClass = "bg-slate-500/10 text-slate-400 border-slate-500/20";
+
+              if (lowerText.includes("orage")) {
+                typeAlea = "Orages";
+                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+              } else if (lowerText.includes("chaleur") || lowerText.includes("canicule") || lowerText.includes("température")) {
+                typeAlea = "Chaleur";
+                aleaClass = "bg-orange-500/10 text-orange-400 border-orange-500/20";
+              } else if (lowerText.includes("pluie") || lowerText.includes("précipit") || lowerText.includes("inond")) {
+                typeAlea = "Précipitations";
+                aleaClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+              } else if (lowerText.includes("vent") || lowerText.includes("rafale") || lowerText.includes("tempête")) {
+                typeAlea = "Vent";
+                aleaClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
+              }
 
               return (
                 <a key={i} href="https://www.meteo.be/fr/ferrieres" target="_blank" rel="noreferrer" className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 hover:bg-white/[0.06] transition-all group">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className={`w-2 h-2 rounded-full ${tc.dot} shrink-0`} />
+                    {typeAlea && (
+                      <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border shrink-0 ${aleaClass}`}>
+                        {typeAlea}
+                      </span>
+                    )}
                     <span className="text-slate-100 font-medium group-hover:text-amber-300 truncate">
                       {nomDuPhenomene}
                     </span>
