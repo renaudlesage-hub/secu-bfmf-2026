@@ -11,8 +11,6 @@ import {
   PhoneCall,
   ExternalLink,
   AlertTriangle,
-  Sun,
-  Sunset,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
@@ -83,9 +81,6 @@ const DATA_IRM_SCRAPED = {
   source: "Institut Royal Météorologique de Belgique (IRM)",
   obsHeure: "09h00",
   obsResume: "Temps ensoleillé et sec — 21°C (Vent 6 km/h NNE)",
-  obsLever: "05h38",
-  obsCoucher: "21h52",
-  obsUV: "6.8 (Élevé)",
   urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
@@ -308,33 +303,13 @@ export default function PcOps() {
               </div>
             </div>
             
-            <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between space-y-3">
+            <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between">
               <div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Météo & Données Clés</div>
+                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Observations</div>
                 <div className="text-xs font-medium text-slate-200">{DATA_IRM_SCRAPED.obsResume}</div>
-                
-                {/* Éphémérides et Indice UV */}
-                <div className="mt-2 pt-2 border-t border-white/5 space-y-1 text-[11px]">
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="flex items-center gap-1 text-slate-400">
-                      <Sun className="w-3 h-3 text-amber-400" /> Lever :
-                    </span>
-                    <span className="font-mono font-medium">{DATA_IRM_SCRAPED.obsLever}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="flex items-center gap-1 text-slate-400">
-                      <Sunset className="w-3 h-3 text-orange-400" /> Coucher :
-                    </span>
-                    <span className="font-mono font-medium">{DATA_IRM_SCRAPED.obsCoucher}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-300 pt-0.5">
-                    <span className="text-slate-400">Indice UV max :</span>
-                    <span className="font-mono font-bold text-amber-400">{DATA_IRM_SCRAPED.obsUV}</span>
-                  </div>
-                </div>
               </div>
               
-              <div className="text-[9px] font-mono text-slate-500 pt-1.5 border-t border-white/5">
+              <div className="text-[9px] font-mono text-slate-500 pt-1.5 border-t border-white/5 mt-3">
                 Source : {DATA_IRM_SCRAPED.source} <br/>
                 Observation : {DATA_IRM_SCRAPED.obsHeure}
               </div>
