@@ -7,7 +7,8 @@ import {
   Zap, 
   ChevronRight, 
   Landmark, 
-  Droplets 
+  Droplets,
+  Beer 
 } from "lucide-react";
 import Dashboard from "./apps/dashboard.jsx";
 import Logistique from "./apps/logistique.jsx";
@@ -15,12 +16,14 @@ import Balade from "./apps/balade.jsx";
 import Sos from "./apps/sos.jsx";
 import Volante from "./apps/volante.jsx";
 import PcOps from "./apps/pcops.jsx";
-import Sanitaire from "./apps/sanitaire.jsx"; // Import de la nouvelle application sanitaire
+import Sanitaire from "./apps/sanitaire.jsx"; 
+import StocksBar from "./apps/StocksBar.jsx"; // Importation du nouveau module de gestion des bars
 
 // Navigation par hash : chaque app garde sa propre URL partageable
 const ROUTES = {
   dashboard: { titre: "Dashboard QG", desc: "Synthèse : alertes, logistique, balade, météo, sanitaire", icon: ShieldAlert, comp: Dashboard, public: false },
   logistique: { titre: "Missions logistiques", desc: "Saisie, attribution et suivi des demandes", icon: ClipboardList, comp: Logistique, public: false },
+  stocksbar: { titre: "Comptabilité Bars", desc: "Inventaires, réassorts, calcul automatique des débits et ventes", icon: Beer, comp: StocksBar, public: false },
   balade: { titre: "Suivi balade", desc: "Crowd management du parcours 6,5 km", icon: Footprints, comp: Balade, public: false },
   volante: { titre: "App Volante", desc: "Engagements, guidage GPS, missions terrain", icon: Zap, comp: Volante, public: false },
   sanitaire: { titre: "Suivi Sanitaire", desc: "Gestion et résolution des signalements blocs WC", icon: Droplets, comp: Sanitaire, public: false },
