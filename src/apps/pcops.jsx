@@ -11,6 +11,8 @@ import {
   PhoneCall,
   ExternalLink,
   AlertTriangle,
+  Sun,
+  Sunset,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
@@ -45,11 +47,11 @@ const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
 const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
 const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
+const KEY_METEO = "bfmf2026-meteo";
 
 const CAPACITE_ETAPE = 300;
 const LONGUEUR_KM = 6.5;
 
-// Position schematique des groupes sur le parcours lineaire (km estimes)
 const POS_KM = { p0: 0, t1: 0.45, e1: 0.9, t2: 1.7, e2: 2.53, t3: 3.8, e3: 5.06, tr: 5.8, ret: 6.5 };
 const POS_LABEL = {
   p0: "Point 0 (attente depart)", t1: "Transit vers Etape 1", e1: "Etape 1",
@@ -71,16 +73,23 @@ const GRAV = {
   modere: { rang: 1, cls: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10", dot: "bg-sky-400" },
 };
 
-// Lecture seule des infos scraping IRM répliquées ici
-const DATA_IRM_SCRAPED = {
+const METEO_FALLBACK = {
+  live: true,
+  province: "Liege",
+  codeActuel: "vert",
+  maj: "Initialisation",
+  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }],
   station: "Ferrières (Province de Liège)",
   statutAlerte: "jaune",
   titre: "Avertissement Chaleur",
   validite: "Du 10/07/2026 00:00 au 15/07/2026 00:00",
-  description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur et Pics d'Ozone. De plus, les maxima atteindront ou dépasseront les 32 degrés à partir de samedi.",
-  source: "Institut Royal Météorologique de Belgique (IRM)",
-  obsHeure: "09h00",
-  obsResume: "Temps ensoleillé et sec — 21°C (Vent 6 km/h NNE)",
+  description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur.",
+  source: "Institut Royal Météorologique (IRM)",
+  obsHeure: "17h00",
+  obsResume: "Temps ensoleillé et sec — 22°C",
+  obsLever: "05h38",
+  obsCoucher: "21h52",
+  obsUV: "6.8 (Élevé)",
   urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
@@ -92,6 +101,7 @@ export default function PcOps() {
   const [alertes, setAlertes] = useState([]);
   const [sosPart, setSosPart] = useState([]);
   const [consigne, setConsigne] = useState(null);
+  const [meteoLive, setMeteoLive] = useState(null);
   const [sbError, setSbError] = useState(false);
   const [maj, setMaj] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -105,15 +115,17 @@ export default function PcOps() {
     let stop = false;
     async function pull() {
       try {
-        const [mi, gr, aLog, aBal, sp, co] = await Promise.all([
+        const [mi, gr, aLog, aBal, sp, co, mto] = await Promise.all([
           kvGet(KEY_MISSIONS), kvGet(KEY_GROUPES), kvGet(KEY_ALERTE_LOG),
           kvGet(KEY_ALERTE_BAL), kvGet(KEY_SOS_PART), kvGet(KEY_CONSIGNE),
+          kvGet(KEY_METEO),
         ]);
         if (stop) return;
         setMissions(Array.isArray(mi) ? mi : []);
         setGroupes(Array.isArray(gr) ? gr : []);
         setSosPart(Array.isArray(sp) ? sp : []);
         setConsigne(co && co.active ? co : null);
+        setMeteoLive(mto && mto.live ? mto : null);
         setAlertes(
           [
             aLog && aLog.active ? { ...aLog, source: "Equipe logistique" } : null,
@@ -134,7 +146,6 @@ export default function PcOps() {
   /* ------------------- Consolidation des evenements ------------------- */
   const evenements = [];
 
-  // FILTRAGE STRICT : Écarte tous les SOS clôturés/gérés par le QG sous n'importe quelle nomenclature
   const sosVisibles = sosPart.filter((s) => {
     const st = (s.statut || "").toLowerCase();
     return st !== "cloture" && st !== "clôture" && st !== "cloturé" && st !== "clos" && st !== "retour a la normale";
@@ -223,6 +234,7 @@ export default function PcOps() {
   const niveau = critiques > 0 ? "critique" : evenements.length > 0 || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
   const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
 
+  const METEO = meteoLive || METEO_FALLBACK;
   const pad = (n) => String(n).padStart(2, "0");
 
   return (
@@ -271,7 +283,7 @@ export default function PcOps() {
 
         {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE (LECTURE SEULE AUTORITÉS) */}
         <a 
-          href={DATA_IRM_SCRAPED.urlFerrieres}
+          href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres}
           target="_blank"
           rel="noopener noreferrer"
           className="block bg-[#131a22] rounded-lg p-4 ring-1 ring-amber-400/30 border-t-4 border-amber-400 shadow-xl hover:bg-[#1a232e] hover:ring-amber-400/50 transition-all cursor-pointer group"
@@ -280,12 +292,12 @@ export default function PcOps() {
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 pulse-slow" />
               <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase flex items-center gap-1.5">
-                IRM LIVE — AVERTISSEMENTS OFFICIELS ({DATA_IRM_SCRAPED.station})
+                IRM LIVE — AVERTISSEMENTS OFFICIELS ({METEO.station || METEO_FALLBACK.station})
                 <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-300 transition-colors inline" />
               </h2>
             </div>
             <div className="text-[10px] font-mono bg-amber-400/10 text-amber-300 px-2 py-0.5 rounded border border-amber-400/20 uppercase tracking-wider">
-              Vigilance : {DATA_IRM_SCRAPED.statutAlerte}
+              Vigilance : {METEO.statutAlerte || METEO_FALLBACK.statutAlerte}
             </div>
           </div>
           
@@ -293,25 +305,40 @@ export default function PcOps() {
             <div className="md:col-span-2 bg-white/[0.02] border border-white/5 rounded p-2.5">
               <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                {DATA_IRM_SCRAPED.titre}
+                {METEO.titre || METEO_FALLBACK.titre}
               </div>
               <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                {DATA_IRM_SCRAPED.description}
+                {METEO.description || METEO_FALLBACK.description}
               </p>
               <div className="text-[10px] font-mono text-slate-400 mt-2">
-                Période de validité : {DATA_IRM_SCRAPED.validite}
+                Période de validité : {METEO.validite || METEO_FALLBACK.validite}
               </div>
             </div>
             
             <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between">
               <div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Observations</div>
-                <div className="text-xs font-medium text-slate-200">{DATA_IRM_SCRAPED.obsResume}</div>
+                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Météo & Données Clés</div>
+                <div className="text-xs font-medium text-slate-200">{METEO.obsResume || METEO_FALLBACK.obsResume}</div>
+                
+                <div className="mt-2 pt-2 border-t border-white/5 space-y-1 text-[11px]">
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-400"><Sun className="w-3 h-3 text-amber-400" /> Lever :</span>
+                    <span className="font-mono font-medium">{METEO.obsLever || METEO_FALLBACK.obsLever}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-400"><Sunset className="w-3 h-3 text-orange-400" /> Coucher :</span>
+                    <span className="font-mono font-medium">{METEO.obsCoucher || METEO_FALLBACK.obsCoucher}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-300 pt-0.5">
+                    <span className="text-slate-400">Indice UV max :</span>
+                    <span className="font-mono font-bold text-amber-400">{METEO.obsUV || METEO_FALLBACK.obsUV}</span>
+                  </div>
+                </div>
               </div>
               
               <div className="text-[9px] font-mono text-slate-500 pt-1.5 border-t border-white/5 mt-3">
-                Source : {DATA_IRM_SCRAPED.source} <br/>
-                Observation : {DATA_IRM_SCRAPED.obsHeure}
+                Source : {METEO.source || METEO_FALLBACK.source} <br/>
+                Observation : {METEO.maj}
               </div>
             </div>
           </div>
