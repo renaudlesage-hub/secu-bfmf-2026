@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Version Finale Consolidée & Sécurisée)
+   DASHBOARD QG (Version Finale Consolidée & Blindée Contre Écran Blanc)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -80,7 +80,7 @@ const POINTS_GPS = {
   "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
   "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Balisage Secours #4" },
   "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Balisage Secours #5" },
-  "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Balisage Secours #6" },
+  "PRV#6": { lat: 50.38236, font: 5.64579, km: 3.8, segment: "Balisage Secours #6" },
   "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
 };
 
@@ -205,7 +205,8 @@ export default function DashboardQG() {
       surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment, ecartMetres: 0, reperePlusProche: formLieu } : null
     };
 
-    const next = [nouveauSos, ...sosParticipants];
+    const currentSos = Array.isArray(sosParticipants) ? sosParticipants : [];
+    const next = [nouveauSos, ...currentSos];
     setSosParticipants(next);
     setFormDetails("");
 
@@ -221,7 +222,8 @@ export default function DashboardQG() {
   }
 
   async function prendreEnCompteSos(id) {
-    const next = sosParticipants.map((s) =>
+    const currentSos = Array.isArray(sosParticipants) ? sosParticipants : [];
+    const next = currentSos.map((s) =>
       s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s
     );
     setSosParticipants(next);
@@ -229,7 +231,8 @@ export default function DashboardQG() {
   }
 
   async function cloturerSos(id) {
-    const next = sosParticipants.map((s) =>
+    const currentSos = Array.isArray(sosParticipants) ? sosParticipants : [];
+    const next = currentSos.map((s) =>
       s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s
     );
     setSosParticipants(next);
@@ -260,21 +263,28 @@ export default function DashboardQG() {
 
   const METEO = meteoLive || METEO_FALLBACK;
   const MEDIAS = mediasLive || MEDIAS_FALLBACK;
-  const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue" && m.statut !== "Résolue");
   
-  const grpDehors = groupesBalade.filter((g) => g.position !== "p0" && g.position !== "ret");
+  // SÉCURISATION DES STRUCTURES DE TABLEAUX CONTRE L'ÉCRAN BLANC
+  const safeMissions = Array.isArray(missionsLog) ? missionsLog : [];
+  const safeGroupes = Array.isArray(groupesBalade) ? groupesBalade : [];
+  const safeSos = Array.isArray(sosParticipants) ? sosParticipants : [];
+  const safeSanitaire = Array.isArray(sanitaire) ? sanitaire : [];
+
+  const logOuvertes = safeMissions.filter((m) => m && m.statut !== "Resolue" && m.statut !== "Résolue");
+  const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
   const persDehors = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
+  
   const parEtape = { e1: 0, e2: 0, e3: 0 };
-  groupesBalade.forEach((g) => {
-    if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
+  safeGroupes.forEach((g) => {
+    if (g && parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
   });
 
-  const sosVisibles = sosParticipants.filter((s) => s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
-  const sosPartNouveaux = sosVisibles.filter((s) => s.statut === "nouveau");
+  const sosVisibles = safeSos.filter((s) => s && s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
+  const sosPartNouveaux = sosVisibles.filter((s) => s && s.statut === "nouveau");
 
-  const sanActifs = sanitaire.filter((s) => s.statut !== "resolu" && s.statut !== "résolu");
+  const sanActifs = safeSanitaire.filter((s) => s && s.statut !== "resolu" && s.statut !== "résolu");
   const sanParLieu = {};
-  sanActifs.forEach((s) => { sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + (s.count || 1); });
+  sanActifs.forEach((s) => { if(s && s.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + (s.count || 1); });
   const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
   const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
@@ -397,6 +407,7 @@ export default function DashboardQG() {
             </div>
             <div className="space-y-2">
               {sosVisibles.map((s) => {
+                if (!s) return null;
                 const st = (s.statut || "").toLowerCase();
                 
                 let libelleStatutInterterrain = "Pris en compte par le QG";
@@ -467,15 +478,18 @@ export default function DashboardQG() {
               {logOuvertes.length === 0 ? (
                 <div className="text-xs text-slate-500 italic py-2 text-center">Aucune tâche logistique en attente.</div>
               ) : (
-                logOuvertes.slice(0, 6).map((m) => (
-                  <div key={m.id || m.ref} className="flex items-center gap-2 text-xs rounded bg-white/[0.03] ring-1 ring-white/10 px-2.5 py-2">
-                    <span className="text-slate-200 flex-1 truncate">{m.nature}</span>
-                    <span className={`text-[10px] font-mono px-1 rounded ${m.bloquant === "Oui" || (m.priorite || "").startsWith("P1") ? "bg-red-500/20 text-red-300" : "bg-slate-500/20 text-slate-400"}`}>
-                      {m.priorite || "P3"}
-                    </span>
-                    <span className="text-[10px] text-slate-500 shrink-0">{m.attribueA || "non-attribué"}</span>
-                  </div>
-                ))
+                logOuvertes.slice(0, 6).map((m) => {
+                  if (!m) return null;
+                  return (
+                    <div key={m.id || m.ref} className="flex items-center gap-2 text-xs rounded bg-white/[0.03] ring-1 ring-white/10 px-2.5 py-2">
+                      <span className="text-slate-200 flex-1 truncate">{m.nature}</span>
+                      <span className={`text-[10px] font-mono px-1 rounded ${m.bloquant === "Oui" || (m.priorite || "").startsWith("P1") ? "bg-red-500/20 text-red-300" : "bg-slate-500/20 text-slate-400"}`}>
+                        {m.priorite || "P3"}
+                      </span>
+                      <span className="text-[10px] text-slate-500 shrink-0">{m.attribueA || "non-attribué"}</span>
+                    </div>
+                  );
+                })
               )}
             </div>
           </section>
@@ -536,23 +550,26 @@ export default function DashboardQG() {
             </div>
           </div>
           <div className="grid grid-cols-1 gap-2">
-            {MEDIAS.canaux.map((c, i) => (
-              <div key={i} className="text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <div className="min-w-0">
-                  <span className="font-mono text-slate-300 block font-medium">{c.name}</span>
-                  <span className="text-slate-400 text-[11px] mt-0.5 block italic">"{c.note}"</span>
+            {MEDIAS.canaux && MEDIAS.canaux.map((c, i) => {
+              if (!c) return null;
+              return (
+                <div key={i} className="text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div className="min-w-0">
+                    <span className="font-mono text-slate-300 block font-medium">{c.name}</span>
+                    <span className="text-slate-400 text-[11px] mt-0.5 block italic">"{c.note}"</span>
+                  </div>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider w-fit shrink-0 ${
+                    c.statut === "ok" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                  }`}>
+                    {c.statut}
+                  </span>
                 </div>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider w-fit shrink-0 ${
-                  c.statut === "ok" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                }`}>
-                  {c.statut}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
-        {/* SUIVI MÉTÉO IRM CORRIGÉ (DOUBLE VÉRIFICATION DE CLÉS SUPABASE) */}
+        {/* SUIVI MÉTÉO IRM CORRIGÉ (SÉCURITÉ MAXIMUM) */}
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2"><CloudLightning className="w-4 h-4 text-slate-500" /> METEO IRM</h2>
@@ -560,9 +577,9 @@ export default function DashboardQG() {
           </div>
           <div className="space-y-2">
             {METEO.timeline && METEO.timeline.map((t, i) => {
+              if (!t) return null;
               const tc = CODE_METEO[t.code] || CODE_METEO[t.color] || CODE_METEO["vert"];
               
-              // Décodage intelligent pour contrer les anomalies de clés Supabase observées
               const intitulePhenomene = t.label || t.title || t.texte || t.phenomene || "Vigilance météo";
               const dateValidite = t.creneau || t.periode || t.validite || "Horaire en cours";
 
