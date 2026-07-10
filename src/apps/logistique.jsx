@@ -19,7 +19,6 @@ import {
   ClipboardList,
   Flag,
   Download,
-  CloudLightning,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -33,7 +32,6 @@ import {
 const STORAGE_KEY = "bfmf2026-missions-logistique";
 const ALERT_KEY = "bfmf2026-logistique-alerte";
 const PROFILE_KEY = "bfmf2026-profil";
-const KEY_METEO = "bfmf2026-meteo";
 
 const ROLES = [
   "QG / PCE",
@@ -267,22 +265,16 @@ const TYPES_RESSOURCE = [
   "Aucune (info seulement)",
 ];
 
-const METEO_FALLBACK = {
-  live: true,
-  province: "Liege",
-  codeActuel: "vert",
-  maj: "Initialisation",
-  timeline: [
-    { creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }
-  ],
-};
-
-const CODE_METEO = {
-  vert: { text: "text-emerald-300", bg: "bg-emerald-400/10", ring: "ring-emerald-400/30", dot: "bg-emerald-400", label: "VERT" },
-  jaune: { text: "text-amber-300", bg: "bg-amber-400/10", ring: "ring-amber-400/40", dot: "bg-amber-400", label: "JAUNE" },
-  orange: { text: "text-orange-300", bg: "bg-orange-400/10", ring: "ring-orange-400/40", dot: "bg-orange-400", label: "ORANGE" },
-  rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
-};
+function pad(n) {
+  return n.toString().padStart(2, "0");
+}
+function nowHM() {
+  const d = new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function genRef(count) {
+  return `LOG-2026-${String(count + 1).padStart(3, "0")}`;
+}
 
 const MISSIONS_DEMO = [
   {
@@ -460,7 +452,6 @@ export default function LogistiqueMissions() {
   const [showForm, setShowForm] = useState(false);
   const [filtreStatut, setFiltreStatut] = useState("Tous");
   const [now, setNow] = useState(new Date());
-  const [meteoLive, setMeteoLive] = useState(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -480,7 +471,7 @@ export default function LogistiqueMissions() {
   }, []);
 
   const refresh = useCallback(async (initial = false) => {
-    const [data, al, mto] = await Promise.all([loadMissions(), loadAlerte(), kvGet(KEY_METEO)]);
+    const [data, al] = await Promise.all([loadMissions(), loadAlerte()]);
     if (data) {
       setMissions(data);
     } else if (initial) {
@@ -488,7 +479,6 @@ export default function LogistiqueMissions() {
       await saveMissions(MISSIONS_DEMO);
     }
     setAlerte(al && al.active ? al : null);
-    setMeteoLive(mto && mto.live ? mto : null);
     setLoading(false);
   }, []);
 
@@ -609,9 +599,6 @@ export default function LogistiqueMissions() {
   const counts = STATUTS.reduce((acc, s) => ({ ...acc, [s]: missions.filter((m) => m.statut === s).length }), {});
   const bloquantes = missions.filter((m) => m.statut !== "Resolue" && (m.bloquant === "Oui" || m.priorite === "P1 - immediat / critique")).length;
 
-  const METEO = meteoLive || METEO_FALLBACK;
-  const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
-
   function exportCSV() {
     const cols = [
       ["Reference", "ref"], ["Type d'entree", "typeEntree"], ["Date de l'evenement", "dateEvenement"],
@@ -671,7 +658,7 @@ export default function LogistiqueMissions() {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
@@ -763,71 +750,6 @@ export default function LogistiqueMissions() {
             </div>
           </div>
         )}
-
-        {/* SUIVI MÉTÉO - PANEL INTERNE REPRISE DU DASHBOARD PRINCIPAL */}
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-              <CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO INTERNE BFMF
-            </h2>
-            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>
-              {mc.label}
-            </span>
-          </div>
-          
-          <div className="text-[11px] font-mono text-slate-400 mb-2 px-1">
-            Status : {METEO.maj}
-          </div>
-
-          <div className="space-y-2">
-            {METEO.timeline && METEO.timeline.map((t, i) => {
-              if (!t) return null;
-              
-              const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
-              const texteAlerteDefinitif = t.phenomene || "Pas de précisions terrain";
-              const labelCreneau = t.creneau || "Horizon en cours";
-
-              const lowerText = texteAlerteDefinitif.toLowerCase();
-              let typeAlea = "";
-              let aleaClass = "bg-slate-500/10 text-slate-400 border-slate-500/20";
-
-              if (lowerText.includes("orage")) {
-                typeAlea = "Orages";
-                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-              } else if (lowerText.includes("chaleur") || lowerText.includes("canicule") || lowerText.includes("température") || lowerText.includes("chaud")) {
-                typeAlea = "Chaleur";
-                aleaClass = "bg-orange-500/10 text-orange-400 border-orange-500/20";
-              } else if (lowerText.includes("pluie") || lowerText.includes("précipit") || lowerText.includes("inond") || lowerText.includes("flotte")) {
-                typeAlea = "Précipitations";
-                aleaClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-              } else if (lowerText.includes("vent") || lowerText.includes("rafale") || lowerText.includes("tempête") || lowerText.includes("coup de vent")) {
-                typeAlea = "Vent";
-                aleaClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
-              } else if (t.code === "jaune" || t.code === "orange" || t.code === "rouge") {
-                typeAlea = "Vigilance";
-                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-              }
-
-              return (
-                <div key={i} className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 transition-all">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`w-2 h-2 rounded-full ${tc.dot} shrink-0`} />
-                    {typeAlea && (
-                      <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border shrink-0 ${aleaClass}`}>
-                        {typeAlea}
-                      </span>
-                    )}
-                    <span className="text-slate-100 font-medium truncate">
-                      {texteAlerteDefinitif}
-                    </span>
-                  </div>
-                  <span className="text-slate-500 font-mono text-[10px] shrink-0 ml-2">{labelCreneau}</span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         {saveError && (
           <div className="rounded-md bg-red-400/10 ring-1 ring-red-400/30 text-red-300 text-xs px-3 py-2">
             Sauvegarde impossible -- verifiez la connexion. Les modifications locales peuvent etre perdues.
@@ -882,7 +804,7 @@ export default function LogistiqueMissions() {
               Aucune mission {filtreStatut !== "Tous" ? `au statut "${filtreStatut}"` : ""}.
             </div>
           )}
-          {!loading && filtered.map((m) => {
+          {filtered.map((m) => {
             const p = PRIORITES[m.priorite] || PRIORITES["P3 - important non bloquant"];
             const Icon = CATEGORIE_ICONS[m.categorie] || ClipboardList;
             const estBloquante = m.bloquant === "Oui" || m.priorite === "P1 - immediat / critique";
@@ -959,7 +881,7 @@ function ProfilSetup({ onSave }) {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans flex items-center justify-center p-4">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
       `}</style>
