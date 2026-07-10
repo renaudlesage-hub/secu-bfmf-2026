@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG (Natures d'urgence & Cartographie Complète des Repères)
+   DASHBOARD QG (Restauration Statuts Volante + Logistique + SOS)
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
@@ -54,7 +54,6 @@ const KEY_SANITAIRE = "bfmf2026-sanitaire";
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
-// Base topo-géographique mise à jour avec l'ensemble des nouveaux repères du site
 const POINTS_GPS = {
   "Site grande scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Grande Scène" },
   "Site petite scène": { lat: 50.3832, lon: 5.6219, km: 0, segment: "Plaine centrale — Petite Scène" },
@@ -251,8 +250,8 @@ export default function DashboardQG() {
   }
 
   const METEO = meteoLive || METEO_FALLBACK;
-  const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue");
-  const logBloquantes = logOuvertes.filter((m) => m.bloquant === "Oui" || (m.priorite || "").startsWith("P1"));
+  const logOuvertes = missionsLog.filter((m) => m.statut !== "Resolue" && m.statut !== "Résolue");
+  
   const grpDehors = groupesBalade.filter((g) => g.position !== "p0" && g.position !== "ret");
   const persDehors = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
   const parEtape = { e1: 0, e2: 0, e3: 0 };
@@ -260,10 +259,10 @@ export default function DashboardQG() {
     if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
   });
 
-  const sosVisibles = sosParticipants.filter((s) => s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé");
+  const sosVisibles = sosParticipants.filter((s) => s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
   const sosPartNouveaux = sosVisibles.filter((s) => s.statut === "nouveau");
 
-  const sanActifs = sanitaire.filter((s) => s.statut !== "resolu");
+  const sanActifs = sanitaire.filter((s) => s.statut !== "resolu" && s.statut !== "résolu");
   const sanParLieu = {};
   sanActifs.forEach((s) => { sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + (s.count || 1); });
   const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 3);
@@ -273,7 +272,7 @@ export default function DashboardQG() {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
@@ -300,7 +299,7 @@ export default function DashboardQG() {
 
       <main className="max-w-4xl mx-auto px-4 py-5 space-y-4">
         
-        {/* COMPOSANT DE SÉLECTION COMPLET DES NATURES ET REPÈRES DU SITE */}
+        {/* FORMULAIRE SOS RAPIDE PC */}
         <section className="bg-[#1c232e] border-l-4 border-red-500 rounded-r-lg p-4 shadow-lg ring-1 ring-white/5">
           <div className="flex items-center gap-2 mb-3 text-red-400 font-display text-sm tracking-wide">
             <PlusCircle className="w-4 h-4" /> LANCER UNE ALERTE SOS MANUELLE (APPELS RADIO / TÉLÉPHONE)
@@ -377,7 +376,7 @@ export default function DashboardQG() {
           </form>
         </section>
 
-        {/* SOS participants actives */}
+        {/* SOS PARTICIPANTS ACTIFS AVEC DECODAGE SYNTAXIQUE DYNAMIQUE DES STATUTS */}
         {sosVisibles.length > 0 && (
           <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
             <div className="flex items-center justify-between mb-3">
@@ -387,26 +386,40 @@ export default function DashboardQG() {
               </h2>
             </div>
             <div className="space-y-2">
-              {sosVisibles.map((s) => (
-                <div key={s.id} className={`rounded-md px-3 py-2.5 ring-1 ${s.statut === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"}`}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
-                    <span className="text-sm text-slate-100 font-medium capitalize">{s.motif}</span>
-                    <span className="text-[11px] text-slate-400">— Origine: {s.nom}</span>
-                    <span className="flex-1" />
-                    <div className="flex items-center gap-2">
-                      {s.statut === "nouveau" ? (
-                        <button onClick={() => prendreEnCompteSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20">Prendre en compte</button>
-                      ) : (
-                        <span className="text-[11px] font-mono text-slate-500 mr-1">En cours {s.heurePriseEnCompte ? `(${s.heurePriseEnCompte})` : ""}</span>
-                      )}
-                      <button onClick={() => cloturerSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20">Clôturer</button>
+              {sosVisibles.map((s) => {
+                const st = (s.statut || "").toLowerCase();
+                
+                // Décodage dynamique de l'état d'avancement pour le QG coord
+                let libelleStatutInterterrain = "Pris en compte par le QG";
+                if (st === "nouveau") libelleStatutInterterrain = "Nouveau — non pris en compte";
+                else if (st === "en route") libelleStatutInterterrain = `Volante en route (${s.heureEnRoute || ""})`;
+                else if (st === "sur place") libelleStatutInterterrain = `Volante sur place (${s.heureArrivee || ""})`;
+                else if (st === "prise en charge") libelleStatutInterterrain = `Victime prise en charge / Soins (${s.heurePriseEnCharge || ""})`;
+                else if (st === "pris en compte" && s.heurePriseEnCompte) libelleStatutInterterrain = `Pris en compte par le QG (${s.heurePriseEnCompte})`;
+
+                return (
+                  <div key={s.id} className={`rounded-md px-3 py-2.5 ring-1 ${st === "nouveau" ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.03]"}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
+                      <span className="text-sm text-slate-100 font-medium capitalize">{s.motif}</span>
+                      <span className="text-[11px] text-slate-400">— Origine: {s.nom}</span>
+                      <span className="flex-1" />
+                      <div className="flex items-center gap-2">
+                        {st === "nouveau" && (
+                          <button onClick={() => prendreEnCompteSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-red-300/50 text-red-200 hover:bg-red-400/20">Prendre en compte</button>
+                        )}
+                        <button onClick={() => cloturerSos(s.id)} className="text-[11px] font-mono px-2.5 py-1 rounded ring-1 ring-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20">Clôturer</button>
+                      </div>
+                    </div>
+                    {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · Repère : {s.surTrace.reperePlusProche} · {s.surTrace.segment}</div>}
+                    {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
+                    {/* Ligne d'état tactique dynamique en ambre */}
+                    <div className="text-[11px] font-mono mt-1.5 text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded w-fit border border-amber-500/10">
+                      Statut : {libelleStatutInterterrain}
                     </div>
                   </div>
-                  {s.surTrace && <div className="text-xs text-slate-300 mt-1">km {s.surTrace.km} · Repère : {s.surTrace.reperePlusProche} · {s.surTrace.segment}</div>}
-                  {s.details && <div className="text-[11px] text-slate-400 mt-0.5 italic">"{s.details}"</div>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
@@ -443,12 +456,19 @@ export default function DashboardQG() {
               <span className="font-mono text-xs text-slate-400">{logOuvertes.length} ouvertes</span>
             </div>
             <div className="space-y-1.5">
-              {logOuvertes.slice(0, 4).map((m) => (
-                <div key={m.id || m.ref} className="flex items-center gap-2 text-xs rounded bg-white/[0.03] ring-1 ring-white/10 px-2.5 py-2">
-                  <span className="text-slate-200 flex-1 truncate">{m.nature}</span>
-                  <span className="text-[10px] text-slate-500">{m.attribueA || "—"}</span>
-                </div>
-              ))}
+              {logOuvertes.length === 0 ? (
+                <div className="text-xs text-slate-500 italic py-2 text-center">Aucune tâche logistique en attente.</div>
+              ) : (
+                logOuvertes.slice(0, 6).map((m) => (
+                  <div key={m.id || m.ref} className="flex items-center gap-2 text-xs rounded bg-white/[0.03] ring-1 ring-white/10 px-2.5 py-2">
+                    <span className="text-slate-200 flex-1 truncate">{m.nature}</span>
+                    <span className={`text-[10px] font-mono px-1 rounded ${m.bloquant === "Oui" || (m.priorite || "").startsWith("P1") ? "bg-red-500/20 text-red-300" : "bg-slate-500/20 text-slate-400"}`}>
+                      {m.priorite || "P3"}
+                    </span>
+                    <span className="text-[10px] text-slate-500 shrink-0">{m.attribueA || "non-attribué"}</span>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
