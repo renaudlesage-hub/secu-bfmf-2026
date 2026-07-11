@@ -6,7 +6,6 @@ import {
   X,
   Clock,
   Send,
-  CheckCircle2,
   AlertCircle,
   Instagram,
   Facebook,
@@ -33,10 +32,10 @@ const ROLES_CM = [
 ];
 
 const PLATFORMES_DISPONIBLES = [
-  { id: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-400", border: "border-blue-500/30" },
-  { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-400", border: "border-pink-500/30" },
-  { id: "twitter", label: "X / Twitter", icon: Twitter, color: "text-slate-300", border: "border-slate-500/30" },
-  { id: "site_live", label: "Flux Live Site Web", icon: Globe, color: "text-emerald-400", border: "border-emerald-500/30" },
+  { id: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-400" },
+  { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-400" },
+  { id: "twitter", label: "X / Twitter", icon: Twitter, color: "text-slate-300" },
+  { id: "site_live", label: "Flux Live Site Web", icon: Globe, color: "text-emerald-400" },
 ];
 
 const inputCls =
@@ -72,6 +71,7 @@ function nowHM() {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// L'export par défaut est parfaitement nommé pour correspondre au routeur principal
 export default function CommunityManagerConsole() {
   const [historiquePublications, setHistoriquePublications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -153,18 +153,16 @@ export default function CommunityManagerConsole() {
       auteur: auteurSignature,
       platformes: platformesChoisies,
       medias: urlsMedias,
-      statutEnvoi: "En attente de propagation API" // Sera traité par votre fonction de service externe
+      statutEnvoi: "En attente de propagation API"
     };
 
     const nouvelHistorique = [nouvellePublication, ...historiquePublications];
     setHistoriquePublications(nouvelHistorique);
 
-    // Payload global synchronisé avec le schéma attendu par le QG
     const payloadSupabase = {
       ambiance: ambianceGlobale,
       maj: `Dernier post à ${nowHM()}`,
       publications: nouvelHistorique,
-      // Maintien de la compatibilité avec l'ancien panneau "canaux" du dashboard
       canaux: [
         { name: "Réseaux Sociaux", statut: "ok", note: textePublication.trim().slice(0, 60) + "..." }
       ]
@@ -174,7 +172,6 @@ export default function CommunityManagerConsole() {
     setSaveError(!ok);
 
     if (ok) {
-      // Reset du formulaire après succès
       setTextePublication("");
       setUrlsMedias([]);
     }
@@ -188,6 +185,14 @@ export default function CommunityManagerConsole() {
           try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch(e){}
         }}
       />
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#11151b] flex items-center justify-center font-mono text-slate-400 text-xs">
+        Connexion au flux des réseaux sociaux Supabase...
+      </div>
     );
   }
 
@@ -220,7 +225,7 @@ export default function CommunityManagerConsole() {
       {/* CONTENU PRINCIPAL */}
       <main className="max-w-4xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* FORMULAIRE DE PUBLICATION UNIQUE (2 COLONNES SUR LARGE ÉCRAN) */}
+        {/* FORMULAIRE DE PUBLICATION UNIQUE */}
         <div className="md:col-span-2 space-y-4">
           <div className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10 shadow-md">
             <h2 className="text-sm font-mono text-amber-300 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -229,7 +234,7 @@ export default function CommunityManagerConsole() {
 
             <form onSubmit={publierMessage} className="space-y-4 text-sm">
               
-              {/* SÉLECTEUR DE PLATEFORMES GRID */}
+              {/* SÉLECTEUR DE PLATEFORMES */}
               <div>
                 <label className="block text-[11px] font-mono text-slate-400 uppercase mb-2">1. Sélectionner les canaux de diffusion</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -276,7 +281,7 @@ export default function CommunityManagerConsole() {
 
               {/* LIENS MÉDIAS ASSOCIÉS */}
               <div>
-                <label className="block text-[11px] font-mono text-slate-400 uppercase mb-1">3. Ajouter des médias (URLs de photos / CDN ou stockage interne)</label>
+                <label className="block text-[11px] font-mono text-slate-400 uppercase mb-1">3. Ajouter des médias (URLs de photos / CDN)</label>
                 <div className="flex gap-2">
                   <input
                     type="url"
@@ -294,7 +299,6 @@ export default function CommunityManagerConsole() {
                   </button>
                 </div>
 
-                {/* VISUALISATION DES ATTRIBUTS MÉDIAS INJECTÉS */}
                 {urlsMedias.length > 0 && (
                   <div className="mt-2 space-y-1 bg-black/20 p-2 rounded border border-white/5">
                     {urlsMedias.map((url, index) => (
@@ -311,7 +315,7 @@ export default function CommunityManagerConsole() {
                 )}
               </div>
 
-              {/* TON DU FESTIVAL (Pour remonter au QG sur le Dashboard d'accueil) */}
+              {/* TON DU FESTIVAL */}
               <div>
                 <label className="block text-[11px] font-mono text-slate-400 uppercase mb-1">4. Ambiance Générale constatée sur la plaine</label>
                 <select className={inputCls} value={ambianceGlobale} onChange={(e) => setAmbianceGlobale(e.target.value)}>
@@ -324,11 +328,10 @@ export default function CommunityManagerConsole() {
 
               {saveError && (
                 <div className="p-2.5 bg-red-500/10 border border-red-500/20 text-red-400 font-mono text-xs rounded flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> Échec de synchronisation Supabase (Vérifiez la connexion réseau)
+                  <AlertCircle className="w-4 h-4" /> Échec de synchronisation Supabase
                 </div>
               )}
 
-              {/* BOUTON D'ACTION PRINCIPAL */}
               <button
                 type="submit"
                 disabled={!textePublication.trim() || platformesChoisies.length === 0}
@@ -341,7 +344,7 @@ export default function CommunityManagerConsole() {
           </div>
         </div>
 
-        {/* FEED / HISTORIQUE DU FLUX DE DROITE */}
+        {/* FEED / HISTORIQUE */}
         <div className="space-y-4">
           <div className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10 shadow-md">
             <h3 className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -351,7 +354,7 @@ export default function CommunityManagerConsole() {
             <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
               {historiquePublications.length === 0 ? (
                 <div className="text-xs text-slate-500 italic py-8 text-center border border-dashed border-white/5 rounded">
-                  Aucun historique de diffusion disponible.
+                  Aucun historique de diffusion.
                 </div>
               ) : (
                 historiquePublications.map((pub) => (
@@ -361,7 +364,6 @@ export default function CommunityManagerConsole() {
                     </div>
                     <p className="text-slate-200 font-normal leading-snug break-words">"{pub.texte}"</p>
                     
-                    {/* Visualisation des puces de réseaux ciblés */}
                     <div className="flex flex-wrap gap-1 pt-1 border-t border-white/5">
                       {pub.platformes?.map((pId) => {
                         const plat = PLATFORMES_DISPONIBLES.find(x => x.id === pId);
@@ -373,7 +375,6 @@ export default function CommunityManagerConsole() {
                       })}
                     </div>
 
-                    {/* Badge média associé */}
                     {pub.medias && pub.medias.length > 0 && (
                       <div className="text-[9px] font-mono text-sky-400 bg-sky-500/5 px-2 py-0.5 rounded border border-sky-500/10 flex items-center gap-1">
                         <Image className="w-3 h-3" /> {pub.medias.length} média(s) attaché(s)
@@ -391,7 +392,7 @@ export default function CommunityManagerConsole() {
   );
 }
 
-{/* CONFIGURATION INDIVIDUELLE DU PROFIL DES COMMUNICANTS */}
+{/* CONFIGURATION DU PROFIL */}
 function ProfilCMSetup({ onSave }) {
   const [nom, setNom] = useState("");
   const [role, setRole] = useState(ROLES_CM[0]);
