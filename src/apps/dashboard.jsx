@@ -487,7 +487,7 @@ export default function DashboardQG() {
                 <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
                   <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
                 </h2>
-                <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} Festivaliers sur le parcours</span>
+                <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
               </div>
 
               {/* Frise linéaire d'avancement */}
