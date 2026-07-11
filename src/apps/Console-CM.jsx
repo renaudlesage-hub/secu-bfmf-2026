@@ -71,7 +71,6 @@ function nowHM() {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// L'export par défaut est parfaitement nommé pour correspondre au routeur principal
 export default function CommunityManagerConsole() {
   const [historiquePublications, setHistoriquePublications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +101,7 @@ export default function CommunityManagerConsole() {
     setProfileLoaded(true);
   }, []);
 
+  // CORRECTIF : Utilisation stricte de la constante STORAGE_KEY_MEDIAS
   const refreshData = useCallback(async () => {
     try {
       const data = await kvGet(STORAGE_KEY_MEDIAS);
@@ -225,7 +225,7 @@ export default function CommunityManagerConsole() {
       {/* CONTENU PRINCIPAL */}
       <main className="max-w-4xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* FORMULAIRE DE PUBLICATION UNIQUE */}
+        {/* FORMULAIRE DE PUBLICATION */}
         <div className="md:col-span-2 space-y-4">
           <div className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10 shadow-md">
             <h2 className="text-sm font-mono text-amber-300 uppercase tracking-wider mb-4 flex items-center gap-2">
