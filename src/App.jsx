@@ -19,16 +19,18 @@ import Volante from "./apps/volante.jsx";
 import PcOps from "./apps/pcops.jsx";
 import Sanitaire from "./apps/sanitaire.jsx"; 
 import StocksBar from "./apps/StocksBar.jsx"; 
-import ConsoleCM from "./apps/Console-CM.jsx"; // Importation de la nouvelle console de multi-diffusion
+// 🚨 CORRECTION DU NOM DE FICHIER ET DE L'IMPORTATION
+import CommunityManagerConsole from "./apps/Consols-CM.jsx"; 
 
 /* ---------------------------------------------------------------------
-   ROUTEUR PRINCIPAL DE SUPERVISION — Bucolique Ferrières 2026
+   ROUTEUR PRINCIPAL CORRIGÉ — Bucolique Ferrières 2026
 --------------------------------------------------------------------- */
 
 const ROUTES = {
   dashboard: { titre: "Dashboard QG", desc: "Synthèse : alertes, logistique, balade, météo, sanitaire", icon: ShieldAlert, comp: Dashboard, public: false },
   logistique: { titre: "Missions logistiques", desc: "Saisie, attribution et suivi des demandes", icon: ClipboardList, comp: Logistique, public: false },
-  community: { titre: "Console Community Manager", desc: "Multi-post simultané et attachement médias (FB, Insta, Web)", icon: Share2, comp: ConsoleCM, public: false },
+  // 🚨 CORRECTION DE LA RÉFÉRENCE COMPOSANT ICI
+  community: { titre: "Console Community Manager", desc: "Multi-post simultané et attachement médias (FB, Insta, Web)", icon: Share2, comp: CommunityManagerConsole, public: false },
   stocksbar: { titre: "Comptabilité Bars", desc: "Inventaires, réassorts, calcul automatique des débits et ventes", icon: Beer, comp: StocksBar, public: false },
   balade: { titre: "Suivi balade", desc: "Crowd management du parcours 6,5 km", icon: Footprints, comp: Balade, public: false },
   volante: { titre: "App Volante", desc: "Engagements, guidage GPS, missions terrain", icon: Zap, comp: Volante, public: false },
@@ -42,7 +44,6 @@ export default function App() {
 
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash.slice(1));
-    window.location.hash ? onHash() : window.location.hash = "";
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
@@ -57,7 +58,8 @@ export default function App() {
             ← menu
           </a>
         )}
-        <Comp />
+        {/* Protection anti-crash si le fichier importé est vide ou mal exporté */}
+        {Comp ? <Comp /> : <div className="p-4 text-red-400 font-mono">Erreur : Le composant de cette application est introuvable.</div>}
       </div>
     );
   }
