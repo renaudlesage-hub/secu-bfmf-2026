@@ -22,6 +22,7 @@ import PcOps from "./apps/pcops.jsx";
 import Sanitaire from "./apps/sanitaire.jsx"; 
 import StocksBar from "./apps/StocksBar.jsx"; 
 import CommunityManagerConsole from "./apps/Console-CM.jsx";
+import Signaler from "./apps/signaler.jsx";
 
 /* ---------------------------------------------------------------------
    ROUTEUR PRINCIPAL FULL-MOBILE RESPONSIVE — Bucolique Ferrières 2026
@@ -37,13 +38,18 @@ const ROUTES = {
   sanitaire: { titre: "Suivi Sanitaire", desc: "Gestion et résolution des blocs WC", icon: Droplets, comp: Sanitaire, public: false },
   pcops: { titre: "PC-Ops / Autorité", desc: "Vue de situation en lecture seule", icon: Landmark, comp: PcOps, public: false },
   sos: { titre: "SOS Participants", desc: "App publique — lien/QR à diffuser aux festivaliers", icon: TriangleAlert, comp: Sos, public: true },
+  signaler: { titre: "Signalement sanitaire", desc: "Page publique des QR codes (WC, poubelles...)", icon: Droplets, comp: Signaler, public: true },
 };
 
 export default function App() {
-  const [route, setRoute] = useState(() => window.location.hash.slice(1) || "");
+  const parseHash = () => {
+    const h = window.location.hash.slice(1) || "";
+    return h.startsWith("signaler") ? "signaler" : h;
+  };
+  const [route, setRoute] = useState(parseHash);
 
   useEffect(() => {
-    const onHash = () => setRoute(window.location.hash.slice(1) || "");
+    const onHash = () => setRoute(parseHash());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
