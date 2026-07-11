@@ -15,19 +15,13 @@ import {
   CircleDot,
   ShieldAlert,
   CloudLightning,
+  Car
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   APP VOLANTE -- BFMF 2026
-   Vue terrain unifiée pour l'équipe volante :
-   - Moniteur météo interne synchronisé en temps réel
-   - Consigne d'engagement du QG (PRV choisi) avec guidage GPS
-   - SOS participants avec cycle tactique complet (tolérant aux injections QG)
-   - Alertes équipes (logistique + balade) et saturation des étapes
-   - Missions logistiques attribuées à la volante, avec guidage
+   APP VOLANTE — OPTIMISÉE MOBILE & VÉHICULE (BFMF 2026)
 --------------------------------------------------------------------- */
 
-/* ------------------------------ Supabase ------------------------------ */
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
 const SB_HEADERS = {
@@ -62,7 +56,6 @@ const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
 
-/* -------------------- Points de reference geolocalises -------------------- */
 const POINTS = {
   "Point 0": { lat: 50.3835, lon: 5.6215 },
   "PRV#4": { lat: 50.38212, lon: 5.61673 },
@@ -111,7 +104,6 @@ const CODE_METEO = {
   rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
 };
 
-/* ------------------------------ Geometrie ------------------------------ */
 function hav(la1, lo1, la2, lo2) {
   const R = 6371000, r = Math.PI / 180;
   const a =
@@ -138,8 +130,9 @@ function fmtDist(m) {
   return m >= 1000 ? (m / 1000).toFixed(1) + " km" : Math.round(m) + " m";
 }
 
+// 🚨 PASSAGE EN MODE ROUTIER / VÉHICULE (travelmode=driving)
 function mapsUrl(lat, lon) {
-  return `http://googleusercontent.com/maps.google.com/?q=${lat},${lon}&travelmode=walking`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
 }
 
 function nearestPRV(lat, lon) {
@@ -157,7 +150,6 @@ function nowHM() {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-/* ------------------------------ App ------------------------------ */
 export default function AppVolante() {
   const [missions, setMissions] = useState([]);
   const [groupes, setGroupes] = useState([]);
@@ -176,7 +168,6 @@ export default function AppVolante() {
     return () => clearInterval(t);
   }, []);
 
-  // Position en continu (guidage)
   useEffect(() => {
     if (!navigator.geolocation) return;
     watchRef.current = navigator.geolocation.watchPosition(
@@ -189,7 +180,6 @@ export default function AppVolante() {
     };
   }, []);
 
-  // Donnees partagees
   useEffect(() => {
     let stop = false;
     async function pull() {
@@ -228,18 +218,15 @@ export default function AppVolante() {
     };
   }, []);
 
-  // Missions attribuées à la volante, non résolues
   const mesMissions = missions.filter(
     (m) => (m.attribueA || "").toLowerCase().includes("volante") && m.statut !== "Resolue"
   );
 
-  // SOS participants actifs (exclut les clôturés)
   const sosActifs = sosPart.filter((s) => {
     const st = (s.statut || "").toLowerCase();
     return st !== "cloture" && st !== "clôture" && st !== "cloturé" && st !== "clos";
   }).slice(0, 5);
 
-  // Saturation étapes
   const parEtape = { e1: 0, e2: 0, e3: 0 };
   groupes.forEach((g) => {
     if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
@@ -299,7 +286,7 @@ export default function AppVolante() {
   const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
 
   return (
-    <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
+    <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans antialiased pb-12">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
@@ -308,315 +295,243 @@ export default function AppVolante() {
         .pulse-slow { animation: pulseSlow 1.6s ease-in-out infinite; }
       `}</style>
 
-      <header className="border-b border-white/10 bg-[#151b23]/90 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      {/* HEADER MOBILE AJUSTÉ */}
+      <header className="border-b border-white/10 bg-[#151b23]/95 backdrop-blur sticky top-0 z-20 shadow-md">
+        <div className="w-full max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
               <Zap className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <div className="font-display tracking-wide text-[15px] leading-none">VOLANTE</div>
-              <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · TERRAIN</div>
+              <div className="font-display tracking-wide text-base leading-none uppercase font-bold text-white">ÉQUIPE VOLANTE</div>
+              <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1 uppercase">BFMF 2026 · APPLICATIF TERRAIN</div>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className={`w-2 h-2 rounded-full ${maPos ? "bg-emerald-400" : "bg-slate-600"}`} title={maPos ? "GPS actif" : "GPS inactif"} />
-            <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
-              <Clock className="w-4 h-4 text-slate-500" />
+            <span className={`w-2.5 h-2.5 rounded-full ${maPos ? "bg-emerald-400" : "bg-red-500 pulse-slow"}`} />
+            <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm font-semibold bg-white/[0.03] px-2 py-1 rounded border border-white/5">
+              <Clock className="w-3.5 h-3.5 text-slate-500" />
               {String(now.getHours()).padStart(2, "0")}:{String(now.getMinutes()).padStart(2, "0")}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Bandeau guidage actif */}
+      {/* STICKY GPS ÉLARGI AVEC COMPOSANT DE NAVIGATION VÉHICULE */}
       {cible && (
-        <div className="sticky top-[57px] z-10 bg-[#1a2432] border-b-2 border-amber-400/50 px-4 py-3">
-          <div className="max-w-lg mx-auto flex items-center gap-3">
-            <Compass className="w-6 h-6 text-amber-300 shrink-0" />
+        <div className="sticky top-[69px] z-10 bg-[#1a2536] border-b-2 border-amber-400/60 shadow-lg px-4 py-3">
+          <div className="w-full max-w-xl mx-auto flex items-center justify-between gap-3">
+            <Compass className="w-6 h-6 text-amber-400 shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-sm text-white font-medium truncate">→ {cible.nom}</div>
-              <div className="text-xs text-slate-400 truncate">
-                {guidage
-                  ? `${fmtDist(guidage.d)} · direction ${cardinal(guidage.b)} (${Math.round(guidage.b)}°)`
-                  : "En attente du GPS..."}
-                {cible.contexte ? ` · ${cible.contexte}` : ""}
+              <div className="text-xs font-mono uppercase tracking-wider text-amber-300 font-medium">Guidage Véhicule Actif</div>
+              <div className="text-sm text-white font-bold truncate mt-0.5">{cible.nom}</div>
+              <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+                {guidage ? `${fmtDist(guidage.d)} · Cap ${cardinal(guidage.b)} (${Math.round(guidage.b)}°)` : "Calcul GPS en cours..."}
               </div>
             </div>
-            <a
-              href={mapsUrl(cible.lat, cible.lon)}
-              target="_blank"
-              rel="noreferrer"
-              className="shrink-0 text-[11px] font-mono px-2.5 py-2 rounded ring-1 ring-amber-400/50 bg-amber-400/15 text-amber-200 flex items-center gap-1"
-            >
-              <Navigation className="w-3.5 h-3.5" /> Maps
-            </a>
-            <a
-              href={myMapsUrl(cible.lat, cible.lon)}
-              target="_blank"
-              rel="noreferrer"
-              className="shrink-0 text-[11px] font-mono px-2.5 py-2 rounded ring-1 ring-sky-400/50 bg-sky-400/15 text-sky-200 flex items-center gap-1"
-              title="Carte operationnelle Buco (parcours, PRV)"
-            >
-              <MapPin className="w-3.5 h-3.5" /> Buco
-            </a>
-            <button onClick={() => setCible(null)} className="shrink-0 text-slate-500 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <a
+                href={mapsUrl(cible.lat, cible.lon)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-mono font-bold px-3 py-2.5 rounded-xl ring-1 ring-amber-400/40 bg-amber-400/10 text-amber-300 flex items-center gap-1 active:bg-amber-400/30 shadow-sm"
+              >
+                <Car className="w-3.5 h-3.5" /> GPS
+              </a>
+              <button onClick={() => setCible(null)} className="p-2 text-slate-400 hover:text-white active:bg-white/10 rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      {/* CONTENEUR PRINCIPAL ÉLARGI MAX-W-XL */}
+      <main className="w-full max-w-xl mx-auto px-4 py-4 space-y-4">
         {sbError && (
-          <div className="rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 text-amber-300 text-xs px-3 py-2">
-            Reseau instable — donnees possiblement obsoletes.
+          <div className="rounded-xl bg-red-500/10 ring-1 ring-red-500/20 text-red-400 text-xs px-3 py-2.5 font-mono flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" /> Synchronisation Supabase interrompue (Zone Blanche)
           </div>
         )}
 
-        {/* SUIVI MÉTÉO - PANEL INTERNE REPRIS DU DASHBOARD PRINCIPAL */}
-        <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
+        {/* METEO MONITEUR */}
+        <section className="bg-[#151b23] rounded-xl p-4 ring-1 ring-white/10 shadow-md">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
-              <CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO INTERNE BFMF
+            <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase">
+              <CloudLightning className="w-4 h-4 text-slate-500" /> Moniteur météo interne BFMF
             </h2>
-            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
+            <span className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full ring-1 ${mc.ring} ${mc.bg} ${mc.text}`}>{mc.label}</span>
           </div>
-          
-          <div className="text-[11px] font-mono text-slate-400 mb-2 px-1">
-            Status : {METEO.maj}
-          </div>
-
           <div className="space-y-2">
             {METEO.timeline && METEO.timeline.map((t, i) => {
               if (!t) return null;
-              
               const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
-              const texteAlerteDefinitif = t.phenomene || "Pas de précisions terrain";
-              const labelCreneau = t.creneau || "Horizon en cours";
-
-              const lowerText = texteAlerteDefinitif.toLowerCase();
-              let typeAlea = "";
-              let aleaClass = "bg-slate-500/10 text-slate-400 border-slate-500/20";
-
-              if (lowerText.includes("orage")) {
-                typeAlea = "Orages";
-                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-              } else if (lowerText.includes("chaleur") || lowerText.includes("canicule") || lowerText.includes("température") || lowerText.includes("chaud")) {
-                typeAlea = "Chaleur";
-                aleaClass = "bg-orange-500/10 text-orange-400 border-orange-500/20";
-              } else if (lowerText.includes("pluie") || lowerText.includes("précipit") || lowerText.includes("inond") || lowerText.includes("flotte")) {
-                typeAlea = "Précipitations";
-                aleaClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-              } else if (lowerText.includes("vent") || lowerText.includes("rafale") || lowerText.includes("tempête") || lowerText.includes("coup de vent")) {
-                typeAlea = "Vent";
-                aleaClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
-              } else if (t.code === "jaune" || t.code === "orange" || t.code === "rouge") {
-                typeAlea = "Vigilance";
-                aleaClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-              }
-
               return (
-                <div key={i} className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 transition-all">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                <div key={i} className="flex items-center justify-between text-xs rounded-xl bg-black/20 border border-white/5 p-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className={`w-2 h-2 rounded-full ${tc.dot} shrink-0`} />
-                    {typeAlea && (
-                      <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border shrink-0 ${aleaClass}`}>
-                        {typeAlea}
-                      </span>
-                    )}
-                    <span className="text-slate-100 font-medium truncate">
-                      {texteAlerteDefinitif}
-                    </span>
+                    <span className="text-slate-100 font-semibold truncate">{t.phenomene || "Pas de précisions terrain"}</span>
                   </div>
-                  <span className="text-slate-500 font-mono text-[10px] shrink-0 ml-2">{labelCreneau}</span>
+                  <span className="text-slate-500 font-mono text-[10px] shrink-0 ml-2">{t.creneau || "Horizon"}</span>
                 </div>
               );
             })}
           </div>
         </section>
 
-        {/* Consigne d'engagement QG */}
+        {/* CONSIGNE D'ENGAGEMENT */}
         {consigne && (
-          <section className="rounded-lg ring-2 ring-amber-400/60 bg-amber-400/10 p-4">
-            <div className="font-display text-amber-200 text-sm tracking-wide flex items-center gap-2 mb-1">
-              <TriangleAlert className="w-4 h-4 pulse-slow" /> CONSIGNE QG — ENGAGEMENT
+          <section className="rounded-xl ring-2 ring-amber-400/50 bg-amber-400/10 p-4 shadow-lg space-y-3">
+            <div>
+              <div className="font-display text-amber-300 text-sm tracking-wide font-bold flex items-center gap-2">
+                <TriangleAlert className="w-4 h-4 text-amber-400 pulse-slow" /> INSTRUCTION RADIALE QG
+              </div>
+              <div className="text-base text-white font-bold mt-1.5 leading-snug">
+                Transit d'urgence vers <span className="text-amber-300 underline underline-offset-4">{consigne.prv}</span>
+              </div>
+              {consigne.message && <div className="text-sm text-slate-200 mt-1 bg-black/20 p-2 rounded-lg border border-white/5 font-mono">"{consigne.message}"</div>}
             </div>
-            <div className="text-sm text-slate-100">
-              Rejoindre <span className="font-semibold text-amber-200">{consigne.prv}</span>
-              {consigne.message ? ` — ${consigne.message}` : ""}
-            </div>
-            <div className="text-[11px] font-mono text-slate-400 mt-1">
-              Emise a {consigne.heure} par {consigne.auteur || "QG"}
-              {consigne.accusePar ? ` · accusee a ${consigne.heureAccuse}` : ""}
-            </div>
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2">
               {POINTS[consigne.prv] && (
                 <button
-                  onClick={() => guiderVers(consigne.prv, POINTS[consigne.prv].lat, POINTS[consigne.prv].lon, "consigne QG")}
-                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-mono px-3 py-2.5 rounded ring-1 ring-amber-400/50 bg-amber-400/15 text-amber-200"
+                  onClick={() => guiderVers(consigne.prv, POINTS[consigne.prv].lat, POINTS[consigne.prv].lon, "Instruction QG")}
+                  className="flex-1 flex items-center justify-center gap-2 text-xs font-mono font-bold px-3 py-3 rounded-xl ring-1 ring-amber-400/50 bg-amber-400/20 text-amber-200 active:bg-amber-400/40"
                 >
-                  <Compass className="w-4 h-4" /> Guider vers {consigne.prv}
+                  <Car className="w-4 h-4" /> Transit routier {consigne.prv}
                 </button>
               )}
               {!consigne.accusePar && (
                 <button
                   onClick={accuserConsigne}
-                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-mono px-3 py-2.5 rounded ring-1 ring-emerald-400/50 bg-emerald-400/15 text-emerald-200"
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-mono font-bold px-3 py-3 rounded-xl ring-1 ring-emerald-400/50 bg-emerald-500/20 text-emerald-200 active:bg-emerald-500/40"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Bien recu
+                  <CheckCircle2 className="w-4 h-4" /> Accuser Réception
                 </button>
               )}
             </div>
           </section>
         )}
 
-        {/* Alertes equipes */}
+        {/* ALERTES ÉQUIPES CRITIQUES */}
         {alertes.map((a, i) => (
-          <div key={i} className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-3.5">
-            <div className="font-display text-red-200 text-sm tracking-wide flex items-center gap-2">
-              <TriangleAlert className="w-4 h-4 pulse-slow" /> SOS {a.source.toUpperCase()} — {a.motif}
+          <div key={i} className="rounded-xl ring-2 ring-red-500/50 bg-red-950/30 p-4 shadow-md">
+            <div className="font-display text-red-400 text-sm tracking-wide font-bold flex items-center gap-2">
+              <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow" /> DETRÈS COMPAGNON {a.source.toUpperCase()}
             </div>
-            <div className="text-xs text-red-200/80 mt-1">
-              {a.heure} · {a.auteur}
-              {a.groupe ? ` · ${a.groupe}` : ""}
-              {a.details ? ` — ${a.details}` : ""}
+            <div className="text-sm text-white font-semibold mt-1">{a.motif}</div>
+            <div className="text-[11px] font-mono text-red-300/70 mt-1">
+              Heure : {a.heure} · Auteur : {a.auteur} {a.groupe ? `· Unité : ${a.groupe}` : ""} {a.details ? `— Details : ${a.details}` : ""}
             </div>
           </div>
         ))}
 
-        {/* Saturation etapes (crowd) */}
-        {etapesSaturees.length > 0 && (
-          <section className="rounded-lg ring-1 ring-amber-400/40 bg-amber-400/5 p-3.5">
-            <div className="font-display text-amber-200 text-sm tracking-wide flex items-center gap-2 mb-1.5">
-              <Footprints className="w-4 h-4" /> CROWD — DENSITE ELEVEE
-            </div>
-            {etapesSaturees.map((e) => (
-              <div key={e.nom} className="flex items-center justify-between text-xs text-slate-200 py-0.5">
-                <span>{e.nom} : {e.n}/{CAPACITE_ETAPE} ({Math.round(e.pct * 100)}%)</span>
-                <button
-                  onClick={() => guiderVers(e.nom, POINTS[e.nom].lat, POINTS[e.nom].lon, "appui crowd")}
-                  className="text-[11px] font-mono text-amber-300 hover:text-amber-200 flex items-center gap-1"
-                >
-                  <Compass className="w-3 h-3" /> Guider
-                </button>
-              </div>
-            ))}
-          </section>
-        )}
-
-        {/* SOS participants évolutifs */}
-        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-            <TriangleAlert className={`w-4 h-4 ${sosActifs.some((s) => (s.statut || "").toLowerCase() === "nouveau") ? "text-red-300 pulse-slow" : "text-slate-500"}`} />
-            SOS PARTICIPANTS
-            <span className="text-[11px] font-mono text-slate-500 font-normal">{sosActifs.length} actif(s)</span>
+        {/* SOS PARTICIPANTS */}
+        <section className="bg-[#151b23] rounded-xl ring-1 ring-white/10 p-4 shadow-md space-y-3">
+          <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase border-b border-white/5 pb-2">
+            <TriangleAlert className={`w-4 h-4 ${sosActifs.some((s) => (s.statut || "").toLowerCase() === "nouveau") ? "text-red-400 pulse-slow" : "text-slate-500"}`} />
+            SOS Participants Actifs ({sosActifs.length})
           </h2>
           <div className="space-y-3">
-            {sosActifs.length === 0 && <div className="text-xs text-slate-500 text-center py-2">Aucun SOS actif.</div>}
+            {sosActifs.length === 0 && <div className="text-xs text-slate-500 text-center py-6 border border-dashed border-white/5 rounded-xl">Aucun signalement de festivalier en cours.</div>}
             {sosActifs.map((s) => {
               const prv = s.gps ? nearestPRV(s.gps.lat, s.gps.lon) : null;
               const currentStatutLower = (s.statut || "").toLowerCase();
 
               return (
-                <div
-                  key={s.id}
-                  className="rounded-lg px-3 py-3 border border-white/5 bg-white/[0.02] space-y-2"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                <div key={s.id} className="rounded-xl p-3.5 border border-white/10 bg-black/30 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-                        <span>{s.heure}</span>
-                        <span>·</span>
+                        <span className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300">{s.heure}</span>
                         <span className="truncate text-slate-300 font-medium">{s.nom}</span>
                       </div>
-                      <h3 className="text-sm font-bold text-white mt-0.5">{s.motif}</h3>
+                      <h3 className="text-base font-bold text-white mt-1 leading-tight">{s.motif}</h3>
                     </div>
                     {s.tel && (
-                      <a href={`tel:${s.tel}`} className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 shrink-0">
-                        <PhoneCall className="w-3.5 h-3.5" />
+                      <a href={`tel:${s.tel}`} className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 active:bg-emerald-500/20 shrink-0 border border-emerald-500/20">
+                        <PhoneCall className="w-5 h-5" />
                       </a>
                     )}
                   </div>
 
                   {s.surTrace && (
-                    <div className="text-xs text-slate-300 bg-white/[0.01] p-1.5 rounded border border-white/5">
-                      km {s.surTrace.km} · {s.surTrace.segment || s.surTrace.reperePlusProche}
-                      {s.surTrace.ecartMetres > 100 && <span className="text-amber-300 block mt-0.5 font-medium">⚠️ ~{s.surTrace.ecartMetres} m hors sentier</span>}
+                    <div className="text-xs text-slate-300 bg-white/[0.02] p-2 rounded-lg border border-white/5 font-mono">
+                      📍 Alignement parcours : km {s.surTrace.km} · {s.surTrace.segment || s.surTrace.reperePlusProche}
+                      {s.surTrace.ecartMetres > 100 && <span className="text-amber-400 block mt-1 font-bold">⚠️ Écart : ~{s.surTrace.ecartMetres} m HORS TRACE</span>}
                     </div>
                   )}
 
-                  {s.details && <div className="text-[11px] text-slate-400 italic bg-black/10 p-1.5 rounded">"{s.details}"</div>}
+                  {s.details && <div className="text-xs text-slate-400 italic bg-black/40 p-2.5 rounded-lg border border-white/5">"{s.details}"</div>}
 
-                  {/* Boutons de navigation/guidage */}
-                  <div className="flex gap-2">
+                  {/* GUIDAGES EN MODE VÉHICULE */}
+                  <div className="grid grid-cols-2 gap-2">
                     {s.gps && (
                       <button
-                        onClick={() => guiderVers(`Victime (${s.motif})`, s.gps.lat, s.gps.lon, s.nom)}
-                        className="flex-1 text-[11px] font-mono px-2 py-1.5 rounded ring-1 ring-red-400/40 bg-red-400/10 text-red-200 flex items-center justify-center gap-1"
+                        onClick={() => guiderVers(`SOS: ${s.motif}`, s.gps.lat, s.gps.lon, `Festivalier: ${s.nom}`)}
+                        className="text-xs font-mono font-bold px-2.5 py-3 rounded-xl ring-1 ring-red-500/40 bg-red-500/10 text-red-200 flex items-center justify-center gap-1.5 active:bg-red-500/30"
                       >
-                        <Compass className="w-3.5 h-3.5" /> Victime
+                        <Compass className="w-4 h-4" /> Approche Victime
                       </button>
                     )}
                     {prv && (
                       <button
-                        onClick={() => guiderVers(prv.nom, prv.lat, prv.lon, `PRV le plus proche de la victime (${fmtDist(prv.d)})`)}
-                        className="flex-1 text-[11px] font-mono px-2 py-1.5 rounded ring-1 ring-white/20 text-slate-300 flex items-center justify-center gap-1"
+                        onClick={() => guiderVers(prv.nom, prv.lat, prv.lon, `Zone de dépose PRV (${fmtDist(prv.d)})`)}
+                        className="text-xs font-mono font-bold px-2.5 py-3 rounded-xl ring-1 ring-white/10 bg-white/5 text-slate-200 flex items-center justify-center gap-1.5 active:bg-white/10"
                       >
-                        <MapPin className="w-3.5 h-3.5" /> {prv.nom}
+                        <MapPin className="w-4 h-4 text-amber-400" /> Rallier {prv.nom}
                       </button>
                     )}
                   </div>
 
-                  {/* BLOC CHRONOLOGIQUE ET TACTIQUE DES SECOURS CORRIGÉ — PREND EN COMPTE L'INJECTION DASHBOARD */}
-                  <div className="pt-2 border-t border-white/5 space-y-2">
+                  {/* MODULE STRATÉGIQUE CHRONO TACTIQUE */}
+                  <div className="pt-2 border-t border-white/5">
                     {(currentStatutLower === "nouveau" || currentStatutLower === "pris en compte") && (
                       <button
                         onClick={() => changerStatutSos(s.id, "en route", "heureEnRoute")}
-                        className="w-full text-xs font-mono py-2 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        className="w-full text-xs font-mono font-bold py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center gap-1.5 transition-colors shadow-md"
                       >
-                        <Navigation className="w-3.5 h-3.5" /> EN ROUTE
+                        <Navigation className="w-4 h-4" /> ENGAGER LE VÉHICULE (EN ROUTE)
                       </button>
                     )}
 
                     {currentStatutLower === "en route" && (
-                      <div className="space-y-1">
-                        <div className="text-[10px] font-mono text-sky-400 text-center">✓ En route depuis {s.heureEnRoute || "—"}</div>
+                      <div className="space-y-2">
+                        <div className="text-[11px] font-mono text-sky-400 text-center bg-sky-500/5 py-1 rounded border border-sky-500/10">✓ En transit routier depuis {s.heureEnRoute || "—"}</div>
                         <button
                           onClick={() => changerStatutSos(s.id, "sur place", "heureArrivee")}
-                          className="w-full text-xs font-mono py-2 rounded bg-amber-600 hover:bg-amber-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors pulse-slow"
+                          className="w-full text-xs font-mono font-bold py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center gap-1.5 transition-colors pulse-slow shadow-md"
                         >
-                          <CircleDot className="w-3.5 h-3.5" /> ARRIVÉ SUR PLACE
+                          <CircleDot className="w-4 h-4" /> ARRIVÉ SUR ZONE CONSTITUÉE
                         </button>
                       </div>
                     )}
 
                     {currentStatutLower === "sur place" && (
-                      <div className="space-y-1">
-                        <div className="text-[10px] font-mono text-amber-400 text-center">✓ Sur place depuis {s.heureArrivee || "—"}</div>
+                      <div className="space-y-2">
+                        <div className="text-[11px] font-mono text-amber-400 text-center bg-amber-500/5 py-1 rounded border border-amber-500/10">✓ Contact établi à {s.heureArrivee || "—"}</div>
                         <button
                           onClick={() => changerStatutSos(s.id, "prise en charge", "heurePriseEnCharge")}
-                          className="w-full text-xs font-mono py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          className="w-full text-xs font-mono font-bold py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center gap-1.5 transition-colors shadow-md"
                         >
-                          <ShieldAlert className="w-3.5 h-3.5" /> VICTIME PRISE EN CHARGE
+                          <ShieldAlert className="w-4 h-4" /> APPORT DES SOINS / PRISE EN CHARGE
                         </button>
                       </div>
                     )}
 
                     {currentStatutLower === "prise en charge" && (
-                      <div className="space-y-1">
-                        <div className="text-[10px] font-mono text-purple-400 text-center">✓ Soins en cours ({s.heurePriseEnCharge || "—"})</div>
+                      <div className="space-y-2">
+                        <div className="text-[11px] font-mono text-purple-400 text-center bg-purple-500/5 py-1 rounded border border-purple-500/10">✓ Traitement médical en cours ({s.heurePriseEnCharge || "—"})</div>
                         <button
                           onClick={() => changerStatutSos(s.id, "retour a la normale", "heureRetourNormale")}
-                          className="w-full text-xs font-mono py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          className="w-full text-xs font-mono font-bold py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 transition-colors shadow-md"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> RETOUR À LA NORMALE
+                          <CheckCircle2 className="w-4 h-4" /> LIQUIDATION DE L'INCIDENT (R.A.N)
                         </button>
                       </div>
                     )}
 
                     {(currentStatutLower === "retour a la normale" || currentStatutLower === "cloture" || currentStatutLower === "clôture") && (
-                      <div className="w-full text-center text-xs font-mono py-2 rounded bg-emerald-900/20 text-emerald-400 border border-emerald-500/30">
+                      <div className="w-full text-center text-xs font-mono py-2.5 rounded-xl bg-emerald-950/30 text-emerald-400 border border-emerald-500/20">
                         ✓ Géré à {s.heureRetourNormale || s.heureCloture || "—"} — En attente d'archivage QG
                       </div>
                     )}
@@ -627,41 +542,40 @@ export default function AppVolante() {
           </div>
         </section>
 
-        {/* Missions logistiques attribuees */}
-        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-            <ClipboardList className="w-4 h-4 text-slate-500" /> MES MISSIONS LOGISTIQUES
-            <span className="text-[11px] font-mono text-slate-500 font-normal">{mesMissions.length}</span>
+        {/* MISSIONS LOGISTIQUES ATTRIBUÉES */}
+        <section className="bg-[#151b23] rounded-xl ring-1 ring-white/10 p-4 shadow-md space-y-3">
+          <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase border-b border-white/5 pb-2">
+            <ClipboardList className="w-4 h-4 text-slate-500" /> Missions Logistiques Volante ({mesMissions.length})
           </h2>
-          <div className="space-y-2">
-            {mesMissions.length === 0 && <div className="text-xs text-slate-500 text-center py-2">Aucune mission attribuee a la volante.</div>}
+          <div className="space-y-2.5">
+            {mesMissions.length === 0 && <div className="text-xs text-slate-500 text-center py-6 border border-dashed border-white/5 rounded-xl">Aucun fret logistique ni mission attribuée.</div>}
             {mesMissions.map((m) => {
               const pt = POINTS[ZONE_VERS_POINT[m.zone] || ""] ? { nom: ZONE_VERS_POINT[m.zone], ...POINTS[ZONE_VERS_POINT[m.zone]] } : null;
               return (
-                <div key={m.id || m.ref} className="rounded-md px-3 py-2.5 ring-1 ring-white/10 bg-white/[0.03]">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(m.priorite || "").startsWith("P1") ? "bg-red-400" : (m.priorite || "").startsWith("P2") ? "bg-amber-400" : "bg-sky-400"}`} />
-                    <span className="font-mono text-[10px] text-slate-500 shrink-0">{m.ref}</span>
-                    <span className="text-slate-100 flex-1 min-w-0 truncate">{m.nature}</span>
+                <div key={m.id || m.ref} className="rounded-xl p-3 bg-black/20 border border-white/5">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${(m.priorite || "").startsWith("P1") ? "bg-red-400" : (m.priorite || "").startsWith("P2") ? "bg-amber-400" : "bg-sky-400"}`} />
+                    <span className="font-mono text-[10px] text-slate-500 font-normal">{m.ref}</span>
+                    <span className="text-slate-200 flex-1 min-w-0 truncate">{m.nature}</span>
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5 pl-3.5">
-                    {m.zone} · {m.localisation}
-                    {m.delaiSouhaite ? ` · delai : ${m.delaiSouhaite}` : ""}
+                  <div className="text-xs text-slate-400 mt-1 pl-4 leading-tight">
+                    Secteur : <span className="text-slate-300 font-medium">{m.zone}</span> · Loc : {m.localisation}
+                    {m.delaiSouhaite ? ` · Échéance : ${m.delaiSouhaite}` : ""}
                   </div>
-                  <div className="flex gap-2 mt-2 pl-3.5">
+                  <div className="flex gap-2 mt-3 pl-4">
                     {pt && (
                       <button
-                        onClick={() => guiderVers(`${pt.nom} (${m.ref})`, pt.lat, pt.lon, m.localisation)}
-                        className="text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-white/20 text-slate-300 flex items-center gap-1"
+                        onClick={() => guiderVers(`Livraison: ${pt.nom}`, pt.lat, pt.lon, `Fret ${m.ref}`)}
+                        className="text-xs font-mono font-bold px-3 py-2 rounded-xl ring-1 ring-white/10 bg-white/5 text-slate-300 flex items-center gap-1 active:bg-white/10"
                       >
-                        <Compass className="w-3.5 h-3.5" /> Guider
+                        <Compass className="w-3.5 h-3.5" /> Itinéraire
                       </button>
                     )}
                     <button
                       onClick={() => avancerMission(m)}
-                      className="flex-1 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                      className="flex-1 text-xs font-mono font-bold px-3 py-2 rounded-xl ring-1 ring-emerald-400/40 bg-emerald-400/10 text-emerald-300 active:bg-emerald-400/20"
                     >
-                      {m.statut === "Attribuee" ? "Demarrer" : "Marquer resolue"}
+                      {m.statut === "Attribuee" ? "Démarrer Mission" : "Clôturer la livraison"}
                     </button>
                   </div>
                 </div>
@@ -670,8 +584,9 @@ export default function AppVolante() {
           </div>
         </section>
 
-        <div className="text-[10px] text-slate-600 font-mono text-center pb-2">
-          Rafraichissement 8 s · Urgence vitale : 112 puis PMR333 · L'app complete la radio
+        <div className="text-[10px] text-slate-600 font-mono text-center pt-2 leading-relaxed">
+          Cycle de scrutation : 8s · Secours Prioritaire : Inter-Réseaux PMR333 / 112<br />
+          L'application complète le réseau radio tactique
         </div>
       </main>
     </div>

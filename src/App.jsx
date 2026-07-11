@@ -74,7 +74,6 @@ export default function App() {
   }
 
   return (
-    // Rendu en conteneur pleine largeur max-w-xl pour étaler proprement les boutons sur mobile
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans flex flex-col items-center justify-start py-6 px-4 overflow-y-auto">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
