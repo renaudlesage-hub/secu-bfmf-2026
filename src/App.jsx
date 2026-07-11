@@ -24,7 +24,7 @@ import StocksBar from "./apps/StocksBar.jsx";
 import CommunityManagerConsole from "./apps/Console-CM.jsx";
 
 /* ---------------------------------------------------------------------
-   ROUTEUR PRINCIPAL OPTIMISÉ SMARTPHONE — Bucolique Ferrières 2026
+   ROUTEUR PRINCIPAL FULL-MOBILE RESPONSIVE — Bucolique Ferrières 2026
 --------------------------------------------------------------------- */
 
 const ROUTES = {
@@ -57,7 +57,7 @@ export default function App() {
         {!currentRoute.public && (
           <a 
             href="#" 
-            className="fixed bottom-3 right-3 z-50 text-[11px] font-mono font-medium text-slate-300 hover:text-white bg-[#1a222d] ring-1 ring-white/20 rounded-md px-3 py-1.5 shadow-lg select-none transition-colors"
+            className="fixed bottom-4 right-4 z-50 text-xs font-mono font-medium text-slate-300 hover:text-white bg-[#1a222d] ring-1 ring-white/25 rounded-lg px-4 py-2 shadow-xl select-none transition-colors"
           >
             ← menu
           </a>
@@ -66,7 +66,7 @@ export default function App() {
           <Comp />
         ) : (
           <div className="flex items-center justify-center min-h-screen text-red-400 font-mono text-xs p-4">
-            ⚠️ Erreur d'initialisation : Le module n'exporte pas un composant valide.
+            ⚠️ Erreur d'initialisation du module.
           </div>
         )}
       </div>
@@ -74,7 +74,7 @@ export default function App() {
   }
 
   return (
-    // CORRECTIF : Remplacement de items-center par py-6 pour permettre le défilement fluide sur les petits écrans
+    // Rendu en conteneur pleine largeur max-w-xl pour étaler proprement les boutons sur mobile
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans flex flex-col items-center justify-start py-6 px-4 overflow-y-auto">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
@@ -82,46 +82,47 @@ export default function App() {
         .font-mono { font-family: 'JetBrains Mono', monospace; }
       `}</style>
       
-      <div className="w-full max-w-md space-y-4">
-        {/* En-tête plus compact sur mobile */}
-        <div className="flex items-center gap-3 mb-4 bg-[#151b23] p-3 rounded-xl ring-1 ring-white/5">
-          <div className="w-10 h-10 rounded-lg bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
-            <ShieldAlert className="w-5 h-5 text-amber-300" />
+      <div className="w-full max-w-xl space-y-5">
+        
+        {/* En-tête élargi et plus aéré */}
+        <div className="flex items-center gap-4 bg-[#151b23] p-4 rounded-xl ring-1 ring-white/10 shadow-md">
+          <div className="w-12 h-12 rounded-xl bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
+            <ShieldAlert className="w-6 h-6 text-amber-300" />
           </div>
           <div className="min-w-0">
-            <div className="font-display tracking-wide text-md leading-none uppercase">Plateforme Numérique QG</div>
-            <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1 uppercase truncate">BFMF 2026 · Sécurité & Log</div>
+            <h1 className="font-display tracking-wide text-lg leading-tight uppercase font-bold text-slate-100">PLATEFORME NUMÉRIQUE QG</h1>
+            <p className="text-[11px] text-slate-400 font-mono tracking-wider mt-0.5 uppercase">Bucolique Ferrières · Sécurité & Logistique · 2026</p>
           </div>
         </div>
 
-        {/* Liste des boutons d'applications optimisée en taille */}
-        <div className="space-y-2">
+        {/* Grille ou liste aérée à 100% de largeur */}
+        <div className="space-y-3">
           {Object.entries(ROUTES).map(([key, item]) => {
             const Icon = item.icon;
             return (
               <a
                 key={key}
                 href={`#${key}`}
-                className={`flex items-center gap-3 rounded-xl ring-1 p-3.5 transition-all bg-[#151b23] active:bg-[#1f2632] md:hover:bg-[#1a212b] ${
-                  item.public ? "ring-red-500/20 bg-gradient-to-r from-[#151b23] to-red-950/10" : "ring-white/5"
+                className={`flex items-center gap-4 rounded-xl ring-1 p-4 transition-all bg-[#151b23] active:bg-[#1d2633] md:hover:bg-[#1a212b] shadow-sm ${
+                  item.public ? "ring-red-500/30 bg-gradient-to-r from-[#151b23] to-red-950/20" : "ring-white/10"
                 }`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.public ? 'bg-red-500/10' : 'bg-white/[0.03]'}`}>
-                  <Icon className={`w-4 h-4 ${item.public ? "text-red-400" : "text-amber-400"}`} />
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-inner ${item.public ? 'bg-red-500/10' : 'bg-white/[0.04]'}`}>
+                  <Icon className={`w-5 h-5 ${item.public ? "text-red-400" : "text-amber-400"}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] text-slate-100 font-semibold tracking-wide">{item.titre}</div>
-                  <div className="text-[11px] text-slate-400 leading-tight mt-0.5 truncate">{item.desc}</div>
+                  <div className="text-sm font-semibold tracking-wide text-slate-100">{item.titre}</div>
+                  <div className="text-xs text-slate-400 leading-snug mt-0.5 truncate-2-lines">{item.desc}</div>
                 </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
               </a>
             );
           })}
         </div>
         
-        <div className="text-[9px] text-slate-600 font-mono text-center pt-2 leading-relaxed">
-          Infrastructure : Supabase Live Database<br />
-          #sos est le seul accès public ouvert aux terminaux festivaliers
+        <div className="text-[10px] text-slate-600 font-mono text-center pt-4 leading-relaxed border-t border-white/5">
+          Infrastructure opérationnelle : Supabase Live Synchronization<br />
+          #sos est la seule interface accessible hors réseau interne festival
         </div>
       </div>
     </div>
