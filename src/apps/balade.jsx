@@ -332,7 +332,7 @@ export default function SuiviBalade() {
   }
 
   function demarrerDepart(id) {
-    updateGroupe(id, { position: "t1", heureDepart: nowHM() }, `Départ Point 0 confirmé`);
+    updateGroupe(id, { position: "t1", heureDepart: nowHM() }, `Départ Point 0 confirmed`);
   }
 
   /* ---- Agrégats crowd management ---- */
@@ -406,7 +406,7 @@ export default function SuiviBalade() {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
@@ -576,6 +576,7 @@ export default function SuiviBalade() {
             const nbEnc = (g.encadrants || []).filter(Boolean).length;
             return (
               <div key={g.id} className={`rounded-lg ring-1 bg-[#151b23] p-3.5 ${rentre ? "ring-white/5 opacity-70" : "ring-white/10"}`}>
+                {/* CORRECTIF : Toujours cliquable pour ouvrir la fiche de détails, même si rentré */}
                 <button onClick={() => setSelected(g)} className="w-full text-left">
                   <div className="flex items-center gap-3">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${rentre ? "bg-slate-500" : auDepart ? "bg-sky-400" : "bg-amber-400"}`} />
@@ -636,9 +637,12 @@ export default function SuiviBalade() {
                     </button>
                   )}
                   {rentre && (
-                    <span className="flex items-center gap-1 text-[11px] font-mono text-slate-600">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> boucle terminée
-                    </span>
+                    <button
+                      onClick={() => setSelected(g)}
+                      className="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-slate-200 bg-white/5 rounded px-2 py-0.5 border border-white/5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Corriger / Détails
+                    </button>
                   )}
                 </div>
               </div>
@@ -691,7 +695,7 @@ function ProfilSetup({ onSave }) {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans flex items-center justify-center p-4">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
       `}</style>
@@ -711,7 +715,7 @@ function ProfilSetup({ onSave }) {
           </Field>
           <Field label="Votre rôle">
             <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value)}>
-              ={ROLES.map((r) => (
+              {ROLES.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
@@ -739,7 +743,7 @@ function ProfilSetup({ onSave }) {
 const MOTIFS_ALERTE = [
   "Urgence médicale",
   "Personne manquante",
-  "Groupe en difficulté",
+  "Groupe en difficulty",
   "Danger sur le parcours",
   "Météo -- mise à l'abri",
   "Autre",
@@ -893,15 +897,17 @@ function FormGroupe({ onClose, onSubmit }) {
   );
 }
 
-// Composant placeholder pour éviter l'absence de définition s'il est appelé
 function GroupeDetail({ groupe, onClose, onAvancer, onReculer, onAjuster, onDelete }) {
+  const i = posIndex(groupe.position);
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-[#1a212b] ring-1 ring-white/15 rounded-lg w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-2">
           <div>
             <h3 className="font-display text-xl text-white">{groupe.nom}</h3>
-            <p className="text-xs text-slate-400 font-mono">{groupe.vague} · {groupe.participants} personnes</p>
+            <p className="text-xs text-slate-400 font-mono">
+              {groupe.vague} · {groupe.participants} personnes · Position : <span className="text-amber-300 font-semibold">{(POSITIONS[i] || {}).label || groupe.position}</span>
+            </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
@@ -909,12 +915,21 @@ function GroupeDetail({ groupe, onClose, onAvancer, onReculer, onAjuster, onDele
         </div>
 
         <div className="space-y-4 my-4">
+          {/* CORRECTIF : Les contrôles de position restent accessibles pour corriger une erreur d'avancement, même à la fin */}
           <div className="flex gap-2">
-            <button onClick={() => onReculer(groupe.id)} className="flex-1 text-xs font-mono py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">
-              Reculer position
+            <button 
+              disabled={i <= 0}
+              onClick={() => onReculer(groupe.id)} 
+              className="flex-1 text-xs font-mono py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ← Reculer position
             </button>
-            <button onClick={() => onAvancer(groupe.id)} className="flex-1 text-xs font-mono py-2 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30">
-              Avancer position
+            <button 
+              disabled={i >= POSITIONS.length - 1}
+              onClick={() => onAvancer(groupe.id)} 
+              className="flex-1 text-xs font-mono py-2.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Avancer position →
             </button>
           </div>
 
@@ -930,26 +945,29 @@ function GroupeDetail({ groupe, onClose, onAvancer, onReculer, onAjuster, onDele
 
           {groupe.historique && (
             <div className="border-t border-white/10 pt-3 max-h-32 overflow-y-auto">
-              <div className="text-[11px] font-mono text-slate-400 uppercase mb-1">Historique</div>
-              {groupe.historique.slice().reverse().map((h, idx) => (
-                <div key={idx} className="text-[11px] font-mono text-slate-400 leading-tight mb-1">
-                  <span className="text-amber-400/70 mr-1">[{h.heure}]</span> {h.texte}
-                </div>
-              ))}
+              <div className="text-[11px] font-mono text-slate-400 uppercase mb-1">Historique tactique</div>
+              <div className="space-y-1">
+                {groupe.historique.slice().reverse().map((h, idx) => (
+                  <div key={idx} className="text-[11px] font-mono text-slate-400 leading-tight">
+                    <span className="text-amber-400/70 mr-1">[{h.heure}]</span> {h.texte}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
+        {/* CORRECTIF : Bouton de suppression toujours actif en bas de la fiche */}
         <div className="border-t border-white/10 pt-3 flex justify-end">
           <button
             onClick={() => {
-              if (confirm(`Supprimer définitivement le ${groupe.nom} ?`)) {
+              if (confirm(`Supprimer définitivement le ${groupe.nom} du système Supabase ?`)) {
                 onDelete(groupe.id);
               }
             }}
             className="flex items-center gap-1.5 text-xs font-mono px-3 py-2 rounded text-red-400 hover:bg-red-500/10 transition-colors"
           >
-            <Trash2 className="w-3.5 h-3.5" /> Supprimer le groupe
+            <Trash2 className="w-3.5 h-3.5" /> Supprimer définitivement le groupe
           </button>
         </div>
       </div>
