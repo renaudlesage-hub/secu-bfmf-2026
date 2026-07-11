@@ -8,7 +8,8 @@ import {
   ChevronRight, 
   Landmark, 
   Droplets,
-  Beer 
+  Beer,
+  Share2 
 } from "lucide-react";
 import Dashboard from "./apps/dashboard.jsx";
 import Logistique from "./apps/logistique.jsx";
@@ -17,12 +18,17 @@ import Sos from "./apps/sos.jsx";
 import Volante from "./apps/volante.jsx";
 import PcOps from "./apps/pcops.jsx";
 import Sanitaire from "./apps/sanitaire.jsx"; 
-import StocksBar from "./apps/StocksBar.jsx"; // Importation du nouveau module de gestion des bars
+import StocksBar from "./apps/StocksBar.jsx"; 
+import ConsoleCM from "./apps/Console-CM.jsx"; // Importation de la nouvelle console de multi-diffusion
 
-// Navigation par hash : chaque app garde sa propre URL partageable
+/* ---------------------------------------------------------------------
+   ROUTEUR PRINCIPAL DE SUPERVISION — Bucolique Ferrières 2026
+--------------------------------------------------------------------- */
+
 const ROUTES = {
   dashboard: { titre: "Dashboard QG", desc: "Synthèse : alertes, logistique, balade, météo, sanitaire", icon: ShieldAlert, comp: Dashboard, public: false },
   logistique: { titre: "Missions logistiques", desc: "Saisie, attribution et suivi des demandes", icon: ClipboardList, comp: Logistique, public: false },
+  community: { titre: "Console Community Manager", desc: "Multi-post simultané et attachement médias (FB, Insta, Web)", icon: Share2, comp: ConsoleCM, public: false },
   stocksbar: { titre: "Comptabilité Bars", desc: "Inventaires, réassorts, calcul automatique des débits et ventes", icon: Beer, comp: StocksBar, public: false },
   balade: { titre: "Suivi balade", desc: "Crowd management du parcours 6,5 km", icon: Footprints, comp: Balade, public: false },
   volante: { titre: "App Volante", desc: "Engagements, guidage GPS, missions terrain", icon: Zap, comp: Volante, public: false },
@@ -36,6 +42,7 @@ export default function App() {
 
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash.slice(1));
+    window.location.hash ? onHash() : window.location.hash = "";
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
@@ -45,9 +52,8 @@ export default function App() {
     const Comp = r.comp;
     return (
       <div>
-        {/* Lien retour discret, absent de l'app SOS publique */}
         {!r.public && (
-          <a href="#" className="fixed bottom-3 right-3 z-50 text-[10px] font-mono text-slate-500 hover:text-slate-200 bg-[#151b23]/90 ring-1 ring-white/10 rounded px-2 py-1">
+          <a href="#" className="fixed bottom-3 right-3 z-50 text-[10px] font-mono text-slate-500 hover:text-slate-200 bg-[#151b23]/90 ring-1 ring-white/10 rounded px-2 py-1 select-none">
             ← menu
           </a>
         )}
@@ -69,7 +75,7 @@ export default function App() {
             <ShieldAlert className="w-6 h-6 text-amber-300" />
           </div>
           <div>
-            <div className="font-display tracking-wide text-lg leading-none">PLATEFORME SÉCURITÉ</div>
+            <div className="font-display tracking-wide text-lg leading-none">PLATEFORME SÉCURITÉ & LOG</div>
             <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BUCO_LOGIQUE FERRIÈRES MUSIQUE FESTIVAL · 15-16 AOÛT 2026</div>
           </div>
         </div>
