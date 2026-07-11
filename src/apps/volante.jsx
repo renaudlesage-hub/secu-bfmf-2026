@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   APP VOLANTE — OPTIMISÉE MOBILE & VÉHICULE (BFMF 2026)
+   APP VOLANTE — OPTIMISÉE MOBILE, VÉHICULE & MYMAPS (BFMF 2026)
 --------------------------------------------------------------------- */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
@@ -130,7 +130,6 @@ function fmtDist(m) {
   return m >= 1000 ? (m / 1000).toFixed(1) + " km" : Math.round(m) + " m";
 }
 
-// 🚨 PASSAGE EN MODE ROUTIER / VÉHICULE (travelmode=driving)
 function mapsUrl(lat, lon) {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
 }
@@ -295,7 +294,6 @@ export default function AppVolante() {
         .pulse-slow { animation: pulseSlow 1.6s ease-in-out infinite; }
       `}</style>
 
-      {/* HEADER MOBILE AJUSTÉ */}
       <header className="border-b border-white/10 bg-[#151b23]/95 backdrop-blur sticky top-0 z-20 shadow-md">
         <div className="w-full max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -304,7 +302,7 @@ export default function AppVolante() {
             </div>
             <div>
               <div className="font-display tracking-wide text-base leading-none uppercase font-bold text-white">ÉQUIPE VOLANTE</div>
-              <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1 uppercase">BFMF 2026 · APPLICATIF TERRAIN</div>
+              <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1 uppercase">BFMF 2026 · TERRAIN</div>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -317,28 +315,40 @@ export default function AppVolante() {
         </div>
       </header>
 
-      {/* STICKY GPS ÉLARGI AVEC COMPOSANT DE NAVIGATION VÉHICULE */}
+      {/* STICKY GPS FIXÉ ET AJUSTÉ AVEC LES DEUX BOUTONS DE CARTOGRAPHIE */}
       {cible && (
         <div className="sticky top-[69px] z-10 bg-[#1a2536] border-b-2 border-amber-400/60 shadow-lg px-4 py-3">
           <div className="w-full max-w-xl mx-auto flex items-center justify-between gap-3">
             <Compass className="w-6 h-6 text-amber-400 shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-mono uppercase tracking-wider text-amber-300 font-medium">Guidage Véhicule Actif</div>
+              <div className="text-xs font-mono uppercase tracking-wider text-amber-300 font-medium">Guidage Véhicule</div>
               <div className="text-sm text-white font-bold truncate mt-0.5">{cible.nom}</div>
               <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
-                {guidage ? `${fmtDist(guidage.d)} · Cap ${cardinal(guidage.b)} (${Math.round(guidage.b)}°)` : "Calcul GPS en cours..."}
+                {guidage ? `${fmtDist(guidage.d)} · Cap ${cardinal(guidage.b)} (${Math.round(guidage.b)}°)` : "Calcul GPS..."}
               </div>
             </div>
+            
+            {/* ACTION LINKS GROUP */}
             <div className="flex items-center gap-1.5 shrink-0">
               <a
                 href={mapsUrl(cible.lat, cible.lon)}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[11px] font-mono font-bold px-3 py-2.5 rounded-xl ring-1 ring-amber-400/40 bg-amber-400/10 text-amber-300 flex items-center gap-1 active:bg-amber-400/30 shadow-sm"
+                className="text-[11px] font-mono font-bold px-2.5 py-2.5 rounded-xl ring-1 ring-amber-400/40 bg-amber-400/10 text-amber-300 flex items-center gap-1 active:bg-amber-400/30 shadow-sm"
               >
                 <Car className="w-3.5 h-3.5" /> GPS
               </a>
-              <button onClick={() => setCible(null)} className="p-2 text-slate-400 hover:text-white active:bg-white/10 rounded-lg">
+              {/* 🗺️ RÉINTÉGRATION DU BOUTON MYMAPS OPÉRATIONNEL */}
+              <a
+                href={myMapsUrl(cible.lat, cible.lon)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-mono font-bold px-2.5 py-2.5 rounded-xl ring-1 ring-sky-400/40 bg-sky-400/10 text-sky-300 flex items-center gap-1 active:bg-sky-400/30 shadow-sm"
+                title="Carte opérationnelle Bucolique (Parcours + PRV)"
+              >
+                <MapPin className="w-3.5 h-3.5" /> Buco
+              </a>
+              <button onClick={() => setCible(null)} className="p-1 text-slate-400 hover:text-white active:bg-white/10 rounded-lg">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -346,11 +356,11 @@ export default function AppVolante() {
         </div>
       )}
 
-      {/* CONTENEUR PRINCIPAL ÉLARGI MAX-W-XL */}
+      {/* CONTENEUR PRINCIPAL */}
       <main className="w-full max-w-xl mx-auto px-4 py-4 space-y-4">
         {sbError && (
           <div className="rounded-xl bg-red-500/10 ring-1 ring-red-500/20 text-red-400 text-xs px-3 py-2.5 font-mono flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" /> Synchronisation Supabase interrompue (Zone Blanche)
+            <AlertCircle className="w-4 h-4 shrink-0" /> Synchronisation interrompue (Zone Blanche)
           </div>
         )}
 
@@ -463,7 +473,6 @@ export default function AppVolante() {
 
                   {s.details && <div className="text-xs text-slate-400 italic bg-black/40 p-2.5 rounded-lg border border-white/5">"{s.details}"</div>}
 
-                  {/* GUIDAGES EN MODE VÉHICULE */}
                   <div className="grid grid-cols-2 gap-2">
                     {s.gps && (
                       <button
@@ -483,7 +492,6 @@ export default function AppVolante() {
                     )}
                   </div>
 
-                  {/* MODULE STRATÉGIQUE CHRONO TACTIQUE */}
                   <div className="pt-2 border-t border-white/5">
                     {(currentStatutLower === "nouveau" || currentStatutLower === "pris en compte") && (
                       <button
