@@ -8,12 +8,11 @@ import {
   Send,
   AlertCircle,
   Instagram,
-  Facebook,
-  Twitter,
   Globe,
   Radio,
   FileText,
-  UserCheck
+  UserCheck,
+  MessageSquare // Utilisation d'icônes génériques stables pour parer le bug de version Lucide
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -31,10 +30,11 @@ const ROLES_CM = [
   "QG / Communication",
 ];
 
+// Configuration des plateformes avec des fallbacks SVG ou icônes universelles
 const PLATFORMES_DISPONIBLES = [
-  { id: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-400" },
+  { id: "facebook", label: "Facebook", icon: MessageSquare, color: "text-blue-400" },
   { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-400" },
-  { id: "twitter", label: "X / Twitter", icon: Twitter, color: "text-slate-300" },
+  { id: "twitter", label: "X / Twitter", icon: Share2, color: "text-slate-300" },
   { id: "site_live", label: "Flux Live Site Web", icon: Globe, color: "text-emerald-400" },
 ];
 
@@ -101,7 +101,6 @@ export default function CommunityManagerConsole() {
     setProfileLoaded(true);
   }, []);
 
-  // CORRECTIF : Utilisation stricte de la constante STORAGE_KEY_MEDIAS
   const refreshData = useCallback(async () => {
     try {
       const data = await kvGet(STORAGE_KEY_MEDIAS);
