@@ -7,12 +7,11 @@ import {
   Clock,
   Send,
   AlertCircle,
-  Instagram,
   Globe,
   Radio,
   FileText,
   UserCheck,
-  MessageSquare // Utilisation d'icônes génériques stables pour parer le bug de version Lucide
+  MessageSquare
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -30,12 +29,12 @@ const ROLES_CM = [
   "QG / Communication",
 ];
 
-// Configuration des plateformes avec des fallbacks SVG ou icônes universelles
+// CORRECTIF DE SÉCURITÉ : Remplacement de toutes les icônes de marques par des puces textuelles stylisées ou icônes universelles
 const PLATFORMES_DISPONIBLES = [
-  { id: "facebook", label: "Facebook", icon: MessageSquare, color: "text-blue-400" },
-  { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-400" },
-  { id: "twitter", label: "X / Twitter", icon: Share2, color: "text-slate-300" },
-  { id: "site_live", label: "Flux Live Site Web", icon: Globe, color: "text-emerald-400" },
+  { id: "facebook", label: "Facebook", prefix: "FB", icon: MessageSquare, color: "text-blue-400", bgBadge: "bg-blue-500/20 text-blue-300" },
+  { id: "instagram", label: "Instagram", prefix: "IG", icon: Image, color: "text-pink-400", bgBadge: "bg-pink-500/20 text-pink-300" },
+  { id: "twitter", label: "X / Twitter", prefix: "X ", icon: Share2, color: "text-slate-300", bgBadge: "bg-slate-500/20 text-slate-300" },
+  { id: "site_live", label: "Flux Live Web", prefix: "🌐", icon: Globe, color: "text-emerald-400", bgBadge: "bg-emerald-500/20 text-emerald-300" },
 ];
 
 const inputCls =
@@ -245,13 +244,16 @@ export default function CommunityManagerConsole() {
                         type="button"
                         key={p.id}
                         onClick={() => togglePlatforme(p.id)}
-                        className={`flex items-center gap-2 p-2.5 rounded border text-left transition-all ${
+                        className={`flex items-center gap-2.5 p-2.5 rounded border text-left transition-all ${
                           actif 
                             ? "bg-[#1f293d] border-amber-400/50 text-white font-medium shadow-sm" 
                             : "bg-[#181e26] border-white/5 text-slate-400 hover:border-white/10"
                         }`}
                       >
-                        <PlaceIcon className={`w-4 h-4 ${p.color}`} />
+                        {/* Utilisation de puces textuelles carrées à la place de l'icône manquante */}
+                        <span className="font-mono text-xs font-bold px-1 rounded bg-black/40 text-center min-w-[24px]">
+                          {p.prefix}
+                        </span>
                         <span className="text-xs truncate">{p.label}</span>
                       </button>
                     );
@@ -367,7 +369,7 @@ export default function CommunityManagerConsole() {
                       {pub.platformes?.map((pId) => {
                         const plat = PLATFORMES_DISPONIBLES.find(x => x.id === pId);
                         return (
-                          <span key={pId} className="text-[9px] font-mono bg-white/5 text-slate-400 px-1.5 py-0.2 rounded border border-white/5">
+                          <span key={pId} className={`text-[9px] font-mono px-1.5 py-0.2 rounded border border-white/5 ${plat ? plat.bgBadge : 'bg-white/5 text-slate-400'}`}>
                             {plat ? plat.label : pId}
                           </span>
                         );
