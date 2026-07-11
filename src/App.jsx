@@ -12,7 +12,7 @@ import {
   Share2 
 } from "lucide-react";
 
-// Imports des modules applicatifs
+// Imports des modules applicatifs opérationnels
 import Dashboard from "./apps/dashboard.jsx";
 import Logistique from "./apps/logistique.jsx";
 import Balade from "./apps/balade.jsx";
@@ -21,9 +21,11 @@ import Volante from "./apps/volante.jsx";
 import PcOps from "./apps/pcops.jsx";
 import Sanitaire from "./apps/sanitaire.jsx"; 
 import StocksBar from "./apps/StocksBar.jsx"; 
+import CommunityManagerConsole from "./apps/Console-CM.jsx"; // Jalonné sur le nom stable du fichier
 
-// Ajuste cette ligne selon le nom exact sur ton disque (Consols-CM ou Console-CM)
-import CommunityManagerConsole from "./apps/Console-CM.jsx"; 
+/* ---------------------------------------------------------------------
+   ROUTEUR PRINCIPAL VÉRIFIÉ — Bucolique Ferrières 2026
+--------------------------------------------------------------------- */
 
 const ROUTES = {
   dashboard: { titre: "Dashboard QG", desc: "Synthèse : alertes, logistique, balade, météo, sanitaire", icon: ShieldAlert, comp: Dashboard, public: false },
@@ -38,39 +40,42 @@ const ROUTES = {
 };
 
 export default function App() {
-  const [route, setRoute] = useState(window.location.hash.slice(1));
+  // Prise en compte du hash dès le chargement initial de la page
+  const [route, setRoute] = useState(() => window.location.hash.slice(1) || "");
 
   useEffect(() => {
-    const onHash = () => setRoute(window.location.hash.slice(1));
+    const onHash = () => setRoute(window.location.hash.slice(1) || "");
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  const r = ROUTES[route];
+  const currentRoute = ROUTES[route];
 
-  // Si on est sur une sous-application
-  if (r) {
-    const Comp = r.comp;
+  // Rendu de la sous-application active
+  if (currentRoute) {
+    const Comp = currentRoute.comp;
     return (
       <div className="min-h-screen bg-[#11151b]">
-        {!r.public && (
-          <a href="#" className="fixed bottom-3 right-3 z-50 text-[10px] font-mono text-slate-500 hover:text-slate-200 bg-[#151b23]/90 ring-1 ring-white/10 rounded px-2 py-1 select-none">
+        {!currentRoute.public && (
+          <a 
+            href="#" 
+            className="fixed bottom-3 right-3 z-50 text-[10px] font-mono text-slate-500 hover:text-slate-200 bg-[#151b23]/90 ring-1 ring-white/10 rounded px-2 py-1 select-none transition-colors"
+          >
             ← menu principal
           </a>
         )}
-        {/* Anti-crash écran blanc */}
         {typeof Comp === "function" ? (
           <Comp />
         ) : (
           <div className="flex items-center justify-center min-h-screen text-red-400 font-mono text-xs p-4">
-            ⚠️ Erreur d'initialisation : Le module pour "{r.titre}" n'exporte pas un composant React valide.
+            ⚠️ Erreur d'initialisation : Le module pour "{currentRoute.text || route}" n'exporte pas un composant valide.
           </div>
         )}
       </div>
     );
   }
 
-  // Menu principal (Route par défaut si pas de hash URL)
+  // Écran d'accueil — Menu de sélection des terminaux
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans flex items-center justify-center p-4">
       <style>{`
@@ -85,8 +90,8 @@ export default function App() {
             <ShieldAlert className="w-6 h-6 text-amber-300" />
           </div>
           <div>
-            <div className="font-display tracking-wide text-lg leading-none">PLATEFORME QG BFMF</div>
-            <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">LOGISTIQUE & SÉCURITÉ · AOÛT 2026</div>
+            <div className="font-display tracking-wide text-lg leading-none uppercase">Plateforme Numérique QG</div>
+            <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1 uppercase">Bucolique Ferrières · Logistique & Sécurité · 2026</div>
           </div>
         </div>
 
@@ -97,8 +102,8 @@ export default function App() {
               <a
                 key={key}
                 href={`#${key}`}
-                className={`flex items-center gap-3 rounded-lg ring-1 p-4 transition-colors bg-[#151b23] hover:bg-[#1a212b] ${
-                  item.public ? "ring-red-400/30" : "ring-white/10"
+                className={`flex items-center gap-3 rounded-lg ring-1 p-4 transition-all bg-[#151b23] hover:bg-[#1a212b] ${
+                  item.public ? "ring-red-400/30 hover:ring-red-400/50" : "ring-white/10 hover:ring-white/20"
                 }`}
               >
                 <Icon className={`w-5 h-5 shrink-0 ${item.public ? "text-red-300" : "text-amber-300"}`} />
@@ -110,6 +115,11 @@ export default function App() {
               </a>
             );
           })}
+        </div>
+        
+        <div className="text-[10px] text-slate-600 font-mono text-center mt-6 leading-relaxed">
+          Réseau d'infrastructure : Supabase Live Synchronization<br />
+          Accès terminaux contrôlés · #sos est l'unique passerelle publique festivaliers
         </div>
       </div>
     </div>
