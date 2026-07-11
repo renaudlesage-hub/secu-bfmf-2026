@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Share2,
-  Image,
+  Image as ImageIcon,
   Plus,
   X,
   Clock,
@@ -11,7 +11,8 @@ import {
   Radio,
   FileText,
   UserCheck,
-  MessageSquare
+  MessageSquare,
+  Upload
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -29,10 +30,9 @@ const ROLES_CM = [
   "QG / Communication",
 ];
 
-// CORRECTIF DE SÉCURITÉ : Remplacement de toutes les icônes de marques par des puces textuelles stylisées ou icônes universelles
 const PLATFORMES_DISPONIBLES = [
   { id: "facebook", label: "Facebook", prefix: "FB", icon: MessageSquare, color: "text-blue-400", bgBadge: "bg-blue-500/20 text-blue-300" },
-  { id: "instagram", label: "Instagram", prefix: "IG", icon: Image, color: "text-pink-400", bgBadge: "bg-pink-500/20 text-pink-300" },
+  { id: "instagram", label: "Instagram", prefix: "IG", icon: ImageIcon, color: "text-pink-400", bgBadge: "bg-pink-500/20 text-pink-300" },
   { id: "twitter", label: "X / Twitter", prefix: "X ", icon: Share2, color: "text-slate-300", bgBadge: "bg-slate-500/20 text-slate-300" },
   { id: "site_live", label: "Flux Live Web", prefix: "🌐", icon: Globe, color: "text-emerald-400", bgBadge: "bg-emerald-500/20 text-emerald-300" },
 ];
@@ -83,8 +83,7 @@ export default function CommunityManagerConsole() {
   // Form States
   const [textePublication, setTextePublication] = useState("");
   const [platformesChoisies, setPlatformesChoisies] = useState(["facebook", "instagram", "site_live"]);
-  const [urlsMedias, setUrlsMedias] = useState([]);
-  const [currentUrlMedia, setCurrentUrlMedia] = useState("");
+  const [urlsMedias, setUrlsMedias] = useState([]); // Contient les chaînes de caractères Base64 des images
   const [ambianceGlobale, setAmbianceGlobale] = useState("bonne");
 
   useEffect(() => {
@@ -125,12 +124,29 @@ export default function CommunityManagerConsole() {
     );
   };
 
-  const ajouterMediaUrl = (e) => {
-    e.preventDefault();
-    if (currentUrlMedia.trim() && !urlsMedias.includes(currentUrlMedia.trim())) {
-      setUrlsMedias([...urlsMedias, currentUrlMedia.trim()]);
-      setCurrentUrlMedia("");
-    }
+  // NOUVELLE FONCTION : Gestionnaire de téléversement et conversion Base64 automatique
+  const gererUploadPhoto = (e) => {
+    const fichiers = e.target.files;
+    if (!fichiers || fichiers.length === 0) return;
+
+    Array.from(fichiers).forEach((fichier) => {
+      // Limite de sécurité optionnelle pour le réseau mobile du festival (ex: 5 Mo)
+      if (fichier.size > 5 * 1024 * 1024) {
+        alert(`Le fichier ${fichier.name} est trop lourd. Max 5 Mo en zone festival.`);
+        return;
+      }
+
+      const lecteur = new FileReader();
+      lecteur.onloadend = () => {
+        if (lecteur.result) {
+          setUrlsMedias((prev) => [...prev, lecteur.result]);
+        }
+      };
+      lecteur.readAsDataURL(fichier);
+    });
+
+    // Reset du input pour permettre de re-sélectionner le même fichier au besoin
+    e.target.value = "";
   };
 
   const retirerMediaUrl = (index) => {
@@ -237,7 +253,6 @@ export default function CommunityManagerConsole() {
                 <label className="block text-[11px] font-mono text-slate-400 uppercase mb-2">1. Sélectionner les canaux de diffusion</label>
                 <div className="grid grid-cols-2 gap-2">
                   {PLATFORMES_DISPONIBLES.map((p) => {
-                    const PlaceIcon = p.icon;
                     const actif = platformesChoisies.includes(p.id);
                     return (
                       <button
@@ -250,7 +265,6 @@ export default function CommunityManagerConsole() {
                             : "bg-[#181e26] border-white/5 text-slate-400 hover:border-white/10"
                         }`}
                       >
-                        {/* Utilisation de puces textuelles carrées à la place de l'icône manquante */}
                         <span className="font-mono text-xs font-bold px-1 rounded bg-black/40 text-center min-w-[24px]">
                           {p.prefix}
                         </span>
@@ -280,35 +294,37 @@ export default function CommunityManagerConsole() {
                 </div>
               </div>
 
-              {/* LIENS MÉDIAS ASSOCIÉS */}
+              {/* LIENS MÉDIAS ASSOCIÉS INTERACTIFS SANS URLS */}
               <div>
-                <label className="block text-[11px] font-mono text-slate-400 uppercase mb-1">3. Ajouter des médias (URLs de photos / CDN)</label>
-                <div className="flex gap-2">
+                <label className="block text-[11px] font-mono text-slate-400 uppercase mb-1.5">3. Joindre des Photos / Médias terrain</label>
+                
+                {/* Boîte de dépôt et sélection de fichier */}
+                <div className="relative group flex flex-col items-center justify-center border border-dashed border-white/20 hover:border-pink-500/50 bg-[#181e26] rounded-lg p-5 transition-all text-center">
                   <input
-                    type="url"
-                    className={inputCls}
-                    placeholder="https://cdn-festival.be/photos/live-04.jpg"
-                    value={currentUrlMedia}
-                    onChange={(e) => setCurrentUrlMedia(e.target.value)}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={gererUploadPhoto}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
-                  <button
-                    type="button"
-                    onClick={ajouterMediaUrl}
-                    className="px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 rounded font-mono"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                  <Upload className="w-6 h-6 text-slate-400 group-hover:text-pink-400 mb-1.5 transition-colors" />
+                  <span className="text-xs text-slate-300 font-medium">Sélectionner ou glisser des photos</span>
+                  <span className="text-[10px] text-slate-500 font-mono mt-0.5">Fichiers JPEG / PNG (Max 5 Mo)</span>
                 </div>
 
+                {/* Galerie de prévisualisation avec option de suppression */}
                 {urlsMedias.length > 0 && (
-                  <div className="mt-2 space-y-1 bg-black/20 p-2 rounded border border-white/5">
-                    {urlsMedias.map((url, index) => (
-                      <div key={index} className="flex items-center justify-between text-xs font-mono text-slate-300 bg-white/[0.02] p-1.5 rounded">
-                        <span className="truncate flex-1 pr-2 flex items-center gap-1.5">
-                          <Image className="w-3.5 h-3.5 text-sky-400 shrink-0" /> {url}
-                        </span>
-                        <button type="button" onClick={() => retirerMediaUrl(index)} className="text-red-400 hover:text-red-300">
-                          <X className="w-3.5 h-3.5" />
+                  <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2 bg-black/20 p-2 rounded border border-white/5">
+                    {urlsMedias.map((base64Data, index) => (
+                      <div key={index} className="relative aspect-square rounded border border-white/10 overflow-hidden bg-slate-900 group">
+                        <img src={base64Data} alt="Miniature terrain" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => retirerMediaUrl(index)}
+                          className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white p-1 rounded-full shadow opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                          title="Retirer cette photo"
+                        >
+                          <X className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
@@ -378,7 +394,7 @@ export default function CommunityManagerConsole() {
 
                     {pub.medias && pub.medias.length > 0 && (
                       <div className="text-[9px] font-mono text-sky-400 bg-sky-500/5 px-2 py-0.5 rounded border border-sky-500/10 flex items-center gap-1">
-                        <Image className="w-3 h-3" /> {pub.medias.length} média(s) attaché(s)
+                        <Upload className="w-3 h-3" /> {pub.medias.length} photo(s) intégrée(s)
                       </div>
                     )}
                   </div>
