@@ -420,7 +420,7 @@ export default function DashboardQG() {
           </div>
 
           <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md">
-            <div className="text-xs font-display text-red-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS Interrain</div>
+            <div className="text-xs font-display text-red-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
             <form onSubmit={declencherSosManuel} className="space-y-2 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
@@ -487,7 +487,7 @@ export default function DashboardQG() {
                 <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
                   <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
                 </h2>
-                <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} Pax Forêt</span>
+                <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} Festivaliers sur le parcours</span>
               </div>
 
               {/* Frise linéaire d'avancement */}
@@ -502,7 +502,7 @@ export default function DashboardQG() {
                 {grpDehors.map((g, idx) => {
                   const km = POS_KM[g.position] ?? 0;
                   return (
-                    <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} : ${g.participants} pax`}>
+                    <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} : ${g.participants} festivaliers`}>
                       <div className="flex items-center bg-sky-500/20 ring-1 ring-sky-400/50 rounded px-1 py-0.5 text-[8px] font-mono text-sky-200">
                         <Users className="w-2 h-2 text-sky-300 mr-0.5" />{g.participants}
                       </div>
