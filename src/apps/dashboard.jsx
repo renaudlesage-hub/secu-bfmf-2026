@@ -148,7 +148,7 @@ export default function DashboardQG() {
   const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
   const [formLogBloquant, setFormLogBloquant] = useState("Non");
 
-  // States Formulaire Nouvelle Mission Sanitaire (Alignement strict avec les options de la capture d'écran)
+  // States Formulaire Nouvelle Mission Sanitaire
   const [formSanType, setFormSanType] = useState("papier");
   const [formSanTypeLabel, setFormSanTypeLabel] = useState("Plus de papier toilette");
   const [formSanLieu, setFormSanLieu] = useState("Site sanitaires");
@@ -512,7 +512,7 @@ export default function DashboardQG() {
                 )}
               </div>
 
-              {/* FORMULAIRE DE CRÉATION SANITAIRE ALIGNÉ SUR L'INTERFACE FESTIVALIER DE LA CAPTURE D'ÉCRAN */}
+              {/* FORMULAIRE DE CRÉATION SANITAIRE */}
               <form onSubmit={ajouterMissionSanitaire} className="border-t border-white/5 pt-2.5 space-y-2 text-xs">
                 <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
                   <PlusCircle className="w-3.5 h-3.5" /> Lancer une alerte sanitaire
