@@ -437,7 +437,7 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* INJECTION SOS TERRAIN (HAUTEUR DE RÉFÉRENCE h-[116px]) */}
+          {/* INJECTION SOS TERRAIN */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md h-[116px] flex flex-col justify-between">
             <div className="text-xs font-display text-red-400 tracking-wider uppercase flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
             <form onSubmit={declencherSosManuel} className="space-y-1.5 text-xs">
@@ -498,7 +498,7 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE (HAUTEUR UNIFORMISÉE STRICTE) */}
+          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
@@ -585,7 +585,7 @@ export default function DashboardQG() {
               </div>
             </div>
 
-            {/* 📥 CRÉER UNE DEMANDE SANITAIRE (HAUTEUR UNIFORMISÉE h-[116px]) */}
+            {/* 📥 CRÉER UNE DEMANDE SANITAIRE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[116px] flex flex-col justify-between">
               <form onSubmit={ajouterMissionSanitaire} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
                 <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
@@ -685,7 +685,7 @@ export default function DashboardQG() {
               </div>
             </div>
 
-            {/* 📥 CRÉER UNE DEMANDE LOGISTIQUE (HAUTEUR UNIFORMISÉE h-[116px]) */}
+            {/* 📥 CRÉER UNE DEMANDE LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md h-[116px] flex flex-col justify-between">
               <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique</div>
               <form onSubmit={ajouterMissionLogistique} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
