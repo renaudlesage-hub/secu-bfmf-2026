@@ -33,7 +33,6 @@ import {
 --------------------------------------------------------------------- */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
-// Importation dynamique des lieux sanitaires officiels du festival
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
 
 const SB_HEADERS = {
@@ -77,7 +76,6 @@ const KEY_MEDIAS = "bfmf2026-medias-live";
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
-// Points géographiques génériques pour la logistique et les SOS
 const POINTS_GPS = {
   "Site grande scène": { km: 0, segment: "Plaine centrale — Grande Scène" },
   "Site petite scène": { km: 0, segment: "Plaine centrale — Petite Scène" },
@@ -107,7 +105,11 @@ const REPERES = [
 
 const METEO_FALLBACK = {
   live: false, province: "Liege", codeActuel: "vert", maj: "—",
-  timeline: [{ creneau: "FLUX METEO NON RECU — verifier Edge Function", code: "jaune", phenomene: "indisponible" }]
+  timeline: [{ creneau: "FLUX METEO NON RECU — verifier Edge Function meteo-irm + cron", code: "jaune", phenomene: "indisponible" }],
+  station: "Ferrières (Province de Liège)", statutAlerte: "INDISPONIBLE", titre: "Données météo indisponibles",
+  description: "Aucune donnée reçue de la fonction meteo-irm. Consulter meteo.be.",
+  source: "—", obsHeure: "—", obsResume: "OBSERVATION INDISPONIBLE",
+  obsLever: "—", obsCoucher: "—", obsUV: "—", urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
 const MEDIAS_FALLBACK = {
@@ -148,17 +150,18 @@ export default function DashboardQG() {
   const [formLogNature, setFormLogNature] = useState("");
   const [formLogLieu, setFormLogLieu] = useState("Site zone logistique");
   const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
+  const [formLogBloquant, setFormLogBloquant] = useState("Non");
 
   // States Formulaire Nouvelle Mission Sanitaire
   const [formSanType, setFormSanType] = useState("papier");
   const [formSanTypeLabel, setFormSanTypeLabel] = useState("Plus de papier toilette");
-  // Initialisation par défaut sur le nom du premier élément du fichier externe
   const [formSanLieu, setFormSanLieu] = useState(LIEUX[0]?.nom || "Zone sanitaires");
   const [formSanCommentaire, setFormSanCommentaire] = useState("");
 
   // States Formulaire Console Météo Interne
   const [mgtVigilance, setMgtVigilance] = useState("vert");
   const [mgtCreneau, setMgtCreneau] = useState("Dans les 2h (+2h)");
+  const [mgtCouleurLigne, setMgtCouleurLigne] = useState("vert");
   const [mgtTexteAlea, setMgtTexteAlea] = useState("Conditions normales / RAS");
 
   useEffect(() => {
@@ -232,7 +235,7 @@ export default function DashboardQG() {
   async function ajouterMissionLogistique(e) {
     e.preventDefault();
     const nouvelleMission = {
-      id: "log-" + Date.now(), ref: "LOG-" + pad(safeMissions.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: "Non", statut: "A affecter", heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
+      id: "log-" + Date.now(), ref: "LOG-" + pad(safeMissions.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: formLogBloquant, statut: "A affecter", heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
     };
     const next = [nouvelleMission, ...safeMissions]; setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
   }
@@ -287,7 +290,7 @@ export default function DashboardQG() {
   async function soumettreAjustementMeteo(e) {
     e.preventDefault();
     const baseMeteo = meteoLive || METEO_FALLBACK;
-    const nouvelleLigne = { creneau: mgtCreneau, code: "jaune", phenomene: mgtTexteAlea.trim() };
+    const nouvelleLigne = { creneau: mgtCreneau, code: mgtCouleurLigne, phenomene: mgtTexteAlea.trim() };
     const payload = { ...baseMeteo, live: true, codeActuel: mgtVigilance, maj: `QG à ${pad(now.getHours())}:${pad(now.getMinutes())}`, timeline: [nouvelleLigne, ...(baseMeteo.timeline || [])].slice(0, 5) };
     setMeteoLive(payload); await kvSet(KEY_METEO, payload); setMgtTexteAlea("");
   }
@@ -309,6 +312,8 @@ export default function DashboardQG() {
 
   const sosVisibles = safeSos.filter((s) => s && s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
   const sanActifs = safeSanitaire.filter((s) => s && s.statut !== "resolu" && s.statut !== "résolu");
+  const sanParLieu = {}; sanActifs.forEach((s) => { if(s?.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + 1; });
+  const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
   return (
     <div className="min-h-screen bg-[#0f1319] text-slate-100 font-sans antialiased w-full">
@@ -381,7 +386,7 @@ export default function DashboardQG() {
                     <div className="font-semibold text-slate-100">{s.motif}</div>
                     {s.details && <div className="text-[10px] text-slate-400 italic mt-1 bg-black/20 p-1 rounded">"{s.details}"</div>}
                     <div className="mt-2 flex gap-1.5 justify-end">
-                      {s.statut === "nouveau" && <button onClick={() => prendreEnCompteSos(s.id)} className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>}
+                      {s.statut === "nouveau" && <button onClick={() => prendreEnCompesSos(s.id)} className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>}
                       <button onClick={() => cloturerSos(s.id)} className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Clôturer</button>
                     </div>
                   </div>
@@ -404,7 +409,7 @@ export default function DashboardQG() {
               </div>
               <div className="flex gap-2">
                 <input type="text" className="w-full bg-black/50 border border-white/5 rounded px-2 py-1 text-slate-400 font-mono text-[11px]" value={`${formNom} (QG)`} disabled />
-                <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-mono font-bold text-white">ALERTER</button>
+                <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-mono font-bold text-white shadow">ALERTER</button>
               </div>
               <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions terrain..." required />
             </form>
@@ -430,14 +435,14 @@ export default function DashboardQG() {
           </div>
         </div>
 
-        {/* ==================== BLOC DROIT AVANCÉ COLONNES 2 & 3 ==================== */}
+        {/* ==================== BLOC DROIT AVANCÉ MODULÉ (COLONNES 2 & 3 SUBDIVISÉES) ==================== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
           
-          {/* PLAN TRANSMISSION RADIO */}
+          {/* ⚡ PLAN RADIO LARGE EN EN-TÊTE HORIZONTALE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2">
             <div className="flex items-center gap-2 mb-2 pb-1 border-b border-white/5">
               <Radio className="w-4 h-4 text-amber-400" />
-              <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission Radio (BFMF 2026)</h2>
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission & d'Urgence Radio (BFMF 2026)</h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
               {CANAUX_RADIO.map((c) => (
@@ -449,26 +454,49 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* COLONNE INTERNE 2 : SUIVI ET MONITEUR SANITAIRE ECOUTE TERRAIN */}
-          <div className="space-y-4 w-full">
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-              <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5">
-                <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
-                  <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
-                </h2>
-                <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} sur parcours</span>
-              </div>
-              <div className="relative h-14 mt-4 mb-2">
-                <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
-                {REPERES.map((r, i) => (
-                  <div key={i} className="absolute top-3" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-slate-600 mx-auto mt-2" />
-                    <div className="text-[8px] font-mono text-slate-500 text-center mt-0.5">{r.nom}</div>
-                  </div>
-                ))}
-              </div>
+          {/* 📍 COMPOSANT CARTOGRAPHIE LINÉAIRE : REPOSITIONNÉ SUR DEUX COLONNES DE LARGE */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2">
+            <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5">
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
+                <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
+              </h2>
+              <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
             </div>
 
+            {/* Frise linéaire d'avancement */}
+            <div className="relative h-14 mt-4 mb-2">
+              <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
+              {REPERES.map((r, i) => (
+                <div key={i} className="absolute top-3" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-600 mx-auto mt-2" />
+                  <div className="text-[8px] font-mono text-slate-500 text-center mt-0.5">{r.nom}</div>
+                </div>
+              ))}
+              {grpDehors.map((g, idx) => {
+                const km = POS_KM[g.position] ?? 0;
+                return (
+                  <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} : ${g.participants} festivaliers`}>
+                    <div className="flex items-center bg-sky-500/20 ring-1 ring-sky-400/50 rounded px-1 py-0.5 text-[8px] font-mono text-sky-200">
+                      <Users className="w-2 h-2 text-sky-300 mr-0.5" />{g.participants}
+                    </div>
+                  </div>
+                );
+              })}
+              {sosVisibles.filter((s) => s && s.surTrace && s.surTrace.km !== null).map((s) => (
+                <div key={s.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`SOS : ${s.motif}`}>
+                  <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
+                </div>
+              ))}
+            </div>
+            <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1">
+              <span>Attente P0 : {persAttente}</span>
+              <span>Rentré QG : {persRentres}</span>
+            </div>
+          </div>
+
+          {/* ==================== CONTENU INTERNE COLONNE 2 (SOUS LA CARTO) ==================== */}
+          <div className="space-y-4 w-full">
+            
             {/* 🩺 CONSOLE GESTION ET RETOUR SANITAIRE TERRAIN */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex justify-between items-center mb-2.5 pb-1 border-b border-white/5">
@@ -478,7 +506,6 @@ export default function DashboardQG() {
                 <span className="font-mono text-xxs bg-cyan-500/10 text-cyan-400 px-1.5 rounded border border-cyan-500/20">{sanActifs.length} Actives</span>
               </div>
 
-              {/* LISTING DES INTERVENTIONS TERRAIN */}
               <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 mb-3">
                 {sanActifs.length === 0 ? (
                   <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune alerte sanitaire active sur les blocs.</div>
@@ -514,7 +541,6 @@ export default function DashboardQG() {
                 )}
               </div>
 
-              {/* FORMULAIRE DE CRÉATION SANITAIRE INTERFACÉ AVEC LES LIEUX SOURCÉS DU FICHIER EXTERNE */}
               <form onSubmit={ajouterMissionSanitaire} className="border-t border-white/5 pt-2.5 space-y-2 text-xs">
                 <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
                   <PlusCircle className="w-3.5 h-3.5" /> Lancer une alerte sanitaire
@@ -537,7 +563,6 @@ export default function DashboardQG() {
                     <option value="autre">Autre problème</option>
                   </select>
                   
-                  {/* Récupération dynamique et scannée de la liste LIEUX */}
                   <select 
                     className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 text-xxs focus:outline-none" 
                     value={formSanLieu} 
@@ -555,26 +580,31 @@ export default function DashboardQG() {
               </form>
             </div>
 
-            {/* Management météo */}
+            {/* 🌩️ PANNEAU ET FORMULAIRE MÉTÉO RÉINTÉGRÉS */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Alerte Météo Interne</div>
-                <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
+                <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
+                <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
               </div>
               <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs">
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
                     <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option>
                   </select>
+                  <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
+                    <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
+                  </select>
                   <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm">POUSSER</button>
                 </div>
-                <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
+                <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
               </form>
             </div>
           </div>
 
-          {/* ==================== CONTENU INTERNE COLONNE 3 : LOGISTIQUE TECHNIQUE ==================== */}
+          {/* ==================== CONTENU INTERNE COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
+            
+            {/* 🛠️ LOGISTIQUE CRITIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
@@ -588,7 +618,7 @@ export default function DashboardQG() {
                     <div key={m.id} className="text-xs bg-white/[0.02] p-2.5 rounded border border-white/5 space-y-1.5">
                       <div className="flex justify-between items-start gap-2">
                         <span className="text-slate-200 font-medium flex-1 leading-snug">{m.nature}</span>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${m.priorite?.startsWith("P1") ? "bg-red-500/20 text-red-400" : "bg-slate-500/10 text-slate-400"}`}>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${m.priorite?.startsWith("P1") ? "bg-red-500/20 text-red-400 border border-red-500/20" : m.priorite?.startsWith("P2") ? "bg-amber-500/20 text-amber-400 border border-amber-500/20" : "bg-slate-500/10 text-slate-400"}`}>
                           {m.priorite ? m.priorite.slice(0,2) : "P3"}
                         </span>
                       </div>
@@ -599,12 +629,12 @@ export default function DashboardQG() {
                       <div className="flex justify-end gap-1 pt-1.5 border-t border-white/5">
                         {!m.attribueA && (
                           <>
-                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 1")} className="text-[9px] font-mono bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 1</button>
-                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 2")} className="text-[9px] font-mono bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 2</button>
-                            <button onClick={() => pousserEnCriseLog(m)} className="text-[9px] font-mono bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded">🚨 Alerte</button>
+                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 1")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 1</button>
+                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 2")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 2</button>
+                            <button onClick={() => pousserEnCriseLog(m)} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded">🚨 Alerte</button>
                           </>
                         )}
-                        <button onClick={() => resoudreMissionLog(m.id)} className="text-[9px] font-mono bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded flex items-center gap-1 ml-auto"><CheckCircle className="w-2.5 h-2.5" /> Clore</button>
+                        <button onClick={() => resoudreMissionLog(m.id)} className="text-[9px] font-mono bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 ml-auto"><CheckCircle className="w-2.5 h-2.5" /> Clore</button>
                       </div>
                     </div>
                   ))
@@ -649,6 +679,24 @@ export default function DashboardQG() {
                 </div>
               ))}
             </div>
+
+            {/* DISPLAY MÉTÉO SOURCÉ IRM */}
+            <a 
+              href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
+              className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md"
+            >
+              <div className="flex justify-between items-center mb-1.5">
+                <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${
+                  meteoLive ? "text-amber-300 bg-amber-400/10 border-amber-400/20" : "text-red-300 bg-red-400/10 border-red-400/30"
+                }`}>{meteoLive ? "IRM LIVE" : "HORS LIGNE"}</span>
+                <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
+              </div>
+              <div className="text-xs font-semibold text-slate-100 truncate">{METEO.titre} — {METEO.obsResume}</div>
+              <div className="mt-2 pt-1.5 border-t border-white/5 flex justify-between text-[10px] text-slate-400 font-mono">
+                <span className="flex items-center gap-0.5"><Sun className="w-3 h-3 text-amber-400" /> UV: {METEO.obsUV}</span>
+                <span className="flex items-center gap-0.5"><Sunset className="w-3 h-3 text-orange-400" /> Coucher: {METEO.obsCoucher}</span>
+              </div>
+            </a>
           </div>
 
         </div>
