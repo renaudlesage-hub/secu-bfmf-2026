@@ -7,10 +7,9 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
 
 /* ---------------------------------------------------------------------
-   EQUIPE SANITAIRE -- BFMF 2026
-   Recoit les signalements des festivaliers (QR codes places sur les WC,
-   lave-mains, poubelles), permet la prise en charge et la cloture.
-   Onglet "Affiches QR" : genere les affiches a imprimer pour chaque lieu.
+   ÉQUIPE SANITAIRE — BFMF 2026
+   Reçoit les signalements des festivaliers (QR codes) ET les tâches 
+   sanitaires poussées manuellement par le PC Course / QG.
 --------------------------------------------------------------------- */
 
 const SB_HEADERS = {
@@ -109,7 +108,7 @@ export default function Sanitaire() {
     await kvSet(KEY_SANITAIRE, next);
   }
 
-  const nouveaux = signalements.filter((s) => s.statut === "nouveau");
+  const nouveaux = signalements.filter((s) => s.statut === "nouveau" || s.statut === "en attente");
   const enCours = signalements.filter((s) => s.statut === "en cours");
   const resolus = signalements.filter((s) => s.statut === "resolu");
   const affiches =
@@ -117,14 +116,13 @@ export default function Sanitaire() {
     : filtre === "resolus" ? resolus
     : signalements;
 
-  // Lieux les plus signales (actifs)
+  // Lieux les plus signalés (actifs)
   const parLieu = {};
   [...nouveaux, ...enCours].forEach((s) => {
-    parLieu[s.locNom] = (parLieu[s.locNom] || 0) + (s.count || 1);
+    if (s.locNom) parLieu[s.locNom] = (parLieu[s.locNom] || 0) + (s.count || 1);
   });
   const topLieux = Object.entries(parLieu).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // URL de base pour les QR (fonctionne en preview et en production)
   const baseUrl = window.location.origin + window.location.pathname;
   const qrImg = (id) =>
     "https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data=" +
@@ -133,11 +131,11 @@ export default function Sanitaire() {
   if (profileLoaded && !profile) {
     return (
       <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans flex items-center justify-center p-4">
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');.font-display{font-family:'Oswald',sans-serif;}`}</style>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600&display=swap');.font-display{font-family:'Oswald',sans-serif;}`}</style>
         <div className="bg-[#1a212b] ring-1 ring-white/15 rounded-lg w-full max-w-sm p-6">
           <div className="flex items-center gap-3 mb-4">
             <Droplets className="w-6 h-6 text-sky-300" />
-            <div className="font-display tracking-wide text-white">EQUIPE SANITAIRE BFMF 2026</div>
+            <div className="font-display tracking-wide text-white">ÉQUIPE SANITAIRE BFMF 2026</div>
           </div>
           <div className="text-[11px] font-mono text-slate-300 uppercase tracking-wide mb-1.5">Votre nom *</div>
           <input
@@ -149,7 +147,7 @@ export default function Sanitaire() {
             onClick={async () => {
               const nom = document.getElementById("san-nom").value.trim();
               if (nom.length < 2) return;
-              const p = { nom, role: "Benevole sanitaire" };
+              const p = { nom, role: "Bénévole sanitaire" };
               setProfile(p);
               await saveProfile(p);
             }}
@@ -165,7 +163,7 @@ export default function Sanitaire() {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
@@ -185,7 +183,7 @@ export default function Sanitaire() {
             </div>
             <div>
               <div className="font-display tracking-wide text-[15px] leading-none">SANITAIRE</div>
-              <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · SIGNALEMENTS QR</div>
+              <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · MISSIONS TERRAIN</div>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -197,7 +195,7 @@ export default function Sanitaire() {
             >
               <QrCode className="w-3.5 h-3.5" /> Affiches
             </button>
-            <button onClick={refresh} className="text-slate-500 hover:text-slate-200" title="Rafraichir">
+            <button onClick={refresh} className="text-slate-500 hover:text-slate-200" title="Rafraîchir">
               <RefreshCw className="w-4 h-4" />
             </button>
             <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
@@ -228,7 +226,7 @@ export default function Sanitaire() {
                 <div className="text-xs text-slate-600 mb-3">Papier, eau, poubelle... Scannez, on arrive !</div>
                 <img src={qrImg(l.id)} alt={`QR ${l.nom}`} className="mx-auto w-44 h-44" />
                 <div className="mt-3 text-sm font-semibold">{l.nom}</div>
-                <div className="text-[10px] text-slate-500 mt-1">Bucolique Ferrieres Musique Festival 2026 · anonyme</div>
+                <div className="text-[10px] text-slate-500 mt-1">Bucolique Ferrières Musique Festival 2026 · anonyme</div>
               </div>
             ))}
           </div>
@@ -237,7 +235,7 @@ export default function Sanitaire() {
         <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
           {sbError && (
             <div className="rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 text-amber-300 text-xs px-3 py-2">
-              Reseau instable — donnees possiblement obsoletes.
+              Réseau instable — données possiblement obsolètes.
             </div>
           )}
 
@@ -252,7 +250,7 @@ export default function Sanitaire() {
               <div className="font-display text-2xl text-amber-300">{enCours.length}</div>
             </div>
             <div className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-3">
-              <div className="text-[10px] font-mono text-slate-500 uppercase">Resolus</div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase">Résolus</div>
               <div className="font-display text-2xl text-slate-300">{resolus.length}</div>
             </div>
           </section>
@@ -265,7 +263,7 @@ export default function Sanitaire() {
 
           {/* Filtres */}
           <div className="flex items-center gap-1.5">
-            {[["actifs", `Actifs (${nouveaux.length + enCours.length})`], ["resolus", `Resolus (${resolus.length})`], ["tous", "Tous"]].map(([k, lab]) => (
+            {[["actifs", `Actifs (${nouveaux.length + enCours.length})`], ["resolus", `Résolus (${resolus.length})`], ["tous", "Tous"]].map(([k, lab]) => (
               <button
                 key={k}
                 onClick={() => setFiltre(k)}
@@ -289,16 +287,20 @@ export default function Sanitaire() {
             {!loading && affiches.length === 0 && (
               <div className="text-sm text-slate-500 text-center py-8 rounded-lg ring-1 ring-white/10 bg-[#151b23]">
                 <CheckCircle2 className="w-6 h-6 text-emerald-300 mx-auto mb-2" />
-                Rien a signaler. Tout est propre !
+                Rien à signaler. Tout est sous contrôle !
               </div>
             )}
             {affiches.map((s) => {
-              const urgent = (TYPE_URGENCE[s.type] || 1) >= 2 || (s.count || 1) >= 3;
+              // CORRECTIF : Tolérance aux injections QG (lecture de s.typeLabel OU de s.texte brut)
+              const intituleMission = s.typeLabel || s.texte || "Intervention Sanitaire";
+              const estStatutNouveau = s.statut === "nouveau" || s.statut === "en attente";
+              const urgent = (TYPE_URGENCE[s.type] || 1) >= 2 || (s.count || 1) >= 3 || (s.priorite && s.priorite.includes("Critique"));
+
               return (
                 <div
                   key={s.id}
                   className={`rounded-lg p-3.5 ring-1 ${
-                    s.statut === "nouveau"
+                    estStatutNouveau
                       ? urgent ? "ring-red-400/40 bg-red-400/10" : "ring-sky-400/30 bg-sky-400/5"
                       : s.statut === "en cours" ? "ring-amber-400/30 bg-amber-400/5"
                       : "ring-white/10 bg-white/[0.02] opacity-70"
@@ -306,10 +308,17 @@ export default function Sanitaire() {
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      s.statut === "nouveau" ? (urgent ? "bg-red-400 pulse-slow" : "bg-sky-400") : s.statut === "en cours" ? "bg-amber-400" : "bg-slate-500"
+                      estStatutNouveau ? (urgent ? "bg-red-400 pulse-slow" : "bg-sky-400") : s.statut === "en cours" ? "bg-amber-400" : "bg-slate-500"
                     }`} />
                     <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
-                    <span className="text-sm text-slate-100 font-medium">{s.typeLabel}</span>
+                    <span className="text-sm text-slate-100 font-medium">{intituleMission}</span>
+                    
+                    {s.provenance && (
+                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                        {s.provenance}
+                      </span>
+                    )}
+
                     {(s.count || 1) > 1 && (
                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full ring-1 ring-red-400/40 bg-red-400/10 text-red-300">
                         x{s.count}
@@ -317,16 +326,24 @@ export default function Sanitaire() {
                     )}
                   </div>
                   <div className="text-xs text-slate-300 mt-1 flex items-center gap-1 pl-3.5">
-                    <MapPin className="w-3 h-3 text-slate-500" /> {s.locNom}
+                    <MapPin className="w-3 h-3 text-slate-500" /> {s.locNom || "Zone non spécifiée"}
                   </div>
                   {s.commentaire && (
                     <div className="text-[11px] text-slate-400 italic mt-0.5 pl-3.5">"{s.commentaire}"</div>
                   )}
+                  
+                  {/* Affichage de l'attribution QG si existante */}
+                  {s.attribueA && s.statut === "en cours" && (
+                    <div className="text-[10px] font-mono text-slate-400 pl-3.5 mt-1">
+                      👉 Assigné à : <span className="text-amber-300 font-semibold">{s.attribueA}</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 mt-2 pl-3.5">
-                    {s.statut === "nouveau" && (
+                    {estStatutNouveau && (
                       <button
                         onClick={() => prendre(s)}
-                        className="flex-1 text-[11px] font-mono px-2.5 py-2 rounded ring-1 ring-amber-400/40 bg-amber-400/10 text-amber-200"
+                        className="flex-1 text-[11px] font-mono px-2.5 py-2 rounded ring-1 ring-amber-400/40 bg-amber-400/10 text-amber-200 active:bg-amber-400/20"
                       >
                         Je m'en occupe
                       </button>
@@ -334,19 +351,19 @@ export default function Sanitaire() {
                     {s.statut === "en cours" && (
                       <>
                         <span className="text-[11px] font-mono text-amber-300/80 flex items-center gap-1">
-                          <CircleDot className="w-3 h-3" /> {s.prisPar} ({s.heurePrise})
+                          <CircleDot className="w-3 h-3" /> {s.prisPar || s.attribueA || "Équipe"} ({s.heurePrise || "En cours"})
                         </span>
                         <button
                           onClick={() => resoudre(s)}
-                          className="ml-auto text-[11px] font-mono px-2.5 py-2 rounded ring-1 ring-emerald-400/40 bg-emerald-400/10 text-emerald-200"
+                          className="ml-auto text-[11px] font-mono px-2.5 py-2 rounded ring-1 ring-emerald-400/40 bg-emerald-400/10 text-emerald-200 active:bg-emerald-400/20"
                         >
-                          Resolu
+                          Résolu
                         </button>
                       </>
                     )}
                     {s.statut === "resolu" && (
                       <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> resolu a {s.heureResolution}{s.resoluPar ? ` par ${s.resoluPar}` : ""}
+                        <CheckCircle2 className="w-3 h-3" /> résolu à {s.heureResolution}{s.resoluPar ? ` par ${s.resoluPar}` : ""}
                       </span>
                     )}
                   </div>
@@ -356,7 +373,7 @@ export default function Sanitaire() {
           </section>
 
           <div className="text-[10px] text-slate-600 font-mono text-center pb-2">
-            Rafraichissement auto 10 s · signalements anonymes des festivaliers via QR codes
+            Rafraîchissement automatique 10 s · Flux synchronisé QG & Bornes QR
           </div>
         </main>
       )}
