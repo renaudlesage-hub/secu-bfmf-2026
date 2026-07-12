@@ -383,7 +383,7 @@ export default function DashboardQG() {
                       <button onClick={() => cloturerSos(s.id)} className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Clôturer</button>
                     </div>
                   </div>
-                ))}
+                )))}
             </div>
           </div>
 
