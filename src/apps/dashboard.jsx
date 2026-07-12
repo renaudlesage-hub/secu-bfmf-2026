@@ -407,7 +407,7 @@ export default function DashboardQG() {
             </form>
           </div>
 
-          {/* 🚨 MONITEUR SÉCURITÉ (HAUTEUR FIXÉE h-[360px] ET BADGE STANDARDISÉ) */}
+          {/* 🚨 MONITEUR SÉCURITÉ */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
             <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
               <div className="flex items-center gap-2">
@@ -437,25 +437,24 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* INJECTION SOS TERRAIN */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md">
-            <div className="text-xs font-display text-red-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
-            <form onSubmit={declencherSosManuel} className="space-y-2 text-xs">
+          {/* INJECTION SOS TERRAIN (HAUTEUR DE RÉFÉRENCE h-[116px]) */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md h-[116px] flex flex-col justify-between">
+            <div className="text-xs font-display text-red-400 tracking-wider uppercase flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
+            <form onSubmit={declencherSosManuel} className="space-y-1.5 text-xs">
               <div className="grid grid-cols-2 gap-2">
-                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
                   <option value="médical">Médical / Malaise</option>
                   <option value="Incendie / fumée">Incendie / Fumée</option>
                   <option value="Sûreté / violence">Sûreté / Bagarre</option>
                 </select>
-                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLieu} onChange={(e) => setFormLieu(e.target.value)}>
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLieu} onChange={(e) => setFormLieu(e.target.value)}>
                   {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div className="flex gap-2">
-                <input type="text" className="w-full bg-black/50 border border-white/5 rounded px-2 py-1 text-slate-400 font-mono text-[11px]" value={`${formNom} (QG)`} disabled />
-                <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-mono font-bold text-white shadow">ALERTER</button>
+                <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-300 focus:outline-none text-[11px]" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions terrain..." required />
+                <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-0.5 rounded font-mono font-bold text-white shadow text-[11px]">ALERTER</button>
               </div>
-              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions terrain..." required />
             </form>
           </div>
 
@@ -541,7 +540,7 @@ export default function DashboardQG() {
           {/* ==================== SUB-COLONNE 2 (SOUS LA CARTO) ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* 🩺 MONITEUR SANITAIRE (HAUTEUR UNIFORMISÉE h-[360px] ET COMPTEUR STANDARDISÉ) */}
+            {/* 🩺 MONITEUR SANITAIRE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
               <div className="flex justify-between items-center mb-3 pb-1 border-b border-white/5 shrink-0">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -586,15 +585,15 @@ export default function DashboardQG() {
               </div>
             </div>
 
-            {/* 📥 CRÉER UNE DEMANDE SANITAIRE */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-              <form onSubmit={ajouterMissionSanitaire} className="space-y-2 text-xs">
+            {/* 📥 CRÉER UNE DEMANDE SANITAIRE (HAUTEUR UNIFORMISÉE h-[116px]) */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[116px] flex flex-col justify-between">
+              <form onSubmit={ajouterMissionSanitaire} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
                 <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
                   <PlusCircle className="w-3.5 h-3.5" /> Créer une demande sanitaire
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <select 
-                    className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 text-xxs focus:outline-none" 
+                    className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 text-xxs focus:outline-none" 
                     value={formSanType} 
                     onChange={(e) => {
                       setFormSanType(e.target.value);
@@ -611,7 +610,7 @@ export default function DashboardQG() {
                   </select>
                   
                   <select 
-                    className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 text-xxs focus:outline-none" 
+                    className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 text-xxs focus:outline-none" 
                     value={formSanLieu} 
                     onChange={(e) => setFormSanLieu(e.target.value)}
                   >
@@ -621,8 +620,8 @@ export default function DashboardQG() {
                   </select>
                 </div>
                 <div className="flex gap-2">
-                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 text-xxs focus:outline-none" value={formSanCommentaire} onChange={(e) => setFormSanCommentaire(e.target.value)} placeholder="Ex: cabine du fond" />
-                  <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded font-mono font-bold text-white text-xxs shadow">INJECTER</button>
+                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 text-xxs focus:outline-none" value={formSanCommentaire} onChange={(e) => setFormSanCommentaire(e.target.value)} placeholder="Ex: cabine du fond" />
+                  <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 px-3 py-0.5 rounded font-mono font-bold text-white text-xxs shadow">INJECTER</button>
                 </div>
               </form>
             </div>
@@ -648,7 +647,7 @@ export default function DashboardQG() {
           {/* ==================== SUB-COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* 🛠️ MONITEUR LOGISTIQUE (HAUTEUR UNIFORMISÉE h-[360px] ET COMPTEUR STANDARDISÉ) */}
+            {/* 🛠️ MONITEUR LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
               <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Moniteur Logistique</h3>
@@ -686,18 +685,18 @@ export default function DashboardQG() {
               </div>
             </div>
 
-            {/* FORMULAIRE LOGISTIQUE */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md">
-              <div className="text-xs font-display text-sky-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique</div>
-              <form onSubmit={ajouterMissionLogistique} className="space-y-2 text-xs">
+            {/* 📥 CRÉER UNE DEMANDE LOGISTIQUE (HAUTEUR UNIFORMISÉE h-[116px]) */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md h-[116px] flex flex-col justify-between">
+              <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique</div>
+              <form onSubmit={ajouterMissionLogistique} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogLieu} onChange={(e) => setFormLogLieu(e.target.value)}>
+                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogLieu} onChange={(e) => setFormLogLieu(e.target.value)}>
                       {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
                   <div>
-                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogPriorite} onChange={(e) => setFormLogPriorite(e.target.value)}>
+                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogPriorite} onChange={(e) => setFormLogPriorite(e.target.value)}>
                       <option value="P1 - Critique / Bloquant">P1 - Critique</option>
                       <option value="P2 - Urgent">P2 - Urgent</option>
                       <option value="P3 - Standard">P3 - Standard</option>
@@ -705,8 +704,8 @@ export default function DashboardQG() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogNature} onChange={(e) => setFormLogNature(e.target.value)} placeholder="Panne matos, élec, barrière..." required />
-                  <button type="submit" className="bg-sky-600 hover:bg-sky-500 px-3 py-1 rounded font-mono font-bold text-white shadow">INJECTER</button>
+                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none text-[11px]" value={formLogNature} onChange={(e) => setFormLogNature(e.target.value)} placeholder="Panne matos, élec, barrière..." required />
+                  <button type="submit" className="bg-sky-600 hover:bg-sky-500 px-3 py-0.5 rounded font-mono font-bold text-white shadow text-[11px]">INJECTER</button>
                 </div>
               </form>
             </div>
