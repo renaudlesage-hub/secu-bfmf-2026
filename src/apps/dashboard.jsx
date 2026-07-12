@@ -366,8 +366,48 @@ export default function DashboardQG() {
       {/* CONTENU PANORAMIQUE MULTI-COLONNES */}
       <main className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
         
-        {/* ==================== COLONNE 1 : URGENCE & SECRETS TERRAIN 🚨 ==================== */}
+        {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE (MÉTÉO EN TÊTE) 🚨 ==================== */}
         <div className="space-y-4 w-full lg:col-span-1">
+          
+          {/* DISPLAY MÉTÉO SOURCÉ IRM (EN TÊTE) */}
+          <a 
+            href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
+            className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md"
+          >
+            <div className="flex justify-between items-center mb-1.5">
+              <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${
+                meteoLive ? "text-amber-300 bg-amber-400/10 border-amber-400/20" : "text-red-300 bg-red-400/10 border-red-400/30"
+              }`}>{meteoLive ? "IRM LIVE" : "HORS LIGNE"}</span>
+              <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
+            </div>
+            <div className="text-xs font-semibold text-slate-100 truncate">{METEO.titre} — {METEO.obsResume}</div>
+            <div className="mt-2 pt-1.5 border-t border-white/5 flex justify-between text-[10px] text-slate-400 font-mono">
+              <span className="flex items-center gap-0.5"><Sun className="w-3 h-3 text-amber-400" /> UV: {METEO.obsUV}</span>
+              <span className="flex items-center gap-0.5"><Sunset className="w-3 h-3 text-orange-400" /> Coucher: {METEO.obsCoucher}</span>
+            </div>
+          </a>
+
+          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
+              <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
+            </div>
+            <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs">
+              <div className="grid grid-cols-3 gap-1.5">
+                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
+                  <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option>
+                </select>
+                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
+                  <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
+                </select>
+                <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm">POUSSER</button>
+              </div>
+              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
+            </form>
+          </div>
+
+          {/* SOS PARTICIPANTS */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <div className="flex items-center gap-2 mb-3 pb-1 border-b border-white/5">
               <TriangleAlert className="w-4 h-4 text-red-400" />
@@ -386,14 +426,15 @@ export default function DashboardQG() {
                     <div className="font-semibold text-slate-100">{s.motif}</div>
                     {s.details && <div className="text-[10px] text-slate-400 italic mt-1 bg-black/20 p-1 rounded">"{s.details}"</div>}
                     <div className="mt-2 flex gap-1.5 justify-end">
-                      {s.statut === "nouveau" && <button onClick={() => prendreEnCompesSos(s.id)} className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>}
+                      {s.statut === "nouveau" && <button onClick={() => prendreEnCompteSos(s.id)} className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>}
                       <button onClick={() => cloturerSos(s.id)} className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Clôturer</button>
                     </div>
                   </div>
-                )))}
+                ))}
             </div>
           </div>
 
+          {/* INJECTION SOS TERRAIN */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md">
             <div className="text-xs font-display text-red-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
             <form onSubmit={declencherSosManuel} className="space-y-2 text-xs">
@@ -415,6 +456,7 @@ export default function DashboardQG() {
             </form>
           </div>
 
+          {/* ENGAGEMENT ÉQUIPE VOLANTE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
             {consigne ? (
@@ -435,10 +477,10 @@ export default function DashboardQG() {
           </div>
         </div>
 
-        {/* ==================== BLOC DROIT AVANCÉ MODULÉ (COLONNES 2 & 3 SUBDIVISÉES) ==================== */}
+        {/* ==================== BLOC DROIT AVANCÉ MUTÉ (COLONNES 2 & 3 SUBDIVISÉES) ==================== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
           
-          {/* ⚡ PLAN RADIO LARGE EN EN-TÊTE HORIZONTALE */}
+          {/* PLAN RADIO LARGE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2">
             <div className="flex items-center gap-2 mb-2 pb-1 border-b border-white/5">
               <Radio className="w-4 h-4 text-amber-400" />
@@ -454,7 +496,7 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* 📍 COMPOSANT CARTOGRAPHIE LINÉAIRE : REPOSITIONNÉ SUR DEUX COLONNES DE LARGE */}
+          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2">
             <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5">
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
@@ -463,7 +505,6 @@ export default function DashboardQG() {
               <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
             </div>
 
-            {/* Frise linéaire d'avancement */}
             <div className="relative h-14 mt-4 mb-2">
               <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
               {REPERES.map((r, i) => (
@@ -494,10 +535,10 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* ==================== CONTENU INTERNE COLONNE 2 (SOUS LA CARTO) ==================== */}
+          {/* ==================== SUB-COLONNE 2 (SOUS LA CARTO) ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* 🩺 CONSOLE GESTION ET RETOUR SANITAIRE TERRAIN */}
+            {/* MONITEUR SANITAIRE TERRAIN */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex justify-between items-center mb-2.5 pb-1 border-b border-white/5">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -580,31 +621,28 @@ export default function DashboardQG() {
               </form>
             </div>
 
-            {/* 🌩️ PANNEAU ET FORMULAIRE MÉTÉO RÉINTÉGRÉS */}
+            {/* SIGNALEMENTS SANITAIRES TOP ACCUMULATIONS */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
-                <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
-              </div>
-              <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs">
-                <div className="grid grid-cols-3 gap-1.5">
-                  <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
-                    <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option>
-                  </select>
-                  <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
-                    <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
-                  </select>
-                  <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm">POUSSER</button>
+              <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Zones Sanitaires Chaudes</h3>
+              {sanTop.length === 0 ? (
+                <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune accumulation sur les blocs.</div>
+              ) : (
+                <div className="space-y-1">
+                  {sanTop.map(([lieu, count]) => (
+                    <div key={lieu} className="flex justify-between items-center text-xs bg-black/20 p-2 rounded border border-white/5">
+                      <span className="text-slate-300">{lieu}</span>
+                      <span className="text-xxs font-mono text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded border border-amber-500/20">{count} signalements</span>
+                    </div>
+                  ))}
                 </div>
-                <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
-              </form>
+              )}
             </div>
           </div>
 
-          {/* ==================== CONTENU INTERNE COLONNE 3 ==================== */}
+          {/* ==================== SUB-COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* 🛠️ LOGISTIQUE CRITIQUE */}
+            {/* LOGISTIQUE CRITIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
@@ -642,7 +680,7 @@ export default function DashboardQG() {
               </div>
             </div>
 
-            {/* FORMULAIRE D'INJECTION DEMANDE LOGISTIQUE */}
+            {/* FORMULAIRE LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md">
               <div className="text-xs font-display text-sky-400 tracking-wider uppercase mb-2 flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique</div>
               <form onSubmit={ajouterMissionLogistique} className="space-y-2 text-xs">
@@ -667,6 +705,7 @@ export default function DashboardQG() {
               </form>
             </div>
 
+            {/* VEILLE RÉSEAUX */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><Rss className="w-3.5 h-3.5 text-slate-400" /> Veille Réseaux</h3>
@@ -679,24 +718,6 @@ export default function DashboardQG() {
                 </div>
               ))}
             </div>
-
-            {/* DISPLAY MÉTÉO SOURCÉ IRM */}
-            <a 
-              href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
-              className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md"
-            >
-              <div className="flex justify-between items-center mb-1.5">
-                <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${
-                  meteoLive ? "text-amber-300 bg-amber-400/10 border-amber-400/20" : "text-red-300 bg-red-400/10 border-red-400/30"
-                }`}>{meteoLive ? "IRM LIVE" : "HORS LIGNE"}</span>
-                <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
-              </div>
-              <div className="text-xs font-semibold text-slate-100 truncate">{METEO.titre} — {METEO.obsResume}</div>
-              <div className="mt-2 pt-1.5 border-t border-white/5 flex justify-between text-[10px] text-slate-400 font-mono">
-                <span className="flex items-center gap-0.5"><Sun className="w-3 h-3 text-amber-400" /> UV: {METEO.obsUV}</span>
-                <span className="flex items-center gap-0.5"><Sunset className="w-3 h-3 text-orange-400" /> Coucher: {METEO.obsCoucher}</span>
-              </div>
-            </a>
           </div>
 
         </div>
