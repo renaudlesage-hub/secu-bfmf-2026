@@ -1,0 +1,207 @@
+import React, { useState } from "react";
+import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, HeartPulse, UserSearch, CloudLightning, Footprints } from "lucide-react";
+
+/* ---------------------------------------------------------------------
+   FICHE REFLEXE -- BFMF 2026
+   Page STATIQUE : plan radio, numeros, PRV avec GPS, conduites a tenir.
+   Aucune dependance reseau apres chargement : reste lisible meme si la
+   4G tombe (tant que l'onglet est ouvert). A verifier au briefing.
+   >>> METTEZ A JOUR LES NUMEROS ci-dessous avant impression/diffusion.
+--------------------------------------------------------------------- */
+
+const NUMEROS = [
+  { nom: "URGENCE VITALE", num: "112", note: "medical / incendie — TOUJOURS en premier", urgent: true },
+  { nom: "Police (non urgent)", num: "101", note: "" },
+  { nom: "QG festival (PCE)", num: "04XX XX XX XX", note: "A COMPLETER" },
+  { nom: "Coordinateur securite", num: "04XX XX XX XX", note: "A COMPLETER" },
+  { nom: "Responsable balade", num: "04XX XX XX XX", note: "A COMPLETER" },
+  { nom: "Poste secours / Croix-Rouge", num: "04XX XX XX XX", note: "A COMPLETER" },
+  { nom: "Centre antipoison", num: "070 245 245", note: "" },
+];
+
+const RADIO = [
+  { canal: "PMR4.1", usage: "Coordination generale (QG, scenes, volante)" },
+  { canal: "PMR5", usage: "Benevoles parking et sanitaires" },
+  { canal: "PMR15", usage: "Securite privee" },
+  { canal: "PMR333", usage: "URGENCE — exclusivement reserve", urgent: true },
+];
+
+const PRV = [
+  { nom: "Point 0 / Depart", gps: "50.3835, 5.6215" },
+  { nom: "PRV#4 — Rue Sainte-Barbe", gps: "50.38212, 5.61673" },
+  { nom: "PRV#5 — Rue de Jehonhe", gps: "50.37568, 5.64412" },
+  { nom: "PRV#6", gps: "50.38236, 5.64579" },
+  { nom: "PRV#7 — Rue de la Chapelle", gps: "50.38865, 5.62692" },
+  { nom: "Etape 1 (km 0,9)", gps: "50.37858, 5.62790" },
+  { nom: "Etape 2 (km 2,5)", gps: "50.37828, 5.64549" },
+  { nom: "Etape 3 (km 5,1)", gps: "50.38817, 5.62891" },
+];
+
+const CONDUITES = [
+  {
+    id: "malaise", titre: "Malaise / blessure", icon: HeartPulse,
+    etapes: [
+      "Proteger : ecarter le public, securiser la zone.",
+      "Alerter : gravite ? -> 112 D'ABORD si doute vital. Puis PMR333 : qui, quoi, ou (PRV le plus proche), combien.",
+      "Ne pas deplacer la victime sauf danger immediat.",
+      "Envoyer quelqu'un au PRV pour guider les secours.",
+      "Rester aupres, couvrir, parler, surveiller la conscience.",
+    ],
+  },
+  {
+    id: "enfant", titre: "Enfant perdu / trouve", icon: UserSearch,
+    etapes: [
+      "Enfant TROUVE : rester avec lui, NE PAS le promener seul -> accompagner a deux vers l'ACCUEIL POINT 0. Annoncer sur PMR4.1.",
+      "Enfant PERDU (parent) : conduire le parent a l'accueil, lancer la recherche dans l'app (#recherche) + PMR4.1.",
+      "Description precise : age, vetements, cheveux, dernier lieu vu.",
+      "Non retrouve apres 15 min ou circonstance inquietante : 112/101.",
+      "Jamais de nom d'enfant diffuse en sono publique (attire les mal intentionnes) : description uniquement.",
+    ],
+  },
+  {
+    id: "feu", titre: "Debut d'incendie", icon: Flame,
+    etapes: [
+      "Alerter IMMEDIATEMENT : 112 puis PMR333 (lieu exact, ampleur, vent).",
+      "Eloigner le public (perimetre large), couper la sono locale si scene.",
+      "Attaquer UNIQUEMENT si feu naissant + extincteur + sans risque.",
+      "Liberer les acces secours (vehicules, PRV).",
+      "Ne jamais rester dans la fumee.",
+    ],
+  },
+  {
+    id: "meteo", titre: "Orage / mise a l'abri", icon: CloudLightning,
+    etapes: [
+      "Sur consigne QG (ou eclair < 10 s du tonnerre) : suspension des activites exposees.",
+      "Plaine : diriger le public vers les batiments/chapiteaux durs designes.",
+      "Parcours : groupes a l'abri (eviter arbres isoles, clotures) au point dur le plus proche, encadrants comptent leur groupe.",
+      "Attendre la levee de consigne QG avant reprise.",
+    ],
+  },
+  {
+    id: "balade", titre: "Incident sur le parcours", icon: Footprints,
+    etapes: [
+      "Encadrant tete : stopper le groupe en lieu sur, serre-file compte.",
+      "Alerter : PMR4.1 (ou 112 si vital) avec le km / segment / PRV.",
+      "Un encadrant reste avec la personne, le groupe continue avec les autres si consigne QG.",
+      "Utiliser l'app Suivi balade pour ajuster effectif/position.",
+    ],
+  },
+  {
+    id: "evac", titre: "Evacuation (consigne QG uniquement)", icon: TriangleAlert,
+    etapes: [
+      "Ne JAMAIS lancer une evacuation de sa propre initiative (sauf peril immediat local).",
+      "Relayer calmement la consigne exacte du QG, sans crier 'evacuation'.",
+      "Diriger vers les sorties/PRV designes, prioriser PMR et enfants.",
+      "Benevoles aux points de passage, comptage si demande.",
+      "Rendre compte au QG : zone videe / personnes restantes.",
+    ],
+  },
+];
+
+export default function FicheReflexe() {
+  const [ouvert, setOuvert] = useState(null);
+  return (
+    <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        .font-display { font-family: 'Oswald', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+      `}</style>
+
+      <header className="border-b border-white/10 bg-[#151b23] px-4 py-3">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
+          <div className="w-9 h-9 rounded-md bg-emerald-400/10 ring-1 ring-emerald-400/30 flex items-center justify-center">
+            <LifeBuoy className="w-5 h-5 text-emerald-300" />
+          </div>
+          <div>
+            <div className="font-display tracking-wide text-[15px] leading-none">FICHE REFLEXE</div>
+            <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · A LIRE AU BRIEFING · GARDER L'ONGLET OUVERT</div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        {/* Numeros */}
+        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-2">
+            <PhoneCall className="w-4 h-4 text-slate-500" /> NUMEROS
+          </h2>
+          <div className="space-y-1">
+            {NUMEROS.map((n) => (
+              <a key={n.nom} href={`tel:${n.num.replace(/\s/g, "")}`}
+                className={`flex items-center gap-2 rounded px-2.5 py-2 ring-1 ${n.urgent ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.02]"}`}>
+                <span className={`text-xs flex-1 ${n.urgent ? "text-red-200 font-semibold" : "text-slate-300"}`}>{n.nom}</span>
+                {n.note && <span className="text-[9px] font-mono text-amber-300/70">{n.note}</span>}
+                <span className={`font-mono text-sm ${n.urgent ? "text-red-200 font-bold" : "text-slate-200"}`}>{n.num}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* Radio */}
+        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-2">
+            <Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO
+          </h2>
+          <div className="space-y-1">
+            {RADIO.map((c) => (
+              <div key={c.canal} className={`flex items-start gap-2 text-[11px] rounded px-2 py-1.5 ${c.urgent ? "bg-red-400/5 ring-1 ring-red-400/20" : "bg-white/[0.02]"}`}>
+                <span className={`font-mono shrink-0 w-14 ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
+                <span className="text-slate-400">{c.usage}</span>
+              </div>
+            ))}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-2">Message type : QUI appelle · QUOI · OU (PRV/km) · COMBIEN de personnes · attendre l'accuse du QG.</div>
+        </section>
+
+        {/* PRV */}
+        <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
+          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-2">
+            <MapPin className="w-4 h-4 text-slate-500" /> POINTS DE RENDEZ-VOUS SECOURS (PRV)
+          </h2>
+          <div className="space-y-1">
+            {PRV.map((p) => (
+              <a key={p.nom} href={`https://www.google.com/maps?q=${p.gps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
+                className="flex items-center gap-2 text-[11px] rounded px-2 py-1.5 bg-white/[0.02] hover:bg-white/[0.05]">
+                <span className="text-slate-300 flex-1">{p.nom}</span>
+                <span className="font-mono text-slate-500">{p.gps}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* Conduites a tenir */}
+        <section className="space-y-1.5">
+          <h2 className="font-display tracking-wide text-sm text-slate-200 px-1">QUE FAIRE SI...</h2>
+          {CONDUITES.map((c) => {
+            const Ic = c.icon;
+            const o = ouvert === c.id;
+            return (
+              <div key={c.id} className="rounded-lg ring-1 ring-white/10 bg-[#151b23] overflow-hidden">
+                <button onClick={() => setOuvert(o ? null : c.id)} className="w-full flex items-center gap-3 px-3.5 py-3 text-left hover:bg-white/[0.02]">
+                  <Ic className="w-4 h-4 text-amber-300 shrink-0" />
+                  <span className="text-sm text-slate-100 flex-1">{c.titre}</span>
+                  <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform ${o ? "rotate-180" : ""}`} />
+                </button>
+                {o && (
+                  <ol className="px-4 pb-3 space-y-1.5">
+                    {c.etapes.map((e, i) => (
+                      <li key={i} className="flex gap-2 text-xs text-slate-300 leading-relaxed">
+                        <span className="font-mono text-amber-300/70 shrink-0">{i + 1}.</span> {e}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            );
+          })}
+        </section>
+
+        <div className="text-[10px] text-slate-600 font-mono text-center pb-3 leading-relaxed">
+          Regle d'or : PROTEGER → ALERTER (112 puis PMR333 si vital) → SECOURIR.<br />
+          L'app complete la radio, elle ne la remplace pas. Version {new Date().getFullYear()} — verifier les numeros avant le festival.
+        </div>
+      </main>
+    </div>
+  );
+}
