@@ -121,7 +121,7 @@ const CANAUX_RADIO = [
   { canal: "PMR4.1", usage: "Coord. Générale" },
   { canal: "PMR5", usage: "Parking / Sanitaires" },
   { canal: "PMR15", usage: "Sécurité Privée" },
-  { canal: "PMR333", usage: "URGENCE EXCLUSIF" },
+  { canal: "PMR333", usage: "URGENCE" },
 ];
 
 function pad(n) { return n.toString().padStart(2, "0"); }
@@ -372,22 +372,22 @@ export default function DashboardQG() {
           {/* DISPLAY MÉTÉO SOURCÉ IRM (EN TÊTE) */}
           <a 
             href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
-            className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md"
+            className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md min-h-[102px] max-h-[102px] flex flex-col justify-between"
           >
-            <div className="flex justify-between items-center mb-1.5">
+            <div className="flex justify-between items-center">
               <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${
                 meteoLive ? "text-amber-300 bg-amber-400/10 border-amber-400/20" : "text-red-300 bg-red-400/10 border-red-400/30"
               }`}>{meteoLive ? "IRM LIVE" : "HORS LIGNE"}</span>
               <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
             </div>
-            <div className="text-xs font-semibold text-slate-100 truncate">{METEO.titre} — {METEO.obsResume}</div>
-            <div className="mt-2 pt-1.5 border-t border-white/5 flex justify-between text-[10px] text-slate-400 font-mono">
+            <div className="text-xs font-semibold text-slate-100 truncate my-1">{METEO.titre} — {METEO.obsResume}</div>
+            <div className="pt-1 border-t border-white/5 flex justify-between text-[10px] text-slate-400 font-mono">
               <span className="flex items-center gap-0.5"><Sun className="w-3 h-3 text-amber-400" /> UV: {METEO.obsUV}</span>
               <span className="flex items-center gap-0.5"><Sunset className="w-3 h-3 text-orange-400" /> Coucher: {METEO.obsCoucher}</span>
             </div>
           </a>
 
-          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE (HAUTEUR STRICTEMENT VERROUILLÉE) */}
+          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE (HAUTEUR UNIFORMISÉE STRICTE) */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
@@ -480,23 +480,23 @@ export default function DashboardQG() {
         {/* ==================== BLOC DROIT AVANCÉ MUTÉ (COLONNES 2 & 3 SUBDIVISÉES) ==================== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
           
-          {/* PLAN RADIO LARGE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2">
-            <div className="flex items-center gap-2 mb-2 pb-1 border-b border-white/5">
+          {/* ⚡ PLAN RADIO LARGE (HAUTEUR STRICTEMENT VERROUILLÉE h-[102px]) */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2 min-h-[102px] max-h-[102px] flex flex-col justify-between">
+            <div className="flex items-center gap-2 pb-1 border-b border-white/5">
               <Radio className="w-4 h-4 text-amber-400" />
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission & d'Urgence Radio (BFMF 2026)</h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono flex-1 pt-2 items-center">
               {CANAUX_RADIO.map((c) => (
-                <div key={c.canal} className="bg-black/30 p-2 rounded border border-white/5 flex flex-col justify-between">
-                  <span className="text-amber-300 font-bold text-sm">{c.canal}</span>
-                  <span className="text-slate-400 text-[10px] mt-1 leading-tight">{c.usage}</span>
+                <div key={c.canal} className="bg-black/30 px-2 py-1 rounded border border-white/5 flex flex-col justify-center h-full">
+                  <span className="text-amber-300 font-bold text-xs">{c.canal}</span>
+                  <span className="text-slate-400 text-[9px] leading-tight truncate">{c.usage}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE (HAUTEUR STRICTEMENT VERROUILLÉE) */}
+          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE (HAUTEUR UNIFORMISÉE STRICTE) */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
