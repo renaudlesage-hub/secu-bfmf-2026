@@ -387,23 +387,23 @@ export default function DashboardQG() {
             </div>
           </a>
 
-          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE (HAUTEUR UNIFORMISÉE h-[148px]) */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[148px] flex flex-col justify-between">
-            <div className="flex items-center justify-between">
+          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE (HAUTEUR STRICTEMENT VERROUILLÉE) */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md min-h-[155px] max-h-[155px] flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
               <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
             </div>
-            <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs mt-1">
+            <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs flex-1 flex flex-col justify-end pt-2">
               <div className="grid grid-cols-3 gap-1.5">
-                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
+                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200 focus:outline-none" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
                   <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option>
                 </select>
-                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
+                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200 focus:outline-none" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
                   <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
                 </select>
-                <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm">POUSSER</button>
+                <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm transition-all">POUSSER</button>
               </div>
-              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
+              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none text-[11px]" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
             </form>
           </div>
 
@@ -496,8 +496,8 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE (HAUTEUR FIXÉE h-[148px]) */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 h-[148px] flex flex-col justify-between">
+          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE (HAUTEUR STRICTEMENT VERROUILLÉE) */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
                 <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
