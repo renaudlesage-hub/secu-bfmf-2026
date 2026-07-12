@@ -148,9 +148,9 @@ export default function DashboardQG() {
   const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
   const [formLogBloquant, setFormLogBloquant] = useState("Non");
 
-  // States Formulaire Nouvelle Mission Sanitaire (Mêmes critères d'alignement avec Sanitaire.jsx)
-  const [formSanType, setFormSanType] = useState("autre");
-  const [formSanTypeLabel, setFormSanTypeLabel] = useState("Autre intervention");
+  // States Formulaire Nouvelle Mission Sanitaire (Alignement strict avec les options de la capture d'écran)
+  const [formSanType, setFormSanType] = useState("papier");
+  const [formSanTypeLabel, setFormSanTypeLabel] = useState("Plus de papier toilette");
   const [formSanLieu, setFormSanLieu] = useState("Site sanitaires");
   const [formSanCommentaire, setFormSanCommentaire] = useState("");
 
@@ -235,7 +235,6 @@ export default function DashboardQG() {
     const next = [nouvelleMission, ...safeMissions]; setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
   }
 
-  // 🩺 CORRECTIF : Alignement strict des critères avec l'application terrain Sanitaire.jsx
   async function ajouterMissionSanitaire(e) {
     e.preventDefault();
     const nouvelleMissionSan = {
@@ -245,7 +244,7 @@ export default function DashboardQG() {
       typeLabel: formSanTypeLabel,
       locNom: formSanLieu,
       commentaire: formSanCommentaire.trim(),
-      statut: "nouveau", // Permet le déclenchement de "Je m'en occupe" sur le terrain
+      statut: "nouveau",
       count: 1,
       provenance: "PC Course / Radio"
     };
@@ -253,7 +252,6 @@ export default function DashboardQG() {
     setSanitaire(next); setFormSanCommentaire(""); await kvSet(KEY_SANITAIRE, next);
   }
 
-  // Clôture forcée ou manuelle depuis le QG au besoin
   async function resoudreMissionSanQG(id) {
     const next = safeSanitaire.map((s) => s.id === id ? { ...s, statut: "resolu", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}`, resoluPar: "PC Course (Radio)" } : s);
     setSanitaire(next); await kvSet(KEY_SANITAIRE, next);
@@ -309,8 +307,6 @@ export default function DashboardQG() {
 
   const sosVisibles = safeSos.filter((s) => s && s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
   const sanActifs = safeSanitaire.filter((s) => s && s.statut !== "resolu" && s.statut !== "résolu");
-  const sanParLieu = {}; sanActifs.forEach((s) => { if(s?.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + 1; });
-  const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
   return (
     <div className="min-h-screen bg-[#0f1319] text-slate-100 font-sans antialiased w-full">
@@ -471,7 +467,7 @@ export default function DashboardQG() {
               </div>
             </div>
 
-            {/* 🩺 CONSOLE GESTION ET RETOUR SANITAIRE TERRAIN (SANS BOUTON D'AFFECTATION DU QG) */}
+            {/* 🩺 CONSOLE GESTION ET RETOUR SANITAIRE TERRAIN */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex justify-between items-center mb-2.5 pb-1 border-b border-white/5">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -498,7 +494,6 @@ export default function DashboardQG() {
                         <p className="text-slate-200 font-medium leading-tight">{s.typeLabel || s.texte || "Intervention"}</p>
                         {s.commentaire && <p className="text-[11px] text-slate-400 italic">"{s.commentaire}"</p>}
                         
-                        {/* SUIVI COMPLET DU CHANGEMENT DE STATUT EFFECTUÉ PAR LE TERRAIN */}
                         <div className="flex items-center justify-between pt-1 border-t border-white/5 mt-1 font-mono text-[10px]">
                           <span className="text-slate-400">
                             {s.statut === "en cours" ? (
@@ -517,7 +512,7 @@ export default function DashboardQG() {
                 )}
               </div>
 
-              {/* FORMULAIRE DE CRÉATION SANITAIRE - ALIGNÉ SUR LES CRITÈRES DE L'APP TECHNIQUE */}
+              {/* FORMULAIRE DE CRÉATION SANITAIRE ALIGNÉ SUR L'INTERFACE FESTIVALIER DE LA CAPTURE D'ÉCRAN */}
               <form onSubmit={ajouterMissionSanitaire} className="border-t border-white/5 pt-2.5 space-y-2 text-xs">
                 <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
                   <PlusCircle className="w-3.5 h-3.5" /> Lancer une alerte sanitaire
@@ -532,19 +527,19 @@ export default function DashboardQG() {
                       setFormSanTypeLabel(sel);
                     }}
                   >
-                    <option value="papier">Manque de papier</option>
-                    <option value="eau">Manque d'eau / coupure</option>
-                    <option value="poubelle">Poubelle pleine</option>
-                    <option value="bouche">Bloc WC Bouché ⚠️</option>
-                    <option value="proprete">Nettoyage / Propreté requis</option>
-                    <option value="autre">Autre intervention</option>
+                    <option value="papier">Plus de papier toilette</option>
+                    <option value="eau">Lave-mains sans eau / savon</option>
+                    <option value="poubelle">Poubelle qui déborde</option>
+                    <option value="bouche">WC bouché / hors service</option>
+                    <option value="proprete">Propreté à revoir</option>
+                    <option value="autre">Autre problème</option>
                   </select>
                   <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 text-xxs focus:outline-none" value={formSanLieu} onChange={(e) => setFormSanLieu(e.target.value)}>
                     {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div className="flex gap-2">
-                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 text-xxs focus:outline-none" value={formSanCommentaire} onChange={(e) => setFormSanCommentaire(e.target.value)} placeholder="Commentaire optionnel (Ex: Cabine n°4)..." />
+                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 text-xxs focus:outline-none" value={formSanCommentaire} onChange={(e) => setFormSanCommentaire(e.target.value)} placeholder="Ex: cabine du fond" />
                   <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded font-mono font-bold text-white text-xxs shadow">INJECTER</button>
                 </div>
               </form>
