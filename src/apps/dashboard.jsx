@@ -113,12 +113,15 @@ const REPERES = [
 ];
 
 const METEO_FALLBACK = {
-  live: true, province: "Liege", codeActuel: "vert", maj: "Initialisation",
-  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }],
-  station: "Ferrières (Province de Liège)", statutAlerte: "jaune", titre: "Suivi Météo",
-  description: "Conditions météo normales sur la plaine de Ferrières.",
-  source: "Institut Royal Météorologique (IRM)", obsHeure: "--h--", obsResume: "Calcul...",
-  obsLever: "05h38", obsCoucher: "21h52", obsUV: "0.0", urlFerrieres: "https://www.meteo.be/fr/ferrieres"
+  // FALLBACK DE SECURITE : affiche uniquement l'indisponibilite,
+  // JAMAIS de donnees meteo plausibles inventees (risque de decision
+  // operationnelle sur de fausses informations).
+  live: false, province: "Liege", codeActuel: "vert", maj: "—",
+  timeline: [{ creneau: "FLUX METEO NON RECU — verifier Edge Function meteo-irm + cron", code: "jaune", phenomene: "indisponible" }],
+  station: "Ferrières (Province de Liège)", statutAlerte: "INDISPONIBLE", titre: "Données météo indisponibles",
+  description: "Aucune donnée reçue de la fonction meteo-irm. Consulter meteo.be et le briefing météo QG.",
+  source: "—", obsHeure: "—", obsResume: "OBSERVATION INDISPONIBLE — consulter meteo.be",
+  obsLever: "—", obsCoucher: "—", obsUV: "—", urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
 const MEDIAS_FALLBACK = {
@@ -662,7 +665,11 @@ export default function DashboardQG() {
               className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md"
             >
               <div className="flex justify-between items-center mb-1.5">
-                <span className="text-xxs font-mono text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 tracking-wider uppercase">IRM LIVE</span>
+                <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${
+                  meteoLive
+                    ? "text-amber-300 bg-amber-400/10 border-amber-400/20"
+                    : "text-red-300 bg-red-400/10 border-red-400/30"
+                }`}>{meteoLive ? "IRM LIVE" : "HORS LIGNE"}</span>
                 <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
               </div>
               <div className="text-xs font-semibold text-slate-100 truncate">{METEO.titre} — {METEO.obsResume}</div>

@@ -74,22 +74,26 @@ const GRAV = {
 };
 
 const METEO_FALLBACK = {
-  live: true,
+  // FALLBACK DE SECURITE : plus aucune donnee inventee (l'ancien fallback
+  // affichait un faux "Avertissement Chaleur" et "Temps ensoleillé — 22°C"
+  // meme la nuit). Une vue autorite ne doit montrer que du reel ou
+  // l'indisponibilite explicite.
+  live: false,
   province: "Liege",
   codeActuel: "vert",
-  maj: "Initialisation",
-  timeline: [{ creneau: "Prochaines heures", code: "vert", phenomene: "Conditions normales / RAS" }],
+  maj: "—",
+  timeline: [{ creneau: "FLUX METEO NON RECU — verifier Edge Function meteo-irm + cron", code: "jaune", phenomene: "indisponible" }],
   station: "Ferrières (Province de Liège)",
-  statutAlerte: "jaune",
-  titre: "Avertissement Chaleur",
-  validite: "Du 10/07/2026 00:00 au 15/07/2026 00:00",
-  description: "Le SPF Santé Publique maintient la phase d'avertissement du Plan Forte Chaleur.",
-  source: "Institut Royal Météorologique (IRM)",
-  obsHeure: "17h00",
-  obsResume: "Temps ensoleillé et sec — 22°C",
-  obsLever: "05h38",
-  obsCoucher: "21h52",
-  obsUV: "6.8 (Élevé)",
+  statutAlerte: "INDISPONIBLE",
+  titre: "Données météo indisponibles",
+  validite: "—",
+  description: "Aucune donnée reçue du flux météo. Se référer à meteo.be et au briefing météo du QG festival.",
+  source: "—",
+  obsHeure: "—",
+  obsResume: "OBSERVATION INDISPONIBLE — consulter meteo.be",
+  obsLever: "—",
+  obsCoucher: "—",
+  obsUV: "—",
   urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
 
@@ -292,7 +296,7 @@ export default function PcOps() {
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 pulse-slow" />
               <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase flex items-center gap-1.5">
-                IRM LIVE — AVERTISSEMENTS OFFICIELS ({METEO.station || METEO_FALLBACK.station})
+                {meteoLive ? "IRM LIVE — AVERTISSEMENTS OFFICIELS" : "MÉTÉO HORS LIGNE — DONNÉES NON REÇUES"} ({METEO.station})
                 <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-300 transition-colors inline" />
               </h2>
             </div>
