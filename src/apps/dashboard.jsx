@@ -387,13 +387,13 @@ export default function DashboardQG() {
             </div>
           </a>
 
-          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-            <div className="flex items-center justify-between mb-2">
+          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE (HAUTEUR UNIFORMISÉE h-[148px]) */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[148px] flex flex-col justify-between">
+            <div className="flex items-center justify-between">
               <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
               <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
             </div>
-            <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs">
+            <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs mt-1">
               <div className="grid grid-cols-3 gap-1.5">
                 <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
                   <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option>
@@ -496,16 +496,16 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2">
-            <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5">
+          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE (HAUTEUR FIXÉE h-[148px]) */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 h-[148px] flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
                 <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
               </h2>
               <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
             </div>
 
-            <div className="relative h-14 mt-4 mb-2">
+            <div className="relative h-14 mt-2">
               <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
               {REPERES.map((r, i) => (
                 <div key={i} className="absolute top-3" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
@@ -529,7 +529,7 @@ export default function DashboardQG() {
                 </div>
               ))}
             </div>
-            <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1">
+            <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1 mt-1">
               <span>Attente P0 : {persAttente}</span>
               <span>Rentré QG : {persRentres}</span>
             </div>
