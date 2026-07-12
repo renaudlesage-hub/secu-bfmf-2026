@@ -24,7 +24,10 @@ import {
   Users,
   UserCheck,
   CheckCircle,
-  UserPlus
+  UserPlus,
+  Megaphone,
+  Bell,
+  BellOff
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -73,6 +76,37 @@ const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
 const KEY_MEDIAS = "bfmf2026-medias-live";
+const KEY_CRISE = "bfmf2026-crise";
+const KEY_RECH = "bfmf2026-recherche";
+const KEY_JAUGE = "bfmf2026-jauge";
+const CAPACITE_SITE = 1500; // a ajuster selon le dossier de securite
+
+const MOTIFS_CRISE = [
+  "METEO — mise a l'abri generale",
+  "SUSPENSION des departs balade",
+  "EVACUATION partielle (suivre consignes)",
+  "INCIDENT MAJEUR — standby toutes equipes",
+  "FIN D'ALERTE — reprise normale",
+  "Autre consigne generale",
+];
+
+// Bip d'alerte QG (3 tons, 880 Hz) — le navigateur exige un premier clic
+let _audioCtx = null;
+function bipAlerte() {
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.45, 0.9].forEach((t) => {
+      const o = _audioCtx.createOscillator();
+      const g = _audioCtx.createGain();
+      o.connect(g); g.connect(_audioCtx.destination);
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.35, _audioCtx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + t + 0.35);
+      o.start(_audioCtx.currentTime + t);
+      o.stop(_audioCtx.currentTime + t + 0.4);
+    });
+  } catch (e) {}
+}
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
@@ -136,6 +170,46 @@ export default function DashboardQG() {
   const [meteoLive, setMeteoLive] = useState(null);
   const [mediasLive, setMediasLive] = useState(null);
   const [sanitaire, setSanitaire] = useState([]);
+  const [crise, setCrise] = useState(null);
+  const [recherches, setRecherches] = useState([]);
+  const [jauge, setJauge] = useState(null);
+  const [motifCrise, setMotifCrise] = useState(MOTIFS_CRISE[0]);
+  const [msgCrise, setMsgCrise] = useState("");
+  const [sonActif, setSonActif] = useState(false);
+  const prevCritiques = React.useRef(null);
+
+  async function declencherCrise() {
+    const dn = new Date();
+    const c = {
+      active: true, motif: motifCrise, message: msgCrise.trim(),
+      heure: `${String(dn.getHours()).padStart(2, "0")}:${String(dn.getMinutes()).padStart(2, "0")}`,
+      auteur: "QG", accuses: [],
+    };
+    setCrise(c); setMsgCrise("");
+    if (!(await kvSet(KEY_CRISE, c))) setSbError(true);
+  }
+  async function leverCrise() {
+    if (!crise) return;
+    if (!window.confirm("Lever la consigne generale sur toutes les apps ?")) return;
+    const dn = new Date();
+    const c = { ...crise, active: false, heureLevee: `${String(dn.getHours()).padStart(2, "0")}:${String(dn.getMinutes()).padStart(2, "0")}` };
+    setCrise(null);
+    await kvSet(KEY_CRISE, c);
+  }
+
+  const surSite = jauge
+    ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
+    : null;
+
+  // Alerte sonore : bip des qu'un NOUVEL element critique apparait
+  const nbCritiques =
+    sosParticipants.filter((s) => s.statut === "nouveau").length +
+    alertesCrises.length + (crise ? 1 : 0) + recherches.length;
+  useEffect(() => {
+    if (prevCritiques.current === null) { prevCritiques.current = nbCritiques; return; }
+    if (sonActif && nbCritiques > prevCritiques.current) bipAlerte();
+    prevCritiques.current = nbCritiques;
+  }, [nbCritiques, sonActif]);
   const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
@@ -171,10 +245,11 @@ export default function DashboardQG() {
 
   async function pullAllData() {
     try {
-      const [mi, gr, aLog, aBal, sosP, co, mto, san, med] = await Promise.all([
+      const [mi, gr, aLog, aBal, sosP, co, mto, san, med, cri, rch, jg] = await Promise.all([
         kvGet(KEY_MISSIONS), kvGet(KEY_GROUPES), kvGet(KEY_ALERTE_LOG),
         kvGet(KEY_ALERTE_BAL), kvGet(KEY_SOS_PART), kvGet(KEY_CONSIGNE),
         kvGet(KEY_METEO), kvGet(KEY_SANITAIRE), kvGet(KEY_MEDIAS),
+        kvGet(KEY_CRISE), kvGet(KEY_RECH), kvGet(KEY_JAUGE),
       ]);
       setMissionsLog(Array.isArray(mi) ? mi : []);
       setGroupesBalade(Array.isArray(gr) ? gr : []);
@@ -183,6 +258,9 @@ export default function DashboardQG() {
       setMeteoLive(mto && mto.live ? mto : null);
       setMediasLive(med && med.canaux ? med : null);
       setSanitaire(Array.isArray(san) ? san : []);
+      setCrise(cri && cri.active ? cri : null);
+      setRecherches(Array.isArray(rch) ? rch.filter((x) => x.statut === "active") : []);
+      setJauge(jg && jg.compteurs ? jg : null);
       
       setAlertesCrises([
         aLog && aLog.active ? { ...aLog, source: "Logistique", keyDb: KEY_ALERTE_LOG } : null,
@@ -365,6 +443,76 @@ export default function DashboardQG() {
 
       {/* CONTENU PANORAMIQUE MULTI-COLONNES */}
       <main className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
+        {/* ===== BLOC PLEINE LARGEUR : consigne generale / recherches / jauge ===== */}
+        <div className="lg:col-span-3 space-y-3">
+          <section className={`rounded-lg p-4 ${crise ? "ring-2 ring-red-500/70 bg-red-500/15" : "bg-[#151b23] ring-1 ring-white/10"}`}>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className={`font-display tracking-wide text-sm flex items-center gap-2 ${crise ? "text-red-200" : "text-slate-200"}`}>
+                <Megaphone className={`w-4 h-4 ${crise ? "text-red-300 pulse-slow" : "text-slate-500"}`} /> CONSIGNE GENERALE — TOUTES EQUIPES
+              </h2>
+              <button
+                onClick={() => { setSonActif(!sonActif); if (!sonActif) bipAlerte(); }}
+                className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${sonActif ? "ring-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "ring-white/15 text-slate-500 hover:text-slate-300"}`}
+                title="Bip sonore quand un nouvel evenement critique apparait (SOS, alerte, recherche)"
+              >
+                {sonActif ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+                {sonActif ? "Alertes sonores ON" : "Alertes sonores OFF"}
+              </button>
+            </div>
+            {crise ? (
+              <div>
+                <div className="text-sm text-red-100 font-semibold">{crise.motif}</div>
+                {crise.message && <div className="text-xs text-red-100/90 mt-0.5">{crise.message}</div>}
+                <div className="text-[11px] font-mono text-red-200/70 mt-1">
+                  Emise a {crise.heure} · Accuses "bien recu" : {(crise.accuses || []).length}
+                  {(crise.accuses || []).length > 0 && (
+                    <span className="text-red-200/60"> — {(crise.accuses || []).map((a) => `${a.nom} (${a.heure})`).join(" · ")}</span>
+                  )}
+                </div>
+                <button onClick={leverCrise} className="mt-2 text-xs font-mono px-3 py-2 rounded ring-1 ring-white/40 text-white hover:bg-white/10">
+                  LEVER LA CONSIGNE
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <select className="bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-400/60"
+                  value={motifCrise} onChange={(e) => setMotifCrise(e.target.value)}>
+                  {MOTIFS_CRISE.map((mo) => <option key={mo}>{mo}</option>)}
+                </select>
+                <input className="flex-1 min-w-[160px] bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400/60"
+                  value={msgCrise} onChange={(e) => setMsgCrise(e.target.value)} placeholder="Precision (zones concernees, consigne exacte...)" />
+                <button onClick={declencherCrise}
+                  className="text-xs font-mono font-semibold px-3.5 py-2 rounded ring-2 ring-red-400/60 bg-red-500/20 text-red-200 hover:bg-red-500/35 transition-colors">
+                  DIFFUSER
+                </button>
+                <span className="w-full text-[10px] text-slate-600 font-mono">
+                  Bandeau rouge permanent sur toutes les apps equipes, accuse de lecture nominatif. Doubler a la radio (PMR4.1).
+                </span>
+              </div>
+            )}
+          </section>
+
+          {recherches.map((r) => (
+            <div key={r.id} className="rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100">
+              <span className="font-semibold uppercase">Recherche {r.categorie}</span> — {r.prenom || "?"}{r.age ? `, ${r.age}` : ""} · {r.description}
+              <span className="opacity-80"> · vu(e) : {r.dernierLieu} · depuis {r.heure} · gestion : app Personne recherchee (#recherche)</span>
+            </div>
+          ))}
+
+          {surSite !== null && (
+            <div className="rounded-lg ring-1 ring-white/10 bg-[#151b23] px-4 py-2.5 flex items-center gap-3">
+              <Users className="w-4 h-4 text-slate-500 shrink-0" />
+              <span className="text-xs text-slate-300">Jauge plaine</span>
+              <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className={`h-full ${surSite / CAPACITE_SITE >= 0.9 ? "bg-red-400" : surSite / CAPACITE_SITE >= 0.72 ? "bg-amber-400" : "bg-emerald-400"}`}
+                  style={{ width: `${Math.min(100, Math.round((surSite / CAPACITE_SITE) * 100))}%` }} />
+              </div>
+              <span className={`font-mono text-sm ${surSite / CAPACITE_SITE >= 0.9 ? "text-red-300" : "text-slate-200"}`}>{surSite}</span>
+              <span className="font-mono text-[10px] text-slate-500">/ {CAPACITE_SITE}</span>
+            </div>
+          )}
+        </div>
+
         
         {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE (MÉTÉO EN TÊTE) 🚨 ==================== */}
         <div className="space-y-4 w-full lg:col-span-1">
