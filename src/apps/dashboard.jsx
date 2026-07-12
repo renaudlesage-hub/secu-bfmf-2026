@@ -113,6 +113,9 @@ const REPERES = [
 ];
 
 const METEO_FALLBACK = {
+  // FALLBACK DE SECURITE : affiche uniquement l'indisponibilite,
+  // JAMAIS de donnees meteo plausibles inventees (risque de decision
+  // operationnelle sur de fausses informations).
   live: false, province: "Liege", codeActuel: "vert", maj: "—",
   timeline: [{ creneau: "FLUX METEO NON RECU — verifier Edge Function meteo-irm + cron", code: "jaune", phenomene: "indisponible" }],
   station: "Ferrières (Province de Liège)", statutAlerte: "INDISPONIBLE", titre: "Données météo indisponibles",
@@ -161,11 +164,6 @@ export default function DashboardQG() {
   const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
   const [formLogBloquant, setFormLogBloquant] = useState("Non");
 
-  // States Formulaire Nouvelle Mission Sanitaire (Lancement QG)
-  const [formSanNature, setFormSanNature] = useState("");
-  const [formSanLieu, setFormSanLieu] = useState("Site sanitaires");
-  const [formSanPriorite, setFormSanPriorite] = useState("P3 - Standard");
-
   // States Formulaire Console Météo Interne
   const [mgtVigilance, setMgtVigilance] = useState("vert");
   const [mgtCreneau, setMgtCreneau] = useState("Dans les 2h (+2h)");
@@ -208,6 +206,7 @@ export default function DashboardQG() {
     return () => clearInterval(t);
   }, []);
 
+  // 🚨 CORRECTIF : Prise en charge de l'acquittement ou de la levée d'alerte générale logistique
   async function acquitterAlerteQg(keyDb, objetAlerte) {
     const tempsFige = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const alerteMiseAJour = {
@@ -270,32 +269,6 @@ export default function DashboardQG() {
     };
     const next = [nouvelleMission, ...safeMissions];
     setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
-  }
-
-  async function ajouterMissionSanitaire(e) {
-    e.preventDefault();
-    const nouvelleMissionSan = {
-      id: "san-" + Date.now(),
-      heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
-      locNom: formSanLieu,
-      texte: formSanNature.trim(),
-      priorite: formSanPriorite,
-      statut: "en attente",
-      attribueA: "",
-      provenance: "QG / Manuel"
-    };
-    const next = [nouvelleMissionSan, ...safeSanitaire];
-    setSanitaire(next); setFormSanNature(""); await kvSet(KEY_SANITAIRE, next);
-  }
-
-  async function attribuerMissionSan(id, equipe) {
-    const next = safeSanitaire.map((s) => s.id === id ? { ...s, statut: "en cours", attribueA: equipe } : s);
-    setSanitaire(next); await kvSet(KEY_SANITAIRE, next);
-  }
-
-  async function resoudreMissionSan(id) {
-    const next = safeSanitaire.map((s) => s.id === id ? { ...s, statut: "resolu", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
-    setSanitaire(next); await kvSet(KEY_SANITAIRE, next);
   }
 
   async function attribuerMissionLog(id, equipe) {
@@ -378,7 +351,7 @@ export default function DashboardQG() {
         </div>
       </header>
 
-      {/* BANDEAU ALERTES INTERACTIF */}
+      {/* BANDEAU ALERTES INTERACTIF AVEC BOUTON D'ACQUITTEMENT ET LEVÉE */}
       {alertesCrises.length > 0 && (
         <div className="p-3 bg-red-950/40 border-b border-red-500/30 space-y-1.5 w-full">
           {alertesCrises.map((al, i) => (
@@ -391,6 +364,8 @@ export default function DashboardQG() {
                   {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
                 </span>
               </div>
+              
+              {/* INTERACTION DU BANDEAU */}
               <div className="flex gap-1.5 justify-end shrink-0">
                 {!al.acquittePar && (
                   <button 
@@ -489,10 +464,10 @@ export default function DashboardQG() {
           </div>
         </div>
 
-        {/* ==================== BLOC DE DROITE FUSIONNÉ (COLONNES 2 & 3) ==================== */}
+        {/* ==================== BLOC DE DROITE FUSIONNÉ (COLONNES 2 & 3 SUBDIVISÉES) ==================== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
           
-          {/* ⚡ PLAN RADIO LARGE */}
+          {/* ⚡ PLAN RADIO LARGE EN EN-TÊTE HORIZONTALE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2">
             <div className="flex items-center gap-2 mb-2 pb-1 border-b border-white/5">
               <Radio className="w-4 h-4 text-amber-400" />
@@ -515,7 +490,7 @@ export default function DashboardQG() {
                 <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
                   <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
                 </h2>
-                <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} sur parcours</span>
+                <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
               </div>
 
               {/* Frise linéaire d'avancement */}
@@ -549,63 +524,20 @@ export default function DashboardQG() {
               </div>
             </div>
 
-            {/* 🩺 MODULE DE GESTION SANITAIRE COMPLET COMPACT */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-              <div className="flex justify-between items-center mb-2.5 pb-1 border-b border-white/5">
-                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Droplets className="w-4 h-4 text-cyan-400" /> Tâches Sanitaires Actives
-                </h3>
-                <span className="font-mono text-xxs bg-cyan-500/10 text-cyan-400 px-1.5 rounded border border-cyan-500/20">{sanActifs.length} En cours</span>
-              </div>
-
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 mb-3">
-                {sanActifs.length === 0 ? (
-                  <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune intervention sanitaire en cours.</div>
-                ) : (
-                  sanActifs.map((s) => (
-                    <div key={s.id} className="text-xs bg-black/20 p-2 rounded border border-white/5 space-y-1">
-                      <div className="flex justify-between items-start font-mono text-[9px]">
-                        <span className="text-slate-400">🕒 {s.heure} · 📍 {s.locNom}</span>
-                        <span className={`px-1 rounded uppercase tracking-wide font-bold ${s.priorite?.includes("Critique") ? "text-red-400 bg-red-500/10" : "text-slate-400"}`}>{s.priorite?.slice(0,2)}</span>
-                      </div>
-                      <p className="text-slate-200 font-medium leading-tight">{s.texte}</p>
-                      <div className="flex items-center justify-between pt-1 font-mono text-[10px]">
-                        <span className="text-slate-400">Équipe : <strong className="text-cyan-300 font-normal">{s.attribueA || "À affecter"}</strong></span>
-                        <div className="flex gap-1">
-                          {!s.attribueA && (
-                            <>
-                              <button onClick={() => attribuerMissionSan(s.id, "San-Volante 1")} className="text-[9px] text-sky-400 hover:underline">Vol1</button>
-                              <button onClick={() => attribuerMissionSan(s.id, "San-Volante 2")} className="text-[9px] text-sky-400 hover:underline">Vol2</button>
-                            </>
-                          )}
-                          <button onClick={() => resoudreMissionSan(s.id)} className="text-[9px] text-emerald-400 font-bold hover:underline ml-2">✓ Clore</button>
-                        </div>
-                      </div>
+              <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Signalements Sanitaires</h3>
+              {sanTop.length === 0 ? (
+                <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune anomalie remontée sur les blocs WC.</div>
+              ) : (
+                <div className="space-y-1">
+                  {sanTop.map(([lieu, count]) => (
+                    <div key={lieu} className="flex justify-between items-center text-xs bg-black/20 p-2 rounded border border-white/5">
+                      <span className="text-slate-300">{lieu}</span>
+                      <span className="text-xxs font-mono text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded border border-amber-500/20">{count} plaintes</span>
                     </div>
-                  ))
-                )}
-              </div>
-
-              {/* FORMULAIRE DE LANCEMENT DE TÂCHE SANITAIRE DEPUIS LE QG */}
-              <form onSubmit={ajouterMissionSanitaire} className="border-t border-white/5 pt-2.5 space-y-2 text-xs">
-                <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
-                  <PlusCircle className="w-3.5 h-3.5" /> Lancer une tâche sanitaire QG
+                  ))}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none text-xxs" value={formSanLieu} onChange={(e) => setFormSanLieu(e.target.value)}>
-                    {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                  <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none text-xxs" value={formSanPriorite} onChange={(e) => setFormSanPriorite(e.target.value)}>
-                    <option value="P1 - Critique">P1 - Urgent / Critique</option>
-                    <option value="P2 - Urgent">P2 - Standard</option>
-                    <option value="P3 - Standard">P3 - Confort</option>
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 text-xxs focus:outline-none" value={formSanNature} onChange={(e) => setFormSanNature(e.target.value)} placeholder="Ex: Bloc WC 3 bouché, manque de savon, fuite eau..." required />
-                  <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 px-2.5 py-1 rounded font-mono font-bold text-white text-xxs shadow">LANCER</button>
-                </div>
-              </form>
+              )}
             </div>
 
             {/* Management météo */}
@@ -632,7 +564,7 @@ export default function DashboardQG() {
           {/* ==================== CONTENU INTERNE COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* TABLEAU DE BORD DE L'APPLICATION LOGISTIQUE */}
+            {/* 🛠️ TABLEAU DE BORD DE L'APPLICATION LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
@@ -656,6 +588,7 @@ export default function DashboardQG() {
                         <span className="text-xxs text-slate-500">Statut: <strong className="text-amber-400 font-normal">{m.attribueA ? `En cours (${m.attribueA})` : "En attente"}</strong></span>
                       </div>
 
+                      {/* ACTIONS LOGISTIQUES */}
                       <div className="flex justify-end gap-1 pt-1.5 border-t border-white/5">
                         {!m.attribueA && (
                           <>
@@ -680,7 +613,7 @@ export default function DashboardQG() {
               <form onSubmit={ajouterMissionLogistique} className="space-y-2 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Localisation</label>
+                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Localisation (Synchro Dashboard)</label>
                     <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-200 focus:outline-none" value={formLogLieu} onChange={(e) => setFormLogLieu(e.target.value)}>
                       {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
@@ -696,7 +629,7 @@ export default function DashboardQG() {
                 </div>
                 <div className="grid grid-cols-3 gap-2 items-end">
                   <div className="col-span-2">
-                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Qui signale ? (Auto)</label>
+                    <label className="block text-[9px] font-mono text-slate-400 mb-0.5">Qui signale ? (Lecture Seule - Auto)</label>
                     <input type="text" className="w-full bg-black/50 border border-white/5 rounded px-2 py-1 text-slate-400 font-mono text-[11px] select-none" value={`${SESS_USER.nom} [${SESS_USER.role}]`} disabled />
                   </div>
                   <div>
@@ -733,7 +666,9 @@ export default function DashboardQG() {
             >
               <div className="flex justify-between items-center mb-1.5">
                 <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${
-                  meteoLive ? "text-amber-300 bg-amber-400/10 border-amber-400/20" : "text-red-300 bg-red-400/10 border-red-400/30"
+                  meteoLive
+                    ? "text-amber-300 bg-amber-400/10 border-amber-400/20"
+                    : "text-red-300 bg-red-400/10 border-red-400/30"
                 }`}>{meteoLive ? "IRM LIVE" : "HORS LIGNE"}</span>
                 <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
               </div>
