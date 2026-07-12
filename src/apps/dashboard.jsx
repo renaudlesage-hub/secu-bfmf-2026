@@ -407,13 +407,16 @@ export default function DashboardQG() {
             </form>
           </div>
 
-          {/* 🚨 RENOMMÉ : MONITEUR SÉCURITÉ */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-            <div className="flex items-center gap-2 mb-3 pb-1 border-b border-white/5">
-              <TriangleAlert className="w-4 h-4 text-red-400" />
-              <h2 className="font-display text-xs tracking-wider uppercase text-slate-300">Moniteur Sécurité ({sosVisibles.length})</h2>
+          {/* 🚨 MONITEUR SÉCURITÉ (HAUTEUR FIXÉE h-[360px] ET BADGE STANDARDISÉ) */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
+            <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
+              <div className="flex items-center gap-2">
+                <TriangleAlert className="w-4 h-4 text-red-400" />
+                <h2 className="font-display text-xs tracking-wider uppercase text-slate-300">Moniteur Sécurité</h2>
+              </div>
+              <span className="font-mono text-xxs bg-red-500/10 text-red-400 px-1.5 rounded border border-red-500/20">{sosVisibles.length} Actifs</span>
             </div>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+            <div className="space-y-2 overflow-y-auto pr-1 flex-1">
               {sosVisibles.length === 0 ? (
                 <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune fiche de secours active.</div>
               ) : (
@@ -538,16 +541,16 @@ export default function DashboardQG() {
           {/* ==================== SUB-COLONNE 2 (SOUS LA CARTO) ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* 🩺 RENOMMÉ : MONITEUR SANITAIRE (AFFICHAGE SEUL) */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-              <div className="flex justify-between items-center mb-2.5 pb-1 border-b border-white/5">
+            {/* 🩺 MONITEUR SANITAIRE (HAUTEUR UNIFORMISÉE h-[360px] ET COMPTEUR STANDARDISÉ) */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
+              <div className="flex justify-between items-center mb-3 pb-1 border-b border-white/5 shrink-0">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Droplets className="w-4 h-4 text-cyan-400" /> Moniteur Sanitaire
                 </h3>
                 <span className="font-mono text-xxs bg-cyan-500/10 text-cyan-400 px-1.5 rounded border border-cyan-500/20">{sanActifs.length} Actives</span>
               </div>
 
-              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+              <div className="space-y-2 overflow-y-auto pr-1 flex-1">
                 {sanActifs.length === 0 ? (
                   <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune alerte sanitaire active sur les blocs.</div>
                 ) : (
@@ -583,7 +586,7 @@ export default function DashboardQG() {
               </div>
             </div>
 
-            {/* 📥 SCINDÉ ET RENOMMÉ : CRÉER UNE DEMANDE SANITAIRE */}
+            {/* 📥 CRÉER UNE DEMANDE SANITAIRE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <form onSubmit={ajouterMissionSanitaire} className="space-y-2 text-xs">
                 <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
@@ -645,13 +648,13 @@ export default function DashboardQG() {
           {/* ==================== SUB-COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* 🛠️ RENOMMÉ : MONITEUR LOGISTIQUE */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-              <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
+            {/* 🛠️ MONITEUR LOGISTIQUE (HAUTEUR UNIFORMISÉE h-[360px] ET COMPTEUR STANDARDISÉ) */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
+              <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Moniteur Logistique</h3>
-                <span className="font-mono text-xxs text-slate-400">{logOuvertes.length} Ops</span>
+                <span className="font-mono text-xxs bg-slate-500/15 text-slate-400 px-1.5 rounded border border-white/5">{logOuvertes.length} Actives</span>
               </div>
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              <div className="space-y-2 overflow-y-auto pr-1 flex-1">
                 {logOuvertes.length === 0 ? (
                   <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune anomalie matérielle ouverte.</div>
                 ) : (
