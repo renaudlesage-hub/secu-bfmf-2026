@@ -152,7 +152,7 @@ export default function DashboardQG() {
   const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
   const [formLogBloquant, setFormLogBloquant] = useState("Non");
 
-  // States Formulaire Nouvelle Mission Sanitaire
+  // States Formulaire Nouvelle Demande Sanitaire
   const [formSanType, setFormSanType] = useState("papier");
   const [formSanTypeLabel, setFormSanTypeLabel] = useState("Plus de papier toilette");
   const [formSanLieu, setFormSanLieu] = useState(LIEUX[0]?.nom || "Zone sanitaires");
@@ -369,7 +369,7 @@ export default function DashboardQG() {
         {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE (MÉTÉO EN TÊTE) 🚨 ==================== */}
         <div className="space-y-4 w-full lg:col-span-1">
           
-          {/* DISPLAY MÉTÉO SOURCÉ IRM (EN TÊTE) */}
+          {/* DISPLAY MÉTÉO SOURCÉ IRM */}
           <a 
             href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
             className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md min-h-[102px] max-h-[102px] flex flex-col justify-between"
@@ -387,7 +387,7 @@ export default function DashboardQG() {
             </div>
           </a>
 
-          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE (HAUTEUR UNIFORMISÉE STRICTE) */}
+          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
@@ -407,11 +407,11 @@ export default function DashboardQG() {
             </form>
           </div>
 
-          {/* SOS PARTICIPANTS */}
+          {/* 🚨 RENOMMÉ : MONITEUR SÉCURITÉ */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <div className="flex items-center gap-2 mb-3 pb-1 border-b border-white/5">
               <TriangleAlert className="w-4 h-4 text-red-400" />
-              <h2 className="font-display text-xs tracking-wider uppercase text-slate-300">SOS Participants Actifs ({sosVisibles.length})</h2>
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-300">Moniteur Sécurité ({sosVisibles.length})</h2>
             </div>
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
               {sosVisibles.length === 0 ? (
@@ -538,18 +538,18 @@ export default function DashboardQG() {
           {/* ==================== SUB-COLONNE 2 (SOUS LA CARTO) ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* MONITEUR SANITAIRE TERRAIN */}
+            {/* 🩺 RENOMMÉ : MONITEUR SANITAIRE (AFFICHAGE SEUL) */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex justify-between items-center mb-2.5 pb-1 border-b border-white/5">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Droplets className="w-4 h-4 text-cyan-400" /> Moniteur Sanitaire Terrain
+                  <Droplets className="w-4 h-4 text-cyan-400" /> Moniteur Sanitaire
                 </h3>
                 <span className="font-mono text-xxs bg-cyan-500/10 text-cyan-400 px-1.5 rounded border border-cyan-500/20">{sanActifs.length} Actives</span>
               </div>
 
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 mb-3">
+              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                 {sanActifs.length === 0 ? (
-                  <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune alerte sanitaire active sur les blocs.</div>
+                  <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune alerte sanitaire active sur les blocs.</div>
                 ) : (
                   sanActifs.map((s) => {
                     const estNouveau = s.statut === "nouveau" || s.statut === "en attente";
@@ -569,7 +569,7 @@ export default function DashboardQG() {
                             {s.statut === "en cours" ? (
                               <span className="text-amber-300 font-medium">⚠️ Pris en charge par : {s.prisPar || "Équipe"}</span>
                             ) : (
-                              <span className="text-slate-500">⏳ En attente de prise en charge terrain</span>
+                              <span className="text-slate-500">⏳ En attente terrain</span>
                             )}
                           </span>
                           <button onClick={() => resoudreMissionSanQG(s.id)} className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 hover:bg-emerald-500/30">
@@ -581,10 +581,13 @@ export default function DashboardQG() {
                   })
                 )}
               </div>
+            </div>
 
-              <form onSubmit={ajouterMissionSanitaire} className="border-t border-white/5 pt-2.5 space-y-2 text-xs">
+            {/* 📥 SCINDÉ ET RENOMMÉ : CRÉER UNE DEMANDE SANITAIRE */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+              <form onSubmit={ajouterMissionSanitaire} className="space-y-2 text-xs">
                 <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
-                  <PlusCircle className="w-3.5 h-3.5" /> Lancer une alerte sanitaire
+                  <PlusCircle className="w-3.5 h-3.5" /> Créer une demande sanitaire
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <select 
@@ -642,10 +645,10 @@ export default function DashboardQG() {
           {/* ==================== SUB-COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
             
-            {/* LOGISTIQUE CRITIQUE */}
+            {/* 🛠️ RENOMMÉ : MONITEUR LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex items-center justify-between mb-2.5 pb-1 border-b border-white/5">
-                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Logistique Critique</h3>
+                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Moniteur Logistique</h3>
                 <span className="font-mono text-xxs text-slate-400">{logOuvertes.length} Ops</span>
               </div>
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
