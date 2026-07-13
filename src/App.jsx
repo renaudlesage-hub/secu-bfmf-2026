@@ -1,148 +1,50 @@
-import React, { useState, useEffect } from "react";
-import { 
-  ShieldAlert, 
-  ClipboardList, 
-  Footprints, 
-  TriangleAlert, 
-  Zap, 
-  ChevronRight, 
-  Landmark, 
-  Droplets,
-  Beer,
-  Share2,
-  BookText,
-  UserSearch,
-  Users,
-  LifeBuoy
-} from "lucide-react";
+import React, { useState } from "react";
+import MenuApps from "./apps/MenuApps";
+import DashboardQG from "./apps/dashboard";
+import AppVolante from "./apps/volante";
+import AppLogistique from "./apps/logistique";
 
-// Imports des modules applicatifs opérationnels
-import Dashboard from "./apps/dashboard.jsx";
-import Logistique from "./apps/logistique.jsx";
-import Balade from "./apps/balade.jsx";
-import Sos from "./apps/sos.jsx";
-import Volante from "./apps/volante.jsx";
-import PcOps from "./apps/pcops.jsx";
-import Sanitaire from "./apps/sanitaire.jsx"; 
-import StocksBar from "./apps/StocksBar.jsx"; 
-import CommunityManagerConsole from "./apps/Console-CM.jsx";
-import Signaler from "./apps/signaler.jsx";
-import MainCourante from "./apps/maincourante.jsx";
-import EnfantPerdu from "./apps/enfantperdu.jsx";
-import Jauge from "./apps/jauge.jsx";
-import FicheReflexe from "./apps/fichereflexe.jsx";
-import BandeauGeneral from "./apps/bandeau-general.jsx";
-
-/* ---------------------------------------------------------------------
-   ROUTEUR PRINCIPAL FULL-MOBILE RESPONSIVE — Bucolique Ferrières 2026
---------------------------------------------------------------------- */
-
-const ROUTES = {
-  dashboard: { titre: "Dashboard QG", desc: "Synthèse : alertes, logistique, balade, météo, sanitaire", icon: ShieldAlert, comp: Dashboard, public: false },
-  logistique: { titre: "Missions logistiques", desc: "Saisie, attribution et suivi des demandes", icon: ClipboardList, comp: Logistique, public: false },
-  community: { titre: "Console Community Manager", desc: "Multi-post simultané et photos Base64", icon: Share2, comp: CommunityManagerConsole, public: false },
-  stocksbar: { titre: "Comptabilité Bars", desc: "Inventaires, réassorts et débits en direct", icon: Beer, comp: StocksBar, public: false },
-  balade: { titre: "Suivi balade", desc: "Crowd management du parcours 6,5 km", icon: Footprints, comp: Balade, public: false },
-  volante: { titre: "App Volante", desc: "Engagements, guidage GPS, missions terrain", icon: Zap, comp: Volante, public: false },
-  sanitaire: { titre: "Suivi Sanitaire", desc: "Gestion et résolution des blocs WC", icon: Droplets, comp: Sanitaire, public: false },
-  maincourante: { titre: "Main courante QG", desc: "Journal officiel horodaté et signé de l'événement", icon: BookText, comp: MainCourante, public: false },
-  recherche: { titre: "Personne recherchée", desc: "Enfant perdu — diffusion instantanée à toutes les équipes", icon: UserSearch, comp: EnfantPerdu, public: false },
-  jauge: { titre: "Jauge plaine", desc: "Comptage des accès, personnes sur site en temps réel", icon: Users, comp: Jauge, public: false },
-  reflexe: { titre: "Fiche réflexe", desc: "Numéros, radio, PRV, conduites à tenir — à lire au briefing", icon: LifeBuoy, comp: FicheReflexe, public: false },
-  pcops: { titre: "PC-Ops / Autorité", desc: "Vue de situation en lecture seule", icon: Landmark, comp: PcOps, public: false },
-  sos: { titre: "SOS Participants", desc: "App publique — lien/QR à diffuser aux festivaliers", icon: TriangleAlert, comp: Sos, public: true },
-  signaler: { titre: "Signalement sanitaire", desc: "Page publique des QR codes (WC, poubelles...)", icon: Droplets, comp: Signaler, public: true },
-};
+// Importez vos autres applications au besoin :
+// import ConsoleCM from "./apps/Console-CM";
+// import SanitaireMoniteur from "./apps/sanitaire";
+// import StocksBar from "./apps/StocksBar";
 
 export default function App() {
-  const parseHash = () => {
-    const h = window.location.hash.slice(1) || "";
-    return h.startsWith("signaler") ? "signaler" : h;
+  // L'application par défaut au démarrage (ex: le tableau de bord QG)
+  const [currentApp, setCurrentApp] = useState("dashboard");
+
+  // Fonction de routage dynamique qui renvoie le bon composant selon l'ID sélectionné
+  const renderSelectedApp = () => {
+    switch (currentApp) {
+      case "dashboard":
+        return <DashboardQG />;
+      case "volante":
+        return <AppVolante />;
+      case "logistique":
+        return <AppLogistique />;
+      
+      /* Activez vos autres routes ici au fur et à mesure :
+      case "pcops":
+        return <ConsoleCM />;
+      case "sanitaire":
+        return <SanitaireMoniteur />;
+      case "stocks":
+        return <StocksBar />;
+      */
+      
+      default:
+        return <DashboardQG />;
+    }
   };
-  const [route, setRoute] = useState(parseHash);
-
-  useEffect(() => {
-    const onHash = () => setRoute(parseHash());
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
-
-  const currentRoute = ROUTES[route];
-
-  if (currentRoute) {
-    const Comp = currentRoute.comp;
-    return (
-      <div className="min-h-screen bg-[#11151b]">
-        {!currentRoute.public && <BandeauGeneral />}
-        {!currentRoute.public && (
-          <a 
-            href="#" 
-            className="fixed bottom-4 right-4 z-50 text-xs font-mono font-medium text-slate-300 hover:text-white bg-[#1a222d] ring-1 ring-white/25 rounded-lg px-4 py-2 shadow-xl select-none transition-colors"
-          >
-            ← menu
-          </a>
-        )}
-        {typeof Comp === "function" ? (
-          <Comp />
-        ) : (
-          <div className="flex items-center justify-center min-h-screen text-red-400 font-mono text-xs p-4">
-            ⚠️ Erreur d'initialisation du module.
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans flex flex-col items-center justify-start py-6 px-4 overflow-y-auto">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
-        .font-display { font-family: 'Oswald', sans-serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-      `}</style>
-      
-      <div className="w-full max-w-xl space-y-5">
-        
-        {/* En-tête élargi et plus aéré */}
-        <div className="flex items-center gap-4 bg-[#151b23] p-4 rounded-xl ring-1 ring-white/10 shadow-md">
-          <div className="w-12 h-12 rounded-xl bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
-            <ShieldAlert className="w-6 h-6 text-amber-300" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="font-display tracking-wide text-lg leading-tight uppercase font-bold text-slate-100">PLATEFORME NUMÉRIQUE QG</h1>
-            <p className="text-[11px] text-slate-400 font-mono tracking-wider mt-0.5 uppercase">Bucolique Ferrières · Sécurité & Logistique · 2026</p>
-          </div>
-        </div>
+    <div className="flex w-screen h-screen bg-[#0f1319] overflow-hidden">
+      {/* 1. Barre latérale de navigation optimisée (hauteur fixe, défilement interne) */}
+      <MenuApps currentApp={currentApp} onChangeApp={setCurrentApp} />
 
-        {/* Grille ou liste aérée à 100% de largeur */}
-        <div className="space-y-3">
-          {Object.entries(ROUTES).map(([key, item]) => {
-            const Icon = item.icon;
-            return (
-              <a
-                key={key}
-                href={`#${key}`}
-                className={`flex items-center gap-4 rounded-xl ring-1 p-4 transition-all bg-[#151b23] active:bg-[#1d2633] md:hover:bg-[#1a212b] shadow-sm ${
-                  item.public ? "ring-red-500/30 bg-gradient-to-r from-[#151b23] to-red-950/20" : "ring-white/10"
-                }`}
-              >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 shadow-inner ${item.public ? 'bg-red-500/10' : 'bg-white/[0.04]'}`}>
-                  <Icon className={`w-5 h-5 ${item.public ? "text-red-400" : "text-amber-400"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold tracking-wide text-slate-100">{item.titre}</div>
-                  <div className="text-xs text-slate-400 leading-snug mt-0.5 truncate-2-lines">{item.desc}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
-              </a>
-            );
-          })}
-        </div>
-        
-        <div className="text-[10px] text-slate-600 font-mono text-center pt-4 leading-relaxed border-t border-white/5">
-          Infrastructure opérationnelle : Supabase Live Synchronization<br />
-          #sos est la seule interface accessible hors réseau interne festival
-        </div>
+      {/* 2. Zone d'affichage principale de l'application active */}
+      <div className="flex-1 h-full overflow-y-auto bg-[#0f1319]">
+        {renderSelectedApp()}
       </div>
     </div>
   );
