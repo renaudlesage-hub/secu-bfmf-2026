@@ -11,9 +11,9 @@ import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, 
 
 const NUMEROS = [
   { nom: "URGENCE VITALE", num: "112", note: "medical / incendie — TOUJOURS en premier", urgent: true },
-  { nom: "Police (non urgent)", num: "101", note: "" },
-  { nom: "QG festival (PCE)", num: "04XX XX XX XX", note: "A COMPLETER" },
-  { nom: "Coordinateur securite", num: "04XX XX XX XX", note: "A COMPLETER" },
+  { nom: "Police", num: "101", note: "" },
+  { nom: "Directeur d'événement", num: "04XX XX XX XX", note: "Jérôme" },
+  { nom: "Coordinateur securite", num: "0494 22 29 33", note: "Renaud" },
   { nom: "Responsable balade", num: "04XX XX XX XX", note: "A COMPLETER" },
   { nom: "Poste secours / Croix-Rouge", num: "04XX XX XX XX", note: "A COMPLETER" },
   { nom: "Centre antipoison", num: "070 245 245", note: "" },
@@ -27,7 +27,7 @@ const RADIO = [
 ];
 
 const PRV = [
-  { nom: "Point 0 / Depart", gps: "50.3835, 5.6215" },
+  { nom: "Entrée site / Depart", gps: "50.3835, 5.6215" },
   { nom: "PRV#4 — Rue Sainte-Barbe", gps: "50.38212, 5.61673" },
   { nom: "PRV#5 — Rue de Jehonhe", gps: "50.37568, 5.64412" },
   { nom: "PRV#6", gps: "50.38236, 5.64579" },

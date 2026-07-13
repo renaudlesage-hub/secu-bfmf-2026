@@ -1,60 +1,74 @@
-import React, { useState } from 'react';
-import { 
-  Shield, Truck, HeartPulse, Search, ChevronDown, ChevronRight, 
-  LayoutDashboard, Wrench, BarChart3, AlertOctagon, ClipboardList, 
-  Map, Signal, ShieldAlert 
-} from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Shield, Truck, HeartPulse, Search, ChevronDown, ChevronRight,
+  LayoutDashboard, X, Globe, ShieldAlert,
+} from "lucide-react";
+
+/* ------------------------------------------------------------------
+   MENU DES APPLICATIONS -- BFMF 2026
+   4 poles internes + acces publics separes visuellement (rouge).
+   Les IDs correspondent aux hash (#dashboard, #volante...).
+------------------------------------------------------------------ */
 
 const CATEGORIES = {
   qg: { label: "Commandement & QG", icon: Shield, color: "text-amber-400" },
-  logistique: { label: "Logistique & Régulation", icon: Truck, color: "text-sky-400" },
-  sanitaire: { label: "Secours & Sanitaire", icon: HeartPulse, color: "text-cyan-400" }
+  logistique: { label: "Logistique & Regulation", icon: Truck, color: "text-sky-400" },
+  terrain: { label: "Secours & Terrain", icon: HeartPulse, color: "text-cyan-400" },
+  public: { label: "Acces publics (QR / liens)", icon: Globe, color: "text-red-400" },
 };
 
 const APPS_LIST = [
-  // Pôle Commandement & QG
-  { id: 'dashboard', name: 'Tableau de Bord QG', cat: 'qg' },
-  { id: 'console-cm', name: 'Console CM / Crise', cat: 'qg' },
-  { id: 'pcops', name: 'Console PC Ops', cat: 'qg' },
-  { id: 'maincourante', name: 'Main Courante Ops', cat: 'qg' },
-  { id: 'fichereflexe', name: 'Fiches Réflexes Sécu', cat: 'qg' },
-  
-  // Pôle Logistique & Régulation
-  { id: 'logistique', name: 'Moniteur Logistique', cat: 'logistique' },
-  { id: 'stocks', name: 'Gestion des Stocks Bar', cat: 'logistique' },
-  { id: 'jauge', name: 'Indicateurs Jauge Site', cat: 'logistique' },
-  
-  // Pôle Secours & Territoire
-  { id: 'volante', name: 'Application Équipe Volante', cat: 'sanitaire' },
-  { id: 'sanitaire', name: 'Moniteur Sanitaire Blocs', cat: 'sanitaire' },
-  { id: 'balade', name: 'Suivi Balade & Parcours', cat: 'sanitaire' },
-  { id: 'sos', name: 'Module SOS Participant', cat: 'sanitaire' },
-  { id: 'signaler', name: 'Interface Signalement', cat: 'sanitaire' }
+  // Pole Commandement & QG
+  { id: "dashboard", name: "Tableau de bord QG", cat: "qg" },
+  { id: "maincourante", name: "Main courante QG", cat: "qg" },
+  { id: "pcops", name: "Console PC-Ops / Autorite", cat: "qg" },
+  { id: "console-cm", name: "Console medias (CM)", cat: "qg" },
+  { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg" },
+
+  // Pole Logistique & Regulation
+  { id: "logistique", name: "Missions logistiques", cat: "logistique" },
+  { id: "stocks", name: "Stocks bar (plaine + etapes)", cat: "logistique" },
+  { id: "jauge", name: "Jauge plaine / acces", cat: "logistique" },
+
+  // Pole Secours & Terrain
+  { id: "volante", name: "Equipe volante", cat: "terrain" },
+  { id: "balade", name: "Suivi balade & parcours", cat: "terrain" },
+  { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "terrain" },
+  { id: "recherche", name: "Personne recherchee", cat: "terrain", alerte: true },
+
+  // Acces publics — a diffuser aux festivaliers uniquement
+  { id: "sos", name: "SOS participant (public)", cat: "public" },
+  { id: "signaler", name: "Signalement sanitaire (public)", cat: "public" },
 ];
 
-export default function MenuApps({ currentApp, onChangeApp }) {
+export default function MenuApps({ currentApp, onChangeApp, onClose }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, sanitaire: true });
+  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, terrain: true, public: false });
 
-  const toggleCat = (cat) => setOpenCats(prev => ({ ...prev, [cat]: !prev[cat] }));
+  const toggleCat = (cat) => setOpenCats((prev) => ({ ...prev, [cat]: !prev[cat] }));
 
-  const filteredApps = APPS_LIST.filter(app => 
+  const filteredApps = APPS_LIST.filter((app) =>
     app.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="w-64 bg-[#11151d] border-r border-white/5 h-screen p-4 flex flex-col gap-4 shrink-0">
       <div className="flex items-center gap-2 px-1">
-        <LayoutDashboard className="w-4 h-4 text-slate-400" />
-        <span className="font-mono text-xs font-bold tracking-wider text-slate-300">HUB APPLICATIONS (V2)</span>
+        <ShieldAlert className="w-4 h-4 text-amber-300" />
+        <span className="font-mono text-xs font-bold tracking-wider text-slate-300 flex-1">SECU BFMF 2026</span>
+        {onClose && (
+          <button onClick={onClose} className="text-slate-500 hover:text-white" title="Fermer">
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="relative">
         <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
-        <input 
-          type="text" 
-          placeholder="Filtrer les modules..." 
-          className="w-full bg-black/40 border border-white/10 rounded pl-8 pr-3 py-1.5 text-xxs text-slate-300 focus:outline-none focus:border-sky-500/50 font-mono"
+        <input
+          type="text"
+          placeholder="Filtrer les modules..."
+          className="w-full bg-black/40 border border-white/10 rounded pl-8 pr-3 py-1.5 text-[11px] text-slate-300 focus:outline-none focus:border-sky-500/50 font-mono"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -62,15 +76,16 @@ export default function MenuApps({ currentApp, onChangeApp }) {
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-1">
         {Object.entries(CATEGORIES).map(([catKey, catMeta]) => {
-          const catApps = filteredApps.filter(a => a.cat === catKey);
+          const catApps = filteredApps.filter((a) => a.cat === catKey);
           if (catApps.length === 0) return null;
-          
+
           const Icon = catMeta.icon;
-          const isOpen = openCats[catKey];
+          const isOpen = openCats[catKey] || searchTerm.length > 0;
+          const estPublic = catKey === "public";
 
           return (
             <div key={catKey} className="space-y-1.5">
-              <button 
+              <button
                 onClick={() => toggleCat(catKey)}
                 className="w-full flex items-center justify-between text-[10px] font-mono tracking-wider uppercase text-slate-500 hover:text-slate-300 py-1 transition-colors"
               >
@@ -82,15 +97,22 @@ export default function MenuApps({ currentApp, onChangeApp }) {
               </button>
 
               {isOpen && (
-                <div className="pl-3 space-y-1 border-l border-white/5 ml-1.5 transition-all">
-                  {catApps.map(app => (
+                <div className={`pl-3 space-y-1 border-l ml-1.5 ${estPublic ? "border-red-400/20" : "border-white/5"}`}>
+                  {estPublic && (
+                    <div className="text-[9px] text-red-300/70 leading-snug pb-1">
+                      Pages festivaliers : s'ouvrent SANS le menu interne. Liens/QR a diffuser.
+                    </div>
+                  )}
+                  {catApps.map((app) => (
                     <button
                       key={app.id}
                       onClick={() => onChangeApp(app.id)}
                       className={`w-full text-left px-2 py-1.5 rounded text-xs transition-all tracking-wide ${
-                        currentApp === app.id 
-                          ? 'bg-sky-500/10 text-sky-400 font-medium border border-sky-500/20 shadow-sm' 
-                          : 'text-slate-400 hover:bg-white/[0.02] hover:text-slate-200'
+                        currentApp === app.id
+                          ? "bg-sky-500/10 text-sky-400 font-medium border border-sky-500/20 shadow-sm"
+                          : estPublic
+                          ? "text-red-300/80 hover:bg-red-500/5 hover:text-red-200"
+                          : "text-slate-400 hover:bg-white/[0.02] hover:text-slate-200"
                       }`}
                     >
                       {app.name}
@@ -101,6 +123,11 @@ export default function MenuApps({ currentApp, onChangeApp }) {
             </div>
           );
         })}
+      </div>
+
+      <div className="text-[9px] font-mono text-slate-600 leading-snug px-1">
+        Navigation par lien : #dashboard, #volante...<br />
+        Publics : #sos · #signaler/ID (QR)
       </div>
     </div>
   );

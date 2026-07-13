@@ -416,7 +416,7 @@ export default function AppVolante() {
         {alertes.map((a, i) => (
           <div key={i} className="rounded-xl ring-2 ring-red-500/50 bg-red-950/30 p-4 shadow-md">
             <div className="font-display text-red-400 text-sm tracking-wide font-bold flex items-center gap-2">
-              <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow" /> DETRÈS COMPAGNON {a.source.toUpperCase()}
+              <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow" /> ALERTE ÉQUIPE — {a.source.toUpperCase()}
             </div>
             <div className="text-sm text-white font-semibold mt-1">{a.motif}</div>
             <div className="text-[11px] font-mono text-red-300/70 mt-1">
