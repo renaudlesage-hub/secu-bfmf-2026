@@ -1,37 +1,59 @@
 import React, { useState } from "react";
 import MenuApps from "./apps/MenuApps";
-import DashboardQG from "./apps/dashboard";
-import AppVolante from "./apps/volante";
-import AppLogistique from "./apps/logistique";
 
-// Importez vos autres applications au besoin :
-// import ConsoleCM from "./apps/Console-CM";
-// import SanitaireMoniteur from "./apps/sanitaire";
-// import StocksBar from "./apps/StocksBar";
+// Importations exactes de l'ensemble des modules du dossier apps
+import DashboardQG from "./apps/dashboard";
+import ConsoleCM from "./apps/Console-CM";
+import PCOps from "./apps/pcops";
+import MainCourante from "./apps/maincourante";
+import FicheReflexe from "./apps/fichereflexe";
+import AppLogistique from "./apps/logistique";
+import StocksBar from "./apps/StocksBar";
+import Jauge from "./apps/jauge";
+import AppVolante from "./apps/volante";
+import Sanitaire from "./apps/sanitaire";
+import Balade from "./apps/balade";
+import Sos from "./apps/sos";
+import Signaler from "./apps/signaler";
 
 export default function App() {
-  // L'application par défaut au démarrage (ex: le tableau de bord QG)
   const [currentApp, setCurrentApp] = useState("dashboard");
 
-  // Fonction de routage dynamique qui renvoie le bon composant selon l'ID sélectionné
+  // Table de routage sans omission
   const renderSelectedApp = () => {
     switch (currentApp) {
+      // QG & Commandement
       case "dashboard":
         return <DashboardQG />;
-      case "volante":
-        return <AppVolante />;
+      case "console-cm":
+        return <ConsoleCM />;
+      case "pcops":
+        return <PCOps />;
+      case "maincourante":
+        return <MainCourante />;
+      case "fichereflexe":
+        return <FicheReflexe />;
+
+      // Logistique
       case "logistique":
         return <AppLogistique />;
-      
-      /* Activez vos autres routes ici au fur et à mesure :
-      case "pcops":
-        return <ConsoleCM />;
-      case "sanitaire":
-        return <SanitaireMoniteur />;
       case "stocks":
         return <StocksBar />;
-      */
-      
+      case "jauge":
+        return <Jauge />;
+
+      // Secours & Terrain
+      case "volante":
+        return <AppVolante />;
+      case "sanitaire":
+        return <Sanitaire />;
+      case "balade":
+        return <Balade />;
+      case "sos":
+        return <Sos />;
+      case "signaler":
+        return <Signaler />;
+
       default:
         return <DashboardQG />;
     }
@@ -39,10 +61,10 @@ export default function App() {
 
   return (
     <div className="flex w-screen h-screen bg-[#0f1319] overflow-hidden">
-      {/* 1. Barre latérale de navigation optimisée (hauteur fixe, défilement interne) */}
+      {/* Menu à gauche avec transfert d'états */}
       <MenuApps currentApp={currentApp} onChangeApp={setCurrentApp} />
 
-      {/* 2. Zone d'affichage principale de l'application active */}
+      {/* Zone applicative autonome */}
       <div className="flex-1 h-full overflow-y-auto bg-[#0f1319]">
         {renderSelectedApp()}
       </div>
