@@ -230,9 +230,6 @@ export default function AppVolante() {
   groupes.forEach((g) => {
     if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
   });
-  const etapesSaturees = ["e1", "e2", "e3"]
-    .map((eid, i) => ({ nom: `Etape ${i + 1}`, n: parEtape[eid], pct: parEtape[eid] / CAPACITE_ETAPE }))
-    .filter((e) => e.pct >= 0.72);
 
   async function accuserConsigne() {
     if (!consigne) return;
@@ -315,7 +312,6 @@ export default function AppVolante() {
         </div>
       </header>
 
-      {/* STICKY GPS FIXÉ ET AJUSTÉ AVEC LES DEUX BOUTONS DE CARTOGRAPHIE */}
       {cible && (
         <div className="sticky top-[69px] z-10 bg-[#1a2536] border-b-2 border-amber-400/60 shadow-lg px-4 py-3">
           <div className="w-full max-w-xl mx-auto flex items-center justify-between gap-3">
@@ -328,17 +324,15 @@ export default function AppVolante() {
               </div>
             </div>
             
-            {/* ACTION LINKS GROUP */}
             <div className="flex items-center gap-1.5 shrink-0">
               <a
                 href={mapsUrl(cible.lat, cible.lon)}
                 target="_blank"
-                rel="noreferrer"
+                 Terrell="noreferrer"
                 className="text-[11px] font-mono font-bold px-2.5 py-2.5 rounded-xl ring-1 ring-amber-400/40 bg-amber-400/10 text-amber-300 flex items-center gap-1 active:bg-amber-400/30 shadow-sm"
               >
                 <Car className="w-3.5 h-3.5" /> GPS
               </a>
-              {/* 🗺️ RÉINTÉGRATION DU BOUTON MYMAPS OPÉRATIONNEL */}
               <a
                 href={myMapsUrl(cible.lat, cible.lon)}
                 target="_blank"
@@ -356,15 +350,13 @@ export default function AppVolante() {
         </div>
       )}
 
-      {/* CONTENEUR PRINCIPAL */}
       <main className="w-full max-w-xl mx-auto px-4 py-4 space-y-4">
         {sbError && (
           <div className="rounded-xl bg-red-500/10 ring-1 ring-red-500/20 text-red-400 text-xs px-3 py-2.5 font-mono flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" /> Synchronisation interrompue (Zone Blanche)
+            <TriangleAlert className="w-4 h-4 shrink-0" /> Synchronisation interrompue (Zone Blanche)
           </div>
         )}
 
-        {/* METEO MONITEUR */}
         <section className="bg-[#151b23] rounded-xl p-4 ring-1 ring-white/10 shadow-md">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase">
@@ -389,7 +381,6 @@ export default function AppVolante() {
           </div>
         </section>
 
-        {/* CONSIGNE D'ENGAGEMENT */}
         {consigne && (
           <section className="rounded-xl ring-2 ring-amber-400/50 bg-amber-400/10 p-4 shadow-lg space-y-3">
             <div>
@@ -422,7 +413,6 @@ export default function AppVolante() {
           </section>
         )}
 
-        {/* ALERTES ÉQUIPES CRITIQUES */}
         {alertes.map((a, i) => (
           <div key={i} className="rounded-xl ring-2 ring-red-500/50 bg-red-950/30 p-4 shadow-md">
             <div className="font-display text-red-400 text-sm tracking-wide font-bold flex items-center gap-2">
@@ -435,7 +425,6 @@ export default function AppVolante() {
           </div>
         ))}
 
-        {/* SOS PARTICIPANTS */}
         <section className="bg-[#151b23] rounded-xl ring-1 ring-white/10 p-4 shadow-md space-y-3">
           <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase border-b border-white/5 pb-2">
             <TriangleAlert className={`w-4 h-4 ${sosActifs.some((s) => (s.statut || "").toLowerCase() === "nouveau") ? "text-red-400 pulse-slow" : "text-slate-500"}`} />
@@ -455,7 +444,10 @@ export default function AppVolante() {
                         <span className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300">{s.heure}</span>
                         <span className="truncate text-slate-300 font-medium">{s.nom}</span>
                       </div>
-                      <h3 className="text-base font-bold text-white mt-1 leading-tight">{s.motif}</h3>
+                      {/* FIX : ALIGNEMENT ROBUSTE DE L'AFFICHAGE DU NOM DU INCIDENT/SOS */}
+                      <h3 className="text-base font-bold text-white mt-1 leading-tight">
+                        {s.motif || s.typeLabel || s.texte || "Alerte Secours Victime"}
+                      </h3>
                     </div>
                     {s.tel && (
                       <a href={`tel:${s.tel}`} className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 active:bg-emerald-500/20 shrink-0 border border-emerald-500/20">
@@ -466,17 +458,17 @@ export default function AppVolante() {
 
                   {s.surTrace && (
                     <div className="text-xs text-slate-300 bg-white/[0.02] p-2 rounded-lg border border-white/5 font-mono">
-                      📍 Alignement parcours : km {s.surTrace.km} · {s.surTrace.segment || s.surTrace.reperePlusProche}
+                      📍 Alignement : {s.surTrace.segment || s.surTrace.reperePlusProche || "—"} {s.surTrace.km ? `(km ${s.surTrace.km})` : ""}
                       {s.surTrace.ecartMetres > 100 && <span className="text-amber-400 block mt-1 font-bold">⚠️ Écart : ~{s.surTrace.ecartMetres} m HORS TRACE</span>}
                     </div>
                   )}
 
-                  {s.details && <div className="text-xs text-slate-400 italic bg-black/40 p-2.5 rounded-lg border border-white/5">"{s.details}"</div>}
+                  {s.details && <div className="text-xs text-slate-300 bg-black/40 p-2.5 rounded-lg border border-white/5 leading-relaxed font-mono">"{s.details}"</div>}
 
                   <div className="grid grid-cols-2 gap-2">
                     {s.gps && (
                       <button
-                        onClick={() => guiderVers(`SOS: ${s.motif}`, s.gps.lat, s.gps.lon, `Festivalier: ${s.nom}`)}
+                        onClick={() => guiderVers(`SOS: ${s.motif || "Secours"}`, s.gps.lat, s.gps.lon, `Festivalier: ${s.nom}`)}
                         className="text-xs font-mono font-bold px-2.5 py-3 rounded-xl ring-1 ring-red-500/40 bg-red-500/10 text-red-200 flex items-center justify-center gap-1.5 active:bg-red-500/30"
                       >
                         <Compass className="w-4 h-4" /> Approche Victime
@@ -550,7 +542,6 @@ export default function AppVolante() {
           </div>
         </section>
 
-        {/* MISSIONS LOGISTIQUES ATTRIBUÉES */}
         <section className="bg-[#151b23] rounded-xl ring-1 ring-white/10 p-4 shadow-md space-y-3">
           <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase border-b border-white/5 pb-2">
             <ClipboardList className="w-4 h-4 text-slate-500" /> Missions Logistiques Volante ({mesMissions.length})

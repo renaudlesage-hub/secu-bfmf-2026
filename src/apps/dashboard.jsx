@@ -79,7 +79,7 @@ const KEY_MEDIAS = "bfmf2026-medias-live";
 const KEY_CRISE = "bfmf2026-crise";
 const KEY_RECH = "bfmf2026-recherche";
 const KEY_JAUGE = "bfmf2026-jauge";
-const CAPACITE_SITE = 1500; // a ajuster selon le dossier de securite
+const CAPACITE_SITE = 1500; 
 
 const MOTIFS_CRISE = [
   "METEO — mise a l'abri generale",
@@ -90,7 +90,6 @@ const MOTIFS_CRISE = [
   "Autre consigne generale",
 ];
 
-// Bip d'alerte QG (3 tons, 880 Hz) — le navigateur exige un premier clic
 let _audioCtx = null;
 function bipAlerte() {
   try {
@@ -188,6 +187,7 @@ export default function DashboardQG() {
     setCrise(c); setMsgCrise("");
     if (!(await kvSet(KEY_CRISE, c))) setSbError(true);
   }
+  
   async function leverCrise() {
     if (!crise) return;
     if (!window.confirm("Lever la consigne generale sur toutes les apps ?")) return;
@@ -201,38 +201,35 @@ export default function DashboardQG() {
     ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
     : null;
 
-  // Alerte sonore : bip des qu'un NOUVEL element critique apparait
   const nbCritiques =
     sosParticipants.filter((s) => s.statut === "nouveau").length +
     alertesCrises.length + (crise ? 1 : 0) + recherches.length;
+    
   useEffect(() => {
     if (prevCritiques.current === null) { prevCritiques.current = nbCritiques; return; }
     if (sonActif && nbCritiques > prevCritiques.current) bipAlerte();
     prevCritiques.current = nbCritiques;
   }, [nbCritiques, sonActif]);
+  
   const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
 
-  // States Formulaire SOS Actifs
   const [formMotif, setFormMotif] = useState("médical");
   const [formLieu, setFormLieu] = useState("Site grande scène");
   const [formNom, setFormNom] = useState(SESS_USER.nom);
   const [formDetails, setFormDetails] = useState("");
 
-  // States Formulaire Nouvelle Demande Logistique
   const [formLogNature, setFormLogNature] = useState("");
   const [formLogLieu, setFormLogLieu] = useState("Site zone logistique");
   const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
   const [formLogBloquant, setFormLogBloquant] = useState("Non");
 
-  // States Formulaire Nouvelle Demande Sanitaire
   const [formSanType, setFormSanType] = useState("papier");
   const [formSanTypeLabel, setFormSanTypeLabel] = useState("Plus de papier toilette");
   const [formSanLieu, setFormSanLieu] = useState(LIEUX[0]?.nom || "Zone sanitaires");
   const [formSanCommentaire, setFormSanCommentaire] = useState("");
 
-  // States Formulaire Console Météo Interne
   const [mgtVigilance, setMgtVigilance] = useState("vert");
   const [mgtCreneau, setMgtCreneau] = useState("Dans les 2h (+2h)");
   const [mgtCouleurLigne, setMgtCouleurLigne] = useState("vert");
@@ -262,9 +259,22 @@ export default function DashboardQG() {
       setRecherches(Array.isArray(rch) ? rch.filter((x) => x.statut === "active") : []);
       setJauge(jg && jg.compteurs ? jg : null);
       
+      // FIX : CAPTURE DU SOS TERRAIN DEPUIS L'APP POUR FAIRE FLASHER LE BANDEAU EN HAUT DU DASHBOARD
+      const sosTerrainsCrise = Array.isArray(sosP)
+        ? sosP.filter(s => s.statut === "nouveau").map(s => ({
+            active: true,
+            source: "App Externe / Terrain",
+            motif: s.motif || s.typeLabel || s.texte || "SOS Matérialisé",
+            details: s.details ? `(${s.details})` : "",
+            keyDb: KEY_SOS_PART,
+            idOriginal: s.id
+          }))
+        : [];
+
       setAlertesCrises([
         aLog && aLog.active ? { ...aLog, source: "Logistique", keyDb: KEY_ALERTE_LOG } : null,
         aBal && aBal.active ? { ...aBal, source: "Balade / Secours", keyDb: KEY_ALERTE_BAL } : null,
+        ...sosTerrainsCrise
       ].filter(Boolean));
       setSbError(false);
     } catch (e) {
@@ -284,9 +294,14 @@ export default function DashboardQG() {
     await kvSet(keyDb, alerteMiseAJour); pullAllData();
   }
 
-  async function leverAlerteQg(keyDb, objetAlerte) {
-    const alerteMiseAJour = { ...objetAlerte, active: false, leveePar: `${SESS_USER.nom} (${SESS_USER.role})`, heureLevee: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
-    await kvSet(keyDb, alerteMiseAJour); pullAllData();
+  async function leverAlerteQg(keyDb, alerteInfo) {
+    if (keyDb === KEY_SOS_PART) {
+      const updatedSos = safeSos.map(s => s.id === alerteInfo.idOriginal ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
+      await kvSet(KEY_SOS_PART, updatedSos);
+    } else {
+      await kvSet(keyDb, { ...alerteInfo, active: false, leveePar: `${SESS_USER.nom} (${SESS_USER.role})`, heureLevee: `${pad(now.getHours())}:${pad(now.getMinutes())}` });
+    }
+    pullAllData();
   }
 
   async function prendreEnCompteSos(id) {
@@ -307,7 +322,7 @@ export default function DashboardQG() {
       motif: formMotif, nom: formNom, tel: "Radio", details: formDetails.trim(), statut: "nouveau",
       surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment } : null
     };
-    const next = [nouveauSos, ...safeSos]; setSosParticipants(next); setFormDetails(""); await kvSet(KEY_SOS_PART, next);
+    const next = [nouveauSos, ...safeSos]; setSosParticipants(next); setFormDetails(""); await kvSet(KEY_SOS_PART, next); pullAllData();
   }
 
   async function ajouterMissionLogistique(e) {
@@ -420,7 +435,7 @@ export default function DashboardQG() {
         </div>
       </header>
 
-      {/* BANDEAU ALERTES INTERACTIF */}
+      {/* BANDEAU ALERTES INTERACTIF ET FLASH SOS TERRAIN */}
       {alertesCrises.length > 0 && (
         <div className="p-3 bg-red-950/40 border-b border-red-500/30 space-y-1.5 w-full">
           {alertesCrises.map((al, i) => (
@@ -429,12 +444,12 @@ export default function DashboardQG() {
                 <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow shrink-0" />
                 <span className="font-bold text-red-200 uppercase shrink-0">SOS {al.source} :</span>
                 <span className="text-slate-200 truncate">
-                  "{al.motif}" {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
+                  "{al.motif}" {al.details} {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
                 </span>
               </div>
               <div className="flex gap-1.5 justify-end shrink-0">
                 {!al.acquittePar && <button onClick={() => acquitterAlerteQg(al.keyDb, al)} className="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">Acquitter</button>}
-                <button onClick={() => leverAlerteQg(al.keyDb, al)} className="text-[10px] font-mono bg-white/5 text-slate-300 px-2 py-0.5 rounded border border-white/10">Lever</button>
+                <button onClick={() => leverAlerteQg(al.keyDb, al)} className="text-[10px] font-mono bg-white/5 text-slate-300 px-2 py-0.5 rounded border border-white/10">Prendre en compte / Lever</button>
               </div>
             </div>
           ))}
@@ -513,8 +528,7 @@ export default function DashboardQG() {
           )}
         </div>
 
-        
-        {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE (MÉTÉO EN TÊTE) 🚨 ==================== */}
+        {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE 🚨 ==================== */}
         <div className="space-y-4 w-full lg:col-span-1">
           
           {/* DISPLAY MÉTÉO SOURCÉ IRM */}
@@ -572,10 +586,12 @@ export default function DashboardQG() {
                   <div key={s.id} className={`p-2.5 rounded border text-xs bg-white/[0.01] ${s.statut === "nouveau" ? "border-red-500/30 bg-red-500/5" : "border-white/5"}`}>
                     <div className="flex justify-between items-start font-mono text-[10px] text-slate-400 mb-1">
                       <span>{s.heure} · {s.nom}</span>
-                      <span className="text-amber-400 uppercase font-bold">{s.statut}</span>
+                      <span className="text-amber-400 uppercase font-bold text-[10px]">{s.statut}</span>
                     </div>
-                    <div className="font-semibold text-slate-100">{s.motif}</div>
-                    {s.details && <div className="text-[10px] text-slate-400 italic mt-1 bg-black/20 p-1 rounded">"{s.details}"</div>}
+                    {/* ACCORD DE STRUTURE POUR TOUTES LES APPS EMETTRICES */}
+                    <div className="font-semibold text-slate-100">{s.motif || s.typeLabel || s.texte || "SOS Matérialisé"}</div>
+                    {s.details && <div className="text-[10px] text-slate-400 italic mt-1 bg-black/20 p-2 rounded font-mono">"{s.details}"</div>}
+                    {s.surTrace && <div className="text-[9px] font-mono text-amber-400 mt-1">📍 Trace : {s.surTrace.segment || "—"}</div>}
                     <div className="mt-2 flex gap-1.5 justify-end">
                       {s.statut === "nouveau" && <button onClick={() => prendreEnCompteSos(s.id)} className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>}
                       <button onClick={() => cloturerSos(s.id)} className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Clôturer</button>
@@ -627,10 +643,10 @@ export default function DashboardQG() {
           </div>
         </div>
 
-        {/* ==================== BLOC DROIT AVANCÉ MUTÉ (COLONNES 2 & 3 SUBDIVISÉES) ==================== */}
+        {/* ==================== BLOC DROIT AVANCÉ MUTÉ ==================== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
           
-          {/* ⚡ PLAN RADIO LARGE (HAUTEUR STRICTEMENT VERROUILLÉE h-[102px]) */}
+          {/* ⚡ PLAN RADIO LARGE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2 min-h-[102px] max-h-[102px] flex flex-col justify-between">
             <div className="flex items-center gap-2 pb-1 border-b border-white/5">
               <Radio className="w-4 h-4 text-amber-400" />
@@ -685,7 +701,7 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* ==================== SUB-COLONNE 2 (SOUS LA CARTO) ==================== */}
+          {/* ==================== SUB-COLONNE 2 ==================== */}
           <div className="space-y-4 w-full">
             
             {/* 🩺 MONITEUR SANITAIRE */}
