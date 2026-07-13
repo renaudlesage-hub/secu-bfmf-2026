@@ -31,8 +31,7 @@ import {
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
-   DASHBOARD QG — CONSOLE DE SUPERVISION INTERACTIVE AVEC ACQUITTEMENT
-   Bucolique Ferrières Musique Festival 2026
+   DASHBOARD QG — CONSOLE DE SUPERVISION INTERACTIVE CORRIGÉE (BFMF 2026)
 --------------------------------------------------------------------- */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
@@ -138,9 +137,9 @@ const REPERES = [
 
 const METEO_FALLBACK = {
   live: false, province: "Liege", codeActuel: "vert", maj: "—",
-  timeline: [{ creneau: "FLUX METEO NON RECU — verifier Edge Function meteo-irm + cron", code: "jaune", phenomene: "indisponible" }],
+  timeline: [{ creneau: "FLUX METEO NON RECU", code: "jaune", phenomene: "indisponible" }],
   station: "Ferrières (Province de Liège)", statutAlerte: "INDISPONIBLE", titre: "Données météo indisponibles",
-  description: "Aucune donnée reçue de la fonction meteo-irm. Consulter meteo.be.",
+  description: "Aucune donnée reçue. Consulter meteo.be.",
   source: "—", obsHeure: "—", obsResume: "OBSERVATION INDISPONIBLE",
   obsLever: "—", obsCoucher: "—", obsUV: "—", urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
@@ -175,45 +174,11 @@ export default function DashboardQG() {
   const [motifCrise, setMotifCrise] = useState(MOTIFS_CRISE[0]);
   const [msgCrise, setMsgCrise] = useState("");
   const [sonActif, setSonActif] = useState(false);
+  const [sbError, setSbError] = useState(false);
   const prevCritiques = React.useRef(null);
 
-  async function declencherCrise() {
-    const dn = new Date();
-    const c = {
-      active: true, motif: motifCrise, message: msgCrise.trim(),
-      heure: `${String(dn.getHours()).padStart(2, "0")}:${String(dn.getMinutes()).padStart(2, "0")}`,
-      auteur: "QG", accuses: [],
-    };
-    setCrise(c); setMsgCrise("");
-    if (!(await kvSet(KEY_CRISE, c))) setSbError(true);
-  }
-  
-  async function leverCrise() {
-    if (!crise) return;
-    if (!window.confirm("Lever la consigne generale sur toutes les apps ?")) return;
-    const dn = new Date();
-    const c = { ...crise, active: false, heureLevee: `${String(dn.getHours()).padStart(2, "0")}:${String(dn.getMinutes()).padStart(2, "0")}` };
-    setCrise(null);
-    await kvSet(KEY_CRISE, c);
-  }
-
-  const surSite = jauge
-    ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
-    : null;
-
-  const nbCritiques =
-    sosParticipants.filter((s) => s.statut === "nouveau").length +
-    alertesCrises.length + (crise ? 1 : 0) + recherches.length;
-    
-  useEffect(() => {
-    if (prevCritiques.current === null) { prevCritiques.current = nbCritiques; return; }
-    if (sonActif && nbCritiques > prevCritiques.current) bipAlerte();
-    prevCritiques.current = nbCritiques;
-  }, [nbCritiques, sonActif]);
-  
   const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
   const [msgConsigne, setMsgConsigne] = useState("");
-  const [sbError, setSbError] = useState(false);
 
   const [formMotif, setFormMotif] = useState("médical");
   const [formLieu, setFormLieu] = useState("Site grande scène");
@@ -235,10 +200,39 @@ export default function DashboardQG() {
   const [mgtCouleurLigne, setMgtCouleurLigne] = useState("vert");
   const [mgtTexteAlea, setMgtTexteAlea] = useState("Conditions normales / RAS");
 
+  async function declencherCrise() {
+    const dn = new Date();
+    const c = {
+      active: true, motif: motifCrise, message: msgCrise.trim(),
+      heure: `${pad(dn.getHours())}:${pad(dn.getMinutes())}`,
+      auteur: "QG", accuses: [],
+    };
+    setCrise(c); setMsgCrise("");
+    if (!(await kvSet(KEY_CRISE, c))) setSbError(true);
+  }
+  
+  async function leverCrise() {
+    if (!crise) return;
+    if (!window.confirm("Lever la consigne generale sur toutes les apps ?")) return;
+    const dn = new Date();
+    const c = { ...crise, active: false, heureLevee: `${pad(dn.getHours())}:${pad(dn.getMinutes())}` };
+    setCrise(null);
+    await kvSet(KEY_CRISE, c);
+  }
+
+  const surSite = jauge
+    ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
+    : null;
+
+  const nbCritiques =
+    sosParticipants.filter((s) => (s.statut || "").toLowerCase() === "nouveau").length +
+    alertesCrises.length + (crise ? 1 : 0) + recherches.length;
+    
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+    if (prevCritiques.current === null) { prevCritiques.current = nbCritiques; return; }
+    if (sonActif && nbCritiques > prevCritiques.current) bipAlerte();
+    prevCritiques.current = nbCritiques;
+  }, [nbCritiques, sonActif]);
 
   async function pullAllData() {
     try {
@@ -259,11 +253,10 @@ export default function DashboardQG() {
       setRecherches(Array.isArray(rch) ? rch.filter((x) => x.statut === "active") : []);
       setJauge(jg && jg.compteurs ? jg : null);
       
-      // FIX : CAPTURE DU SOS TERRAIN DEPUIS L'APP POUR FAIRE FLASHER LE BANDEAU EN HAUT DU DASHBOARD
       const sosTerrainsCrise = Array.isArray(sosP)
-        ? sosP.filter(s => s.statut === "nouveau").map(s => ({
+        ? sosP.filter(s => (s.statut || "").toLowerCase() === "nouveau").map(s => ({
             active: true,
-            source: "App Externe / Terrain",
+            source: "Terrain",
             motif: s.motif || s.typeLabel || s.texte || "SOS Matérialisé",
             details: s.details ? `(${s.details})` : "",
             keyDb: KEY_SOS_PART,
@@ -291,12 +284,18 @@ export default function DashboardQG() {
   async function acquitterAlerteQg(keyDb, objetAlerte) {
     const tempsFige = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const alerteMiseAJour = { ...objetAlerte, acquittePar: `${SESS_USER.nom} (${SESS_USER.role})`, heureAcquittement: tempsFige };
-    await kvSet(keyDb, alerteMiseAJour); pullAllData();
+    await kvSet(keyDb, alerteMiseAJour); 
+    pullAllData();
   }
 
   async function leverAlerteQg(keyDb, alerteInfo) {
     if (keyDb === KEY_SOS_PART) {
-      const updatedSos = safeSos.map(s => s.id === alerteInfo.idOriginal ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
+      const updatedSos = sosParticipants.map(s => 
+        s.id === alerteInfo.idOriginal 
+          ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } 
+          : s
+      );
+      setSosParticipants(updatedSos);
       await kvSet(KEY_SOS_PART, updatedSos);
     } else {
       await kvSet(keyDb, { ...alerteInfo, active: false, leveePar: `${SESS_USER.nom} (${SESS_USER.role})`, heureLevee: `${pad(now.getHours())}:${pad(now.getMinutes())}` });
@@ -305,13 +304,15 @@ export default function DashboardQG() {
   }
 
   async function prendreEnCompteSos(id) {
-    const next = safeSos.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
-    setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
+    const next = sosParticipants.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
+    setSosParticipants(next); 
+    await kvSet(KEY_SOS_PART, next);
   }
 
   async function cloturerSos(id) {
-    const next = safeSos.map((s) => s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
-    setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
+    const next = sosParticipants.map((s) => s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
+    setSosParticipants(next); 
+    await kvSet(KEY_SOS_PART, next);
   }
 
   async function declencherSosManuel(e) {
@@ -322,15 +323,22 @@ export default function DashboardQG() {
       motif: formMotif, nom: formNom, tel: "Radio", details: formDetails.trim(), statut: "nouveau",
       surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment } : null
     };
-    const next = [nouveauSos, ...safeSos]; setSosParticipants(next); setFormDetails(""); await kvSet(KEY_SOS_PART, next); pullAllData();
+    const next = [nouveauSos, ...sosParticipants]; 
+    setSosParticipants(next); 
+    setFormDetails(""); 
+    await kvSet(KEY_SOS_PART, next); 
+    pullAllData();
   }
 
   async function ajouterMissionLogistique(e) {
     e.preventDefault();
     const nouvelleMission = {
-      id: "log-" + Date.now(), ref: "LOG-" + pad(safeMissions.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: formLogBloquant, statut: "A affecter", heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
+      id: "log-" + Date.now(), ref: "LOG-" + pad(missionsLog.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: formLogBloquant, statut: "A affecter", heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
     };
-    const next = [nouvelleMission, ...safeMissions]; setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
+    const next = [nouvelleMission, ...missionsLog]; 
+    setMissionsLog(next); 
+    setFormLogNature(""); 
+    await kvSet(KEY_MISSIONS, next);
   }
 
   async function ajouterMissionSanitaire(e) {
@@ -346,22 +354,22 @@ export default function DashboardQG() {
       count: 1,
       provenance: "PC Course / Radio"
     };
-    const next = [nouvelleMissionSan, ...safeSanitaire];
+    const next = [nouvelleMissionSan, ...sanitaire];
     setSanitaire(next); setFormSanCommentaire(""); await kvSet(KEY_SANITAIRE, next);
   }
 
   async function resoudreMissionSanQG(id) {
-    const next = safeSanitaire.map((s) => s.id === id ? { ...s, statut: "resolu", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}`, resoluPar: "PC Course (Radio)" } : s);
+    const next = sanitaire.map((s) => s.id === id ? { ...s, statut: "resolu", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}`, resoluPar: "PC Course (Radio)" } : s);
     setSanitaire(next); await kvSet(KEY_SANITAIRE, next);
   }
 
   async function attribuerMissionLog(id, equipe) {
-    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: "En cours", attribueA: equipe, heurePriseEnCharge: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
+    const next = missionsLog.map((m) => m.id === id ? { ...m, statut: "En cours", attribueA: equipe, heurePriseEnCharge: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
     setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
   }
 
   async function resoudreMissionLog(id) {
-    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: "Resolue", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
+    const next = missionsLog.map((m) => m.id === id ? { ...m, statut: "Resolue", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
     setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
   }
 
@@ -395,16 +403,15 @@ export default function DashboardQG() {
 
   const METEO = meteoLive || METEO_FALLBACK;
   const MEDIAS = mediasLive || MEDIAS_FALLBACK;
-  const safeMissions = missionsLog, safeGroupes = groupesBalade, safeSos = sosParticipants, safeSanitaire = sanitaire;
 
-  const logOuvertes = safeMissions.filter((m) => m && m.statut !== "Resolue" && m.statut !== "Résolue");
-  const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
+  const logOuvertes = missionsLog.filter((m) => m && m.statut !== "Resolue" && m.statut !== "Résolue");
+  const grpDehors = groupesBalade.filter((g) => g && g.position !== "p0" && g.position !== "ret");
   const totalMarcheursEnForet = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
-  const persAttente = safeGroupes.filter((g) => g && g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
-  const persRentres = safeGroupes.filter((g) => g && g.position === "ret").reduce((s, g) => s + (Number(g.participants) || 0), 0);
+  const persAttente = groupesBalade.filter((g) => g && g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
+  const persRentres = groupesBalade.filter((g) => g && g.position === "ret").reduce((s, g) => s + (Number(g.participants) || 0), 0);
 
-  const sosVisibles = safeSos.filter((s) => s && s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
-  const sanActifs = safeSanitaire.filter((s) => s && s.statut !== "resolu" && s.statut !== "résolu");
+  const sosVisibles = sosParticipants.filter((s) => s && !["cloture", "clôture", "cloturé", "clos"].includes((s.statut || "").toLowerCase()));
+  const sanActifs = sanitaire.filter((s) => s && s.statut !== "resolu" && s.statut !== "résolu");
   const sanParLieu = {}; sanActifs.forEach((s) => { if(s?.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + 1; });
   const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
@@ -418,7 +425,6 @@ export default function DashboardQG() {
         .pulse-slow { animation: pulseSlow 1.6s ease-in-out infinite; }
       `}</style>
 
-      {/* HEADER DE SUPERVISION */}
       <header className="border-b border-white/5 bg-[#141922]/90 backdrop-blur sticky top-0 z-30 px-4 py-2.5 flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
@@ -435,7 +441,6 @@ export default function DashboardQG() {
         </div>
       </header>
 
-      {/* BANDEAU ALERTES INTERACTIF ET FLASH SOS TERRAIN */}
       {alertesCrises.length > 0 && (
         <div className="p-3 bg-red-950/40 border-b border-red-500/30 space-y-1.5 w-full">
           {alertesCrises.map((al, i) => (
@@ -444,7 +449,7 @@ export default function DashboardQG() {
                 <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow shrink-0" />
                 <span className="font-bold text-red-200 uppercase shrink-0">SOS {al.source} :</span>
                 <span className="text-slate-200 truncate">
-                  "{al.motif}"{al.lieu ? ` · ${al.lieu}` : ""}{al.qui ? ` · concerne : ${al.qui}` : ""} {al.details} {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
+                  "{al.motif}" {al.details} {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
                 </span>
               </div>
               <div className="flex gap-1.5 justify-end shrink-0">
@@ -456,9 +461,7 @@ export default function DashboardQG() {
         </div>
       )}
 
-      {/* CONTENU PANORAMIQUE MULTI-COLONNES */}
       <main className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
-        {/* ===== BLOC PLEINE LARGEUR : consigne generale / recherches / jauge ===== */}
         <div className="lg:col-span-3 space-y-3">
           <section className={`rounded-lg p-4 ${crise ? "ring-2 ring-red-500/70 bg-red-500/15" : "bg-[#151b23] ring-1 ring-white/10"}`}>
             <div className="flex items-center justify-between mb-2">
@@ -468,7 +471,6 @@ export default function DashboardQG() {
               <button
                 onClick={() => { setSonActif(!sonActif); if (!sonActif) bipAlerte(); }}
                 className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${sonActif ? "ring-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "ring-white/15 text-slate-500 hover:text-slate-300"}`}
-                title="Bip sonore quand un nouvel evenement critique apparait (SOS, alerte, recherche)"
               >
                 {sonActif ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
                 {sonActif ? "Alertes sonores ON" : "Alertes sonores OFF"}
@@ -490,58 +492,23 @@ export default function DashboardQG() {
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-wrap">
-                <select className="bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-400/60"
+                <select className="bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none"
                   value={motifCrise} onChange={(e) => setMotifCrise(e.target.value)}>
                   {MOTIFS_CRISE.map((mo) => <option key={mo}>{mo}</option>)}
                 </select>
-                <input className="flex-1 min-w-[160px] bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400/60"
-                  value={msgCrise} onChange={(e) => setMsgCrise(e.target.value)} placeholder="Precision (zones concernees, consigne exacte...)" />
+                <input className="flex-1 min-w-[160px] bg-[#232b36] ring-1 ring-white/25 rounded px-2.5 py-2 text-sm text-white focus:outline-none"
+                  value={msgCrise} onChange={(e) => setMsgCrise(e.target.value)} placeholder="Precision..." />
                 <button onClick={declencherCrise}
                   className="text-xs font-mono font-semibold px-3.5 py-2 rounded ring-2 ring-red-400/60 bg-red-500/20 text-red-200 hover:bg-red-500/35 transition-colors">
                   DIFFUSER
                 </button>
-                <span className="w-full text-[10px] text-slate-600 font-mono">
-                  Bandeau rouge permanent sur toutes les apps equipes, accuse de lecture nominatif. Doubler a la radio (PMR4.1).
-                </span>
               </div>
             )}
           </section>
 
-          {sosParticipants.filter((s) => s.statut === "nouveau").map((s) => (
-            <div key={s.id} className="rounded-lg ring-2 ring-red-500/70 bg-red-500/15 px-4 py-3">
-              <div className="flex items-start gap-3 flex-wrap">
-                <TriangleAlert className="w-5 h-5 text-red-300 pulse-slow shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-red-100 uppercase tracking-wide">
-                    SOS PARTICIPANT — {s.motif} <span className="font-mono text-[11px] text-red-200/70 normal-case">({s.heure})</span>
-                  </div>
-                  <div className="text-xs text-red-100/90 mt-0.5">
-                    {s.nom}{s.tel ? ` · ${s.tel}` : ""}
-                    {s.surTrace && <> · km {s.surTrace.km} — {s.surTrace.segment || s.surTrace.reperePlusProche}{s.surTrace.ecartMetres > 100 ? ` · ⚠ ~${s.surTrace.ecartMetres} m hors trace` : ""}</>}
-                  </div>
-                  {s.details && <div className="text-xs text-red-100/80 italic mt-0.5">"{s.details}"</div>}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {s.gps && (
-                    <a href={`https://www.google.com/maps?q=${s.gps.lat},${s.gps.lon}`} target="_blank" rel="noreferrer"
-                      className="text-[11px] font-mono px-2.5 py-2 rounded ring-1 ring-white/40 text-white hover:bg-white/10">Carte</a>
-                  )}
-                  <button onClick={() => prendreEnCompteSos(s.id)}
-                    className="text-xs font-mono font-semibold px-3 py-2 rounded ring-2 ring-white/60 bg-white/10 text-white hover:bg-white/20">
-                    PRENDRE EN COMPTE
-                  </button>
-                </div>
-              </div>
-              <div className="text-[10px] font-mono text-red-200/60 mt-1.5 pl-8">
-                "Prendre en compte" affiche une confirmation au participant sur son téléphone (il voit que les secours sont prévenus).
-              </div>
-            </div>
-          ))}
-
           {recherches.map((r) => (
             <div key={r.id} className="rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100">
               <span className="font-semibold uppercase">Recherche {r.categorie}</span> — {r.prenom || "?"}{r.age ? `, ${r.age}` : ""} · {r.description}
-              <span className="opacity-80"> · vu(e) : {r.dernierLieu} · depuis {r.heure} · gestion : app Personne recherchee (#recherche)</span>
             </div>
           ))}
 
@@ -559,18 +526,14 @@ export default function DashboardQG() {
           )}
         </div>
 
-        {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE 🚨 ==================== */}
+        {/* COLONNE 1 */}
         <div className="space-y-4 w-full lg:col-span-1">
-          
-          {/* DISPLAY MÉTÉO SOURCÉ IRM */}
           <a 
             href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
-            className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md min-h-[102px] max-h-[102px] flex flex-col justify-between"
+            className="block bg-[#141a22] rounded-lg p-3 border border-amber-400/20 border-t-2 border-t-amber-400 hover:bg-[#18202b] transition-all shadow-md min-h-[102px] max-h-[102px]"
           >
             <div className="flex justify-between items-center">
-              <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${
-                meteoLive ? "text-amber-300 bg-amber-400/10 border-amber-400/20" : "text-red-300 bg-red-400/10 border-red-400/30"
-              }`}>{meteoLive ? "IRM LIVE" : "HORS LIGNE"}</span>
+              <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${meteoLive ? "text-amber-300 bg-amber-400/10" : "text-red-300 bg-red-400/10"}`}>{meteoLive ? "IRM LIVE" : "HORS LIGNE"}</span>
               <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
             </div>
             <div className="text-xs font-semibold text-slate-100 truncate my-1">{METEO.titre} — {METEO.obsResume}</div>
@@ -580,27 +543,25 @@ export default function DashboardQG() {
             </div>
           </a>
 
-          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
-              <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
-              <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
+              <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation Météo Interne</div>
+              <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
             </div>
             <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs flex-1 flex flex-col justify-end pt-2">
               <div className="grid grid-cols-3 gap-1.5">
-                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200 focus:outline-none" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
+                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
                   <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option>
                 </select>
-                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200 focus:outline-none" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
+                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
                   <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
                 </select>
-                <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm transition-all">POUSSER</button>
+                <button type="submit" className="bg-sky-600 rounded text-[10px] text-white font-bold">POUSSER</button>
               </div>
-              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none text-[11px]" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
+              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 text-[11px]" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte..." required />
             </form>
           </div>
 
-          {/* 🚨 MONITEUR SÉCURITÉ */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
             <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
               <div className="flex items-center gap-2">
@@ -614,17 +575,16 @@ export default function DashboardQG() {
                 <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune fiche de secours active.</div>
               ) : (
                 sosVisibles.map((s) => (
-                  <div key={s.id} className={`p-2.5 rounded border text-xs bg-white/[0.01] ${s.statut === "nouveau" ? "border-red-500/30 bg-red-500/5" : "border-white/5"}`}>
+                  <div key={s.id} className={`p-2.5 rounded border text-xs bg-white/[0.01] ${(s.statut || "").toLowerCase() === "nouveau" ? "border-red-500/30 bg-red-500/5" : "border-white/5"}`}>
                     <div className="flex justify-between items-start font-mono text-[10px] text-slate-400 mb-1">
                       <span>{s.heure} · {s.nom}</span>
                       <span className="text-amber-400 uppercase font-bold text-[10px]">{s.statut}</span>
                     </div>
-                    {/* ACCORD DE STRUTURE POUR TOUTES LES APPS EMETTRICES */}
                     <div className="font-semibold text-slate-100">{s.motif || s.typeLabel || s.texte || "SOS Matérialisé"}</div>
-                    {s.details && <div className="text-[10px] text-slate-400 italic mt-1 bg-black/20 p-2 rounded font-mono">"{s.details}"</div>}
+                    {s.details && <div className="text-[10px] text-slate-400 italic mt-1 bg-black/20 p-2 rounded">"{s.details}"</div>}
                     {s.surTrace && <div className="text-[9px] font-mono text-amber-400 mt-1">📍 Trace : {s.surTrace.segment || "—"}</div>}
                     <div className="mt-2 flex gap-1.5 justify-end">
-                      {s.statut === "nouveau" && <button onClick={() => prendreEnCompteSos(s.id)} className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>}
+                      {(s.statut || "").toLowerCase() === "nouveau" && <button onClick={() => prendreEnCompteSos(s.id)} className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 text-slate-200">Prendre en charge</button>}
                       <button onClick={() => cloturerSos(s.id)} className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">Clôturer</button>
                     </div>
                   </div>
@@ -632,74 +592,49 @@ export default function DashboardQG() {
             </div>
           </div>
 
-          {/* INJECTION SOS TERRAIN */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md h-[116px] flex flex-col justify-between">
-            <div className="text-xs font-display text-red-400 tracking-wider uppercase flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
+          <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 shadow-md h-[116px] flex flex-col justify-between">
+            <div className="text-xs font-display text-red-400 uppercase flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
             <form onSubmit={declencherSosManuel} className="space-y-1.5 text-xs">
               <div className="grid grid-cols-2 gap-2">
-                <select className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
                   <option value="médical">Médical / Malaise</option>
                   <option value="Incendie / fumée">Incendie / Fumée</option>
                   <option value="Sûreté / violence">Sûreté / Bagarre</option>
                 </select>
-                <select className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLieu} onChange={(e) => setFormLieu(e.target.value)}>
+                <select className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200" value={formLieu} onChange={(e) => setFormLieu(e.target.value)}>
                   {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div className="flex gap-2">
-                <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-300 focus:outline-none text-[11px]" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions terrain..." required />
-                <button type="submit" className="bg-red-600 hover:bg-red-500 px-3 py-0.5 rounded font-mono font-bold text-white shadow text-[11px]">ALERTER</button>
+                <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-300 text-[11px]" value={formDetails} onChange={(e) => setFormDetails(e.target.value)} placeholder="Précisions..." required />
+                <button type="submit" className="bg-red-600 px-3 py-0.5 rounded font-mono font-bold text-white text-[11px]">ALERTER</button>
               </div>
             </form>
           </div>
-
-          {/* ENGAGEMENT ÉQUIPE VOLANTE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
-            {consigne ? (
-              <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
-                <div>
-                  <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
-                  {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
-                </div>
-                <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
-              </div>
-            ) : (
-              <div className="flex gap-1">
-                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
-                <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
-                <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* ==================== BLOC DROIT AVANCÉ MUTÉ ==================== */}
+        {/* BLOC DROIT */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
-          
-          {/* ⚡ PLAN RADIO LARGE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2 min-h-[102px] max-h-[102px] flex flex-col justify-between">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2 min-h-[102px] max-h-[102px]">
             <div className="flex items-center gap-2 pb-1 border-b border-white/5">
               <Radio className="w-4 h-4 text-amber-400" />
-              <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission & d'Urgence Radio (BFMF 2026)</h2>
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan Radio (BFMF 2026)</h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono flex-1 pt-2 items-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono pt-2">
               {CANAUX_RADIO.map((c) => (
-                <div key={c.canal} className="bg-black/30 px-2 py-1 rounded border border-white/5 flex flex-col justify-center h-full">
+                <div key={c.canal} className="bg-black/30 px-2 py-1 rounded border border-white/5">
                   <span className="text-amber-300 font-bold text-xs">{c.canal}</span>
-                  <span className="text-slate-400 text-[9px] leading-tight truncate">{c.usage}</span>
+                  <span className="text-slate-400 text-[9px] block truncate">{c.usage}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 min-h-[155px] max-h-[155px] flex flex-col justify-between">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 min-h-[155px] max-h-[155px]">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
                 <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
               </h2>
-              <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
             </div>
 
             <div className="relative h-14 mt-2">
@@ -713,136 +648,48 @@ export default function DashboardQG() {
               {grpDehors.map((g, idx) => {
                 const km = POS_KM[g.position] ?? 0;
                 return (
-                  <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} : ${g.participants} festivaliers`}>
+                  <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }}>
                     <div className="flex items-center bg-sky-500/20 ring-1 ring-sky-400/50 rounded px-1 py-0.5 text-[8px] font-mono text-sky-200">
                       <Users className="w-2 h-2 text-sky-300 mr-0.5" />{g.participants}
                     </div>
                   </div>
                 );
               })}
-              {sosVisibles.filter((s) => s && s.surTrace && s.surTrace.km !== null).map((s) => (
-                <div key={s.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`SOS : ${s.motif}`}>
+              {sosVisibles.filter((s) => s && s.surTrace && s.surTrace.km !== undefined && s.surTrace.km !== null).map((s) => (
+                <div key={s.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }}>
                   <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
                 </div>
               ))}
             </div>
-            <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1 mt-1">
-              <span>Attente P0 : {persAttente}</span>
-              <span>Rentré QG : {persRentres}</span>
-            </div>
           </div>
 
-          {/* ==================== SUB-COLONNE 2 ==================== */}
           <div className="space-y-4 w-full">
-            
-            {/* 🩺 MONITEUR SANITAIRE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
               <div className="flex justify-between items-center mb-3 pb-1 border-b border-white/5 shrink-0">
-                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Droplets className="w-4 h-4 text-cyan-400" /> Moniteur Sanitaire
-                </h3>
+                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><Droplets className="w-4 h-4 text-cyan-400" /> Moniteur Sanitaire</h3>
                 <span className="font-mono text-xxs bg-cyan-500/10 text-cyan-400 px-1.5 rounded border border-cyan-500/20">{sanActifs.length} Actives</span>
               </div>
-
               <div className="space-y-2 overflow-y-auto pr-1 flex-1">
                 {sanActifs.length === 0 ? (
-                  <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune alerte sanitaire active sur les blocs.</div>
+                  <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune alerte sanitaire active.</div>
                 ) : (
-                  sanActifs.map((s) => {
-                    const estNouveau = s.statut === "nouveau" || s.statut === "en attente";
-                    return (
-                      <div key={s.id} className="text-xs bg-black/20 p-2 rounded border border-white/5 space-y-1">
-                        <div className="flex justify-between items-center font-mono text-[9px]">
-                          <span className="text-slate-400">🕒 {s.heure} · 📍 {s.locNom}</span>
-                          <span className={`px-1 rounded font-bold uppercase ${estNouveau ? "text-sky-400 bg-sky-500/5" : "text-amber-400 bg-amber-500/5"}`}>
-                            {s.statut === "en cours" ? "En cours" : "Attente"}
-                          </span>
-                        </div>
-                        <p className="text-slate-200 font-medium leading-tight">{s.typeLabel || s.texte || "Intervention"}</p>
-                        {s.commentaire && <p className="text-[11px] text-slate-400 italic">"{s.commentaire}"</p>}
-                        
-                        <div className="flex items-center justify-between pt-1 border-t border-white/5 mt-1 font-mono text-[10px]">
-                          <span className="text-slate-400">
-                            {s.statut === "en cours" ? (
-                              <span className="text-amber-300 font-medium">⚠️ Pris en charge par : {s.prisPar || "Équipe"}</span>
-                            ) : (
-                              <span className="text-slate-500">⏳ En attente terrain</span>
-                            )}
-                          </span>
-                          <button onClick={() => resoudreMissionSanQG(s.id)} className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 hover:bg-emerald-500/30">
-                            ✓ Clore
-                          </button>
-                        </div>
+                  sanActifs.map((s) => (
+                    <div key={s.id} className="text-xs bg-black/20 p-2 rounded border border-white/5 space-y-1">
+                      <div className="flex justify-between items-center font-mono text-[9px]">
+                        <span className="text-slate-400">🕒 {s.heure} · 📍 {s.locNom}</span>
                       </div>
-                    );
-                  })
+                      <p className="text-slate-200 font-medium">{s.typeLabel || s.texte}</p>
+                      <div className="flex items-center justify-between pt-1 border-t border-white/5 mt-1">
+                        <button onClick={() => resoudreMissionSanQG(s.id)} className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">✓ Clore</button>
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
-
-            {/* 📥 CRÉER UNE DEMANDE SANITAIRE */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[116px] flex flex-col justify-between">
-              <form onSubmit={ajouterMissionSanitaire} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
-                <div className="text-[10px] font-display text-cyan-400 tracking-wider uppercase flex items-center gap-1">
-                  <PlusCircle className="w-3.5 h-3.5" /> Créer une demande sanitaire
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select 
-                    className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 text-xxs focus:outline-none" 
-                    value={formSanType} 
-                    onChange={(e) => {
-                      setFormSanType(e.target.value);
-                      const sel = e.target.options[e.target.selectedIndex].text;
-                      setFormSanTypeLabel(sel);
-                    }}
-                  >
-                    <option value="papier">Plus de papier toilette</option>
-                    <option value="eau">Lave-mains sans eau / savon</option>
-                    <option value="poubelle">Poubelle qui déborde</option>
-                    <option value="bouche">WC bouché / hors service</option>
-                    <option value="proprete">Propreté à revoir</option>
-                    <option value="autre">Autre problème</option>
-                  </select>
-                  
-                  <select 
-                    className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 text-xxs focus:outline-none" 
-                    value={formSanLieu} 
-                    onChange={(e) => setFormSanLieu(e.target.value)}
-                  >
-                    {LIEUX.map((l) => (
-                      <option key={l.id} value={l.nom}>{l.nom}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-2">
-                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 text-xxs focus:outline-none" value={formSanCommentaire} onChange={(e) => setFormSanCommentaire(e.target.value)} placeholder="Ex: cabine du fond" />
-                  <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 px-3 py-0.5 rounded font-mono font-bold text-white text-xxs shadow">INJECTER</button>
-                </div>
-              </form>
-            </div>
-
-            {/* SIGNALEMENTS SANITAIRES TOP ACCUMULATIONS */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-              <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Zones Sanitaires Chaudes</h3>
-              {sanTop.length === 0 ? (
-                <div className="text-xxs text-slate-500 italic py-2 text-center">Aucune accumulation sur les blocs.</div>
-              ) : (
-                <div className="space-y-1">
-                  {sanTop.map(([lieu, count]) => (
-                    <div key={lieu} className="flex justify-between items-center text-xs bg-black/20 p-2 rounded border border-white/5">
-                      <span className="text-slate-300">{lieu}</span>
-                      <span className="text-xxs font-mono text-amber-300 bg-amber-400/5 px-2 py-0.5 rounded border border-amber-500/20">{count} signalements</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* ==================== SUB-COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
-            
-            {/* 🛠️ MONITEUR LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
               <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Moniteur Logistique</h3>
@@ -855,71 +702,17 @@ export default function DashboardQG() {
                   logOuvertes.map((m) => (
                     <div key={m.id} className="text-xs bg-white/[0.02] p-2.5 rounded border border-white/5 space-y-1.5">
                       <div className="flex justify-between items-start gap-2">
-                        <span className="text-slate-200 font-medium flex-1 leading-snug">{m.nature}</span>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${m.priorite?.startsWith("P1") ? "bg-red-500/20 text-red-400 border border-red-500/20" : m.priorite?.startsWith("P2") ? "bg-amber-500/20 text-amber-400 border border-amber-500/20" : "bg-slate-500/10 text-slate-400"}`}>
-                          {m.priorite ? m.priorite.slice(0,2) : "P3"}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono flex justify-between items-center">
-                        <span>📍 {m.zone}</span>
-                        <span className="text-xxs text-slate-500">Statut: <strong className="text-amber-400 font-normal">{m.attribueA ? `En cours (${m.attribueA})` : "En attente"}</strong></span>
+                        <span className="text-slate-200 font-medium flex-1">{m.nature}</span>
                       </div>
                       <div className="flex justify-end gap-1 pt-1.5 border-t border-white/5">
-                        {!m.attribueA && (
-                          <>
-                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 1")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 1</button>
-                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 2")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 2</button>
-                            <button onClick={() => pousserEnCriseLog(m)} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded">🚨 Alerte</button>
-                          </>
-                        )}
-                        <button onClick={() => resoudreMissionLog(m.id)} className="text-[9px] font-mono bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 ml-auto"><CheckCircle className="w-2.5 h-2.5" /> Clore</button>
+                        <button onClick={() => resoudreMissionLog(m.id)} className="text-[9px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded ml-auto">✓ Clore</button>
                       </div>
                     </div>
                   ))
                 )}
               </div>
             </div>
-
-            {/* 📥 CRÉER UNE DEMANDE LOGISTIQUE */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md h-[116px] flex flex-col justify-between">
-              <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique</div>
-              <form onSubmit={ajouterMissionLogistique} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogLieu} onChange={(e) => setFormLogLieu(e.target.value)}>
-                      {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogPriorite} onChange={(e) => setFormLogPriorite(e.target.value)}>
-                      <option value="P1 - Critique / Bloquant">P1 - Critique</option>
-                      <option value="P2 - Urgent">P2 - Urgent</option>
-                      <option value="P3 - Standard">P3 - Standard</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none text-[11px]" value={formLogNature} onChange={(e) => setFormLogNature(e.target.value)} placeholder="Panne matos, élec, barrière..." required />
-                  <button type="submit" className="bg-sky-600 hover:bg-sky-500 px-3 py-0.5 rounded font-mono font-bold text-white shadow text-[11px]">INJECTER</button>
-                </div>
-              </form>
-            </div>
-
-            {/* VEILLE RÉSEAUX */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><Rss className="w-3.5 h-3.5 text-slate-400" /> Veille Réseaux</h3>
-                <span className="text-xxs font-mono bg-emerald-500/10 text-emerald-400 px-1.5 rounded capitalize">{MEDIAS.ambiance}</span>
-              </div>
-              {MEDIAS.canaux?.slice(0, 2).map((c, i) => (
-                <div key={i} className="text-[11px] bg-black/20 p-2 rounded border border-white/5 mt-1">
-                  <span className="font-semibold text-slate-300 block">{c.name}</span>
-                  <p className="text-slate-400 italic mt-0.5 truncate">"{c.note}"</p>
-                </div>
-              ))}
-            </div>
           </div>
-
         </div>
       </main>
     </div>
