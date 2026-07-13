@@ -6,9 +6,3 @@ export default defineConfig({
   base: './', // Utilise des chemins relatifs pour éviter les erreurs 404
   plugins: [react()],
 });
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss()
-  ]
-})
