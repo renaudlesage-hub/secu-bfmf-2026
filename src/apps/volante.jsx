@@ -420,7 +420,7 @@ export default function AppVolante() {
             </div>
             <div className="text-sm text-white font-semibold mt-1">{a.motif}</div>
             <div className="text-[11px] font-mono text-red-300/70 mt-1">
-              Heure : {a.heure} · Auteur : {a.auteur} {a.groupe ? `· Unité : ${a.groupe}` : ""} {a.details ? `— Details : ${a.details}` : ""}
+              Heure : {a.heure} · Auteur : {a.auteur} {a.groupe ? `· Unité : ${a.groupe}` : ""} {a.lieu ? `· Lieu : ${a.lieu}` : ""} {a.qui ? `· Concerne : ${a.qui}` : ""} {a.details ? `— ${a.details}` : ""}
             </div>
           </div>
         ))}

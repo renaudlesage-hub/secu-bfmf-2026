@@ -444,7 +444,7 @@ export default function DashboardQG() {
                 <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow shrink-0" />
                 <span className="font-bold text-red-200 uppercase shrink-0">SOS {al.source} :</span>
                 <span className="text-slate-200 truncate">
-                  "{al.motif}" {al.details} {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
+                  "{al.motif}"{al.lieu ? ` · ${al.lieu}` : ""}{al.qui ? ` · concerne : ${al.qui}` : ""} {al.details} {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
                 </span>
               </div>
               <div className="flex gap-1.5 justify-end shrink-0">
@@ -506,6 +506,37 @@ export default function DashboardQG() {
               </div>
             )}
           </section>
+
+          {sosParticipants.filter((s) => s.statut === "nouveau").map((s) => (
+            <div key={s.id} className="rounded-lg ring-2 ring-red-500/70 bg-red-500/15 px-4 py-3">
+              <div className="flex items-start gap-3 flex-wrap">
+                <TriangleAlert className="w-5 h-5 text-red-300 pulse-slow shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-red-100 uppercase tracking-wide">
+                    SOS PARTICIPANT — {s.motif} <span className="font-mono text-[11px] text-red-200/70 normal-case">({s.heure})</span>
+                  </div>
+                  <div className="text-xs text-red-100/90 mt-0.5">
+                    {s.nom}{s.tel ? ` · ${s.tel}` : ""}
+                    {s.surTrace && <> · km {s.surTrace.km} — {s.surTrace.segment || s.surTrace.reperePlusProche}{s.surTrace.ecartMetres > 100 ? ` · ⚠ ~${s.surTrace.ecartMetres} m hors trace` : ""}</>}
+                  </div>
+                  {s.details && <div className="text-xs text-red-100/80 italic mt-0.5">"{s.details}"</div>}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {s.gps && (
+                    <a href={`https://www.google.com/maps?q=${s.gps.lat},${s.gps.lon}`} target="_blank" rel="noreferrer"
+                      className="text-[11px] font-mono px-2.5 py-2 rounded ring-1 ring-white/40 text-white hover:bg-white/10">Carte</a>
+                  )}
+                  <button onClick={() => prendreEnCompteSos(s.id)}
+                    className="text-xs font-mono font-semibold px-3 py-2 rounded ring-2 ring-white/60 bg-white/10 text-white hover:bg-white/20">
+                    PRENDRE EN COMPTE
+                  </button>
+                </div>
+              </div>
+              <div className="text-[10px] font-mono text-red-200/60 mt-1.5 pl-8">
+                "Prendre en compte" affiche une confirmation au participant sur son téléphone (il voit que les secours sont prévenus).
+              </div>
+            </div>
+          ))}
 
           {recherches.map((r) => (
             <div key={r.id} className="rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100">

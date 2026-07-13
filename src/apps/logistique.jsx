@@ -272,6 +272,8 @@ export default function LogistiqueMissions() {
       heure: nowHM(),
       auteur: signature,
       motif: data.motif || "Alerte",
+      lieu: data.lieu || "",
+      qui: data.qui || "",
       details: data.details || "",
       acquittePar: "",
       heureAcquittement: "",
@@ -510,14 +512,49 @@ function ProfilSetup({ onSave }) {
 
 function AlarmeForm({ onClose, onDeclencher }) {
   const [motif, setMotif] = useState(MOTIFS_ALERTE[0]);
+  const [lieu, setLieu] = useState(Object.keys(POINTS_GPS)[0]);
+  const [qui, setQui] = useState("");
+  const [details, setDetails] = useState("");
+  const valide = details.trim().length >= 5;
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50" onClick={onClose}>
       <div className="bg-[#1a212b] p-5 rounded-lg max-w-sm w-full space-y-3" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-red-300 font-display">Alerte Générale</h3>
-        <select className={inputCls} value={motif} onChange={(e) => setMotif(e.target.value)}>
-          {MOTIFS_ALERTE.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <button onClick={() => onDeclencher({ motif })} className="w-full py-2 bg-red-600 text-white rounded font-mono">LANCER</button>
+        <h3 className="text-red-300 font-display">Alerte Générale — SOS Équipe</h3>
+
+        <div>
+          <div className="text-[11px] font-mono text-slate-300 uppercase mb-1">Nature de l'alerte *</div>
+          <select className={inputCls} value={motif} onChange={(e) => setMotif(e.target.value)}>
+            {MOTIFS_ALERTE.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <div className="text-[11px] font-mono text-slate-300 uppercase mb-1">Localisation *</div>
+          <select className={inputCls} value={lieu} onChange={(e) => setLieu(e.target.value)}>
+            {Object.keys(POINTS_GPS).map((z) => <option key={z} value={z}>{z}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <div className="text-[11px] font-mono text-slate-300 uppercase mb-1">Qui est concerné</div>
+          <input className={inputCls} value={qui} onChange={(e) => setQui(e.target.value)}
+            placeholder="Ex: bénévole bar, festivalier, prestataire son..." />
+        </div>
+
+        <div>
+          <div className="text-[11px] font-mono text-slate-300 uppercase mb-1">Descriptif de la situation * (min. 5 car.)</div>
+          <textarea className={inputCls} rows={3} value={details} onChange={(e) => setDetails(e.target.value)}
+            placeholder="Ce qui se passe, depuis quand, besoin exprimé..." />
+        </div>
+
+        <button
+          disabled={!valide}
+          onClick={() => onDeclencher({ motif, lieu, qui: qui.trim(), details: details.trim() })}
+          className={`w-full py-2.5 rounded font-mono font-semibold transition-colors ${valide ? "bg-red-600 text-white hover:bg-red-500" : "bg-white/5 text-slate-600 cursor-not-allowed"}`}
+        >
+          LANCER L'ALERTE
+        </button>
+        <div className="text-[10px] text-slate-500 text-center">Visible immédiatement au QG (dashboard) et sur l'app Volante. Doubler à la radio (PMR4.1, PMR333 si vital).</div>
       </div>
     </div>
   );

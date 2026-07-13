@@ -27,7 +27,7 @@ const RADIO = [
 ];
 
 const PRV = [
-  { nom: "Entrée site / Depart", gps: "50.3835, 5.6215" },
+  { nom: "Entrée site / Depart", gps: "50.382443, 5.616178" },
   { nom: "PRV#4 — Rue Sainte-Barbe", gps: "50.38212, 5.61673" },
   { nom: "PRV#5 — Rue de Jehonhe", gps: "50.37568, 5.64412" },
   { nom: "PRV#6", gps: "50.38236, 5.64579" },
