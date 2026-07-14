@@ -21,7 +21,6 @@ const APPS_LIST = [
   // Pole Commandement & QG
   { id: "dashboard", name: "Tableau de bord QG", cat: "qg" },
   { id: "maincourante", name: "Main courante QG", cat: "qg" },
-  { id: "pcops", name: "Console PC-Ops / Autorite", cat: "qg" },
   { id: "console-cm", name: "Console medias (CM)", cat: "qg" },
   { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg" },
 
@@ -37,6 +36,7 @@ const APPS_LIST = [
   { id: "recherche", name: "Personne recherchee", cat: "terrain", alerte: true },
 
   // Acces publics — a diffuser aux festivaliers uniquement
+  { id: "pcops", name: "PC-Ops / Autorité (lien direct)", cat: "public" },
   { id: "sos", name: "SOS participant (public)", cat: "public" },
   { id: "signaler", name: "Signalement sanitaire (public)", cat: "public" },
 ];

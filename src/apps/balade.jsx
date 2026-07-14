@@ -261,6 +261,8 @@ export default function SuiviBalade() {
       auteur: signature,
       groupe: data.groupe || "",
       motif: data.motif || "Alerte",
+      lieu: data.lieu || "",
+      qui: data.qui || "",
       details: data.details || "",
       acquittePar: "",
       heureAcquittement: "",
@@ -740,18 +742,26 @@ function ProfilSetup({ onSave }) {
   );
 }
 
+const LIEUX_PARCOURS = [
+  "Point 0 / Départ", "Point 0 → Étape 1", "Étape 1 (Sainte-Barbe)",
+  "Étape 1 → Étape 2", "Étape 2 (Jehonhé)", "Étape 2 → Étape 3",
+  "Étape 3 (Chapelle)", "Étape 3 → Retour", "Hors parcours",
+];
+
 const MOTIFS_ALERTE = [
   "Urgence médicale",
   "Personne manquante",
-  "Groupe en difficulty",
+  "Groupe en difficulté",
   "Danger sur le parcours",
-  "Météo -- mise à l'abri",
+  "Météo — mise à l'abri",
   "Autre",
 ];
 
 function AlarmeForm({ groupes, onClose, onDeclencher }) {
   const [motif, setMotif] = useState(MOTIFS_ALERTE[0]);
   const [groupe, setGroupe] = useState("");
+  const [lieu, setLieu] = useState(LIEUX_PARCOURS[0]);
+  const [qui, setQui] = useState("");
   const [details, setDetails] = useState("");
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
@@ -783,6 +793,15 @@ function AlarmeForm({ groupes, onClose, onDeclencher }) {
               ))}
             </select>
           </Field>
+          <Field label="Localisation *">
+            <select className={inputCls} value={lieu} onChange={(e) => setLieu(e.target.value)}>
+              {LIEUX_PARCOURS.map((l) => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </Field>
+          <Field label="Qui est concerné">
+            <input className={inputCls} value={qui} onChange={(e) => setQui(e.target.value)}
+              placeholder="Ex: marcheur du groupe B, encadrant, riverain..." />
+          </Field>
           <Field label="Détails (localisation, situation)">
             <textarea
               className={inputCls}
@@ -794,7 +813,7 @@ function AlarmeForm({ groupes, onClose, onDeclencher }) {
           </Field>
         </div>
         <button
-          onClick={() => onDeclencher({ motif, groupe, details })}
+          onClick={() => onDeclencher({ motif, groupe, lieu, qui: qui.trim(), details })}
           className="w-full mt-4 text-sm font-mono font-semibold px-4 py-3 rounded ring-2 ring-red-400/70 bg-red-500/25 text-red-100 hover:bg-red-500/40 transition-colors"
         >
           DECLENCHER L'ALERTE

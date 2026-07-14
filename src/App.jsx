@@ -44,7 +44,7 @@ const COMPOSANTS = {
   sos: Sos,
   signaler: Signaler,
 };
-const ROUTES_PUBLIQUES = ["sos", "signaler"];
+const ROUTES_PUBLIQUES = ["sos", "signaler", "pcops"];
 
 function parseHash() {
   const h = (window.location.hash || "").slice(1);

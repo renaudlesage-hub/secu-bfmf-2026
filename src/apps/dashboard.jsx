@@ -215,7 +215,7 @@ export default function DashboardQG() {
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
 
-  const [formMotif, setFormMotif] = useState("médical");
+  const [formMotif, setFormMotif] = useState("Urgence médicale / Malaise");
   const [formLieu, setFormLieu] = useState("Site grande scène");
   const [formNom, setFormNom] = useState(SESS_USER.nom);
   const [formDetails, setFormDetails] = useState("");
@@ -638,9 +638,12 @@ export default function DashboardQG() {
             <form onSubmit={declencherSosManuel} className="space-y-1.5 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <select className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formMotif} onChange={(e) => setFormMotif(e.target.value)}>
-                  <option value="médical">Médical / Malaise</option>
-                  <option value="Incendie / fumée">Incendie / Fumée</option>
-                  <option value="Sûreté / violence">Sûreté / Bagarre</option>
+                  <option value="Urgence médicale / Malaise">Médical / Malaise</option>
+                  <option value="Personne blessée / chute">Blessure / Chute</option>
+                  <option value="Personne perdue / désorientée">Personne perdue</option>
+                  <option value="Sûreté / comportement dangereux">Sûreté / Bagarre</option>
+                  <option value="Départ de feu / fumée suspecte">Incendie / Fumée</option>
+                  <option value="Autre urgence">Autre</option>
                 </select>
                 <select className="bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLieu} onChange={(e) => setFormLieu(e.target.value)}>
                   {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
