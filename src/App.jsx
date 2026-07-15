@@ -12,6 +12,7 @@ import FicheReflexe from "./apps/fichereflexe";
 import AppLogistique from "./apps/logistique";
 import StocksBar from "./apps/StocksBar";
 import Jauge from "./apps/jauge";
+import GestionRadios from "./apps/radios";
 import AppVolante from "./apps/volante";
 import Sanitaire from "./apps/sanitaire";
 import Balade from "./apps/balade";
@@ -37,6 +38,7 @@ const COMPOSANTS = {
   logistique: AppLogistique,
   stocks: StocksBar,
   jauge: Jauge,
+  radios: GestionRadios,
   volante: AppVolante,
   sanitaire: Sanitaire,
   balade: Balade,

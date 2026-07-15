@@ -13,8 +13,14 @@ import {
   AlertTriangle,
   Sun,
   Sunset,
+  FileText,
+  Radio,
+  Megaphone,
+  UserSearch,
+  LifeBuoy,
+  Map as MapIcon,
 } from "lucide-react";
-import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
 
 /* ---------------------------------------------------------------------
    PC-OPS / AUTORITE -- BFMF 2026
@@ -34,7 +40,7 @@ const SB_HEADERS = {
 async function kvGet(key) {
   const r = await fetch(
     `${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
-    { headers: SB_HEADERS }
+    { headers: SB_HEADERS, credentials: "omit" }
   );
   if (!r.ok) throw new Error("GET " + r.status);
   const j = await r.json();
@@ -48,6 +54,75 @@ const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
 const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
+const KEY_CRISE = "bfmf2026-crise";
+const KEY_RECH = "bfmf2026-recherche";
+const KEY_JAUGE = "bfmf2026-jauge";
+
+const CAPACITE_SITE = 1500; // a ajuster selon le dossier de securite
+
+/* =====================================================================
+   ONGLET DOSSIER -- contenu de reference pour les autorites.
+   >>> C'EST ICI QUE L'ON MET A JOUR : liens Drive, numeros, PC.
+   Partage Drive requis : "Tous les utilisateurs disposant du lien -> Lecteur",
+   sinon les destinataires tombent sur une demande d'acces.
+===================================================================== */
+
+const DOCUMENTS = [
+  {
+    titre: "Dossier de sécurité BFMF 2026",
+    desc: "Dispositif complet : implantation, effectifs, procédures, analyse de risques.",
+    url: "https://docs.google.com/document/d/1AKBVDT6yO-ubdPxrYnfMJjLFnw2l6p-B/preview",
+  },
+  {
+    titre: "PPUI — Plan Particulier d'Urgence et d'Intervention",
+    desc: "Plan d'urgence de l'événement : scénarios, alerte, montée en puissance, disciplines.",
+    url: "https://docs.google.com/document/d/1MzOi61IGcpgcFyxcCFJUWxyhi78mxZBP/preview",
+  },
+  {
+    titre: "Plan d'implantation / plan de site",
+    desc: "À COMPLÉTER : coller ici le lien de partage Drive.",
+    url: "",
+  },
+  {
+    titre: "Carte opérationnelle « Buco 2026 »",
+    desc: "Parcours 6,5 km, étapes, PRV, points GPS (Google My Maps).",
+    url: `https://www.google.com/maps/d/viewer?mid=${MYMAPS_MID}`,
+  },
+];
+
+const ANNUAIRE = [
+  { nom: "URGENCE VITALE", num: "112", note: "médical / incendie", urgent: true },
+  { nom: "Police (non urgent)", num: "101" },
+  { nom: "PC festival / QG (PCE)", num: "04XX XX XX XX", note: "À COMPLÉTER" },
+  { nom: "Coordinateur sécurité", num: "04XX XX XX XX", note: "À COMPLÉTER" },
+  { nom: "Poste de secours / Croix-Rouge", num: "04XX XX XX XX", note: "À COMPLÉTER" },
+  { nom: "Responsable balade", num: "04XX XX XX XX", note: "À COMPLÉTER" },
+];
+
+const RADIO_PLAN = [
+  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, volante)" },
+  { canal: "PMR5", usage: "Bénévoles parking et sanitaires" },
+  { canal: "PMR15", usage: "Sécurité privée" },
+  { canal: "PMR333", usage: "URGENCE — exclusivement réservé", urgent: true },
+];
+
+const PRV_LIST = [
+  { nom: "Point 0 / Départ — PC festival", gps: "50.3835, 5.6215" },
+  { nom: "PRV#4 — Rue Sainte-Barbe", gps: "50.38212, 5.61673" },
+  { nom: "PRV#5 — Rue de Jehonhé", gps: "50.37568, 5.64412" },
+  { nom: "PRV#6", gps: "50.38236, 5.64579" },
+  { nom: "PRV#7 — Rue de la Chapelle", gps: "50.38865, 5.62692" },
+  { nom: "Étape 1 (km 0,9)", gps: "50.37858, 5.62790" },
+  { nom: "Étape 2 (km 2,5)", gps: "50.37828, 5.64549" },
+  { nom: "Étape 3 (km 5,1)", gps: "50.38817, 5.62891" },
+];
+
+const DOCTRINE = [
+  "112 d'abord pour toute urgence vitale, puis information du QG par PMR333.",
+  "Les applications complètent la radio : elles ne la remplacent jamais.",
+  "L'engagement des moyens reste au QG festival — cette vue est en lecture seule.",
+  "Point de regroupement enfant perdu / personne recherchée : ACCUEIL POINT 0.",
+];
 
 const CAPACITE_ETAPE = 300;
 const LONGUEUR_KM = 6.5;
@@ -109,6 +184,10 @@ export default function PcOps() {
   const [sbError, setSbError] = useState(false);
   const [maj, setMaj] = useState(null);
   const [now, setNow] = useState(new Date());
+  const [crise, setCrise] = useState(null);
+  const [recherches, setRecherches] = useState([]);
+  const [jauge, setJauge] = useState(null);
+  const [vue, setVue] = useState("situation"); // situation | dossier
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -119,10 +198,10 @@ export default function PcOps() {
     let stop = false;
     async function pull() {
       try {
-        const [mi, gr, aLog, aBal, sp, co, mto] = await Promise.all([
+        const [mi, gr, aLog, aBal, sp, co, mto, cri, rch, jg] = await Promise.all([
           kvGet(KEY_MISSIONS), kvGet(KEY_GROUPES), kvGet(KEY_ALERTE_LOG),
           kvGet(KEY_ALERTE_BAL), kvGet(KEY_SOS_PART), kvGet(KEY_CONSIGNE),
-          kvGet(KEY_METEO),
+          kvGet(KEY_METEO), kvGet(KEY_CRISE), kvGet(KEY_RECH), kvGet(KEY_JAUGE),
         ]);
         if (stop) return;
         setMissions(Array.isArray(mi) ? mi : []);
@@ -130,6 +209,9 @@ export default function PcOps() {
         setSosPart(Array.isArray(sp) ? sp : []);
         setConsigne(co && co.active ? co : null);
         setMeteoLive(mto && mto.live ? mto : null);
+        setCrise(cri && cri.active ? cri : null);
+        setRecherches(Array.isArray(rch) ? rch.filter((x) => x.statut === "active") : []);
+        setJauge(jg && jg.compteurs ? jg : null);
         setAlertes(
           [
             aLog && aLog.active ? { ...aLog, source: "Equipe logistique" } : null,
@@ -234,7 +316,11 @@ export default function PcOps() {
     })
     .filter((e) => e.pct >= 0.72);
 
-  const critiques = evenements.filter((e) => e.gravite === "critique").length;
+  const surSite = jauge
+    ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
+    : null;
+
+  const critiques = evenements.filter((e) => e.gravite === "critique").length + (crise ? 1 : 0);
   const niveau = critiques > 0 ? "critique" : evenements.length > 0 || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
   const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
 
@@ -276,6 +362,20 @@ export default function PcOps() {
             </div>
           </div>
         </div>
+        {/* Onglets : SITUATION (temps reel) / DOSSIER (references) */}
+        <div className="max-w-3xl mx-auto px-4 pb-2 flex gap-1.5">
+          {[["situation", "Situation", CircleDot], ["dossier", "Dossier & contacts", FileText]].map(([k, lab, Ic]) => (
+            <button
+              key={k}
+              onClick={() => setVue(k)}
+              className={`flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-full ring-1 transition-colors ${
+                vue === k ? "ring-sky-400/50 bg-sky-400/10 text-sky-300" : "ring-white/10 text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <Ic className="w-3.5 h-3.5" /> {lab}
+            </button>
+          ))}
+        </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-4 space-y-4">
@@ -284,6 +384,38 @@ export default function PcOps() {
             Liaison donnees indisponible — la situation affichee peut etre obsolete.
           </div>
         )}
+
+        {vue === "dossier" ? (
+          <Dossier />
+        ) : (
+        <>
+        {/* CONSIGNE GENERALE DU QG (mode crise) — priorite absolue pour les autorites */}
+        {crise && (
+          <section className="rounded-lg ring-2 ring-red-500/70 bg-red-500/15 p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Megaphone className="w-4 h-4 text-red-300 pulse-slow" />
+              <h2 className="font-display tracking-wide text-sm text-red-200 uppercase">Consigne générale diffusée par le QG</h2>
+            </div>
+            <div className="text-sm text-red-100 font-semibold">{crise.motif}</div>
+            {crise.message && <div className="text-xs text-red-100/90 mt-0.5">{crise.message}</div>}
+            <div className="text-[11px] font-mono text-red-200/70 mt-1">
+              Émise à {crise.heure} · {(crise.accuses || []).length} équipe(s) ont accusé réception
+            </div>
+          </section>
+        )}
+
+        {/* RECHERCHES DE PERSONNE EN COURS (donnees minimales — RGPD) */}
+        {recherches.map((r) => (
+          <div key={r.id} className="rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100 flex items-start gap-2">
+            <UserSearch className="w-4 h-4 shrink-0 mt-0.5 text-amber-300" />
+            <div>
+              <span className="font-semibold uppercase">Recherche {r.categorie} en cours</span> — depuis {r.heure}
+              <div className="opacity-80 mt-0.5">
+                Dernier lieu connu : {r.dernierLieu}{r.heureDerniereVue ? ` (vers ${r.heureDerniereVue})` : ""} · regroupement : accueil Point 0 · gestion QG festival
+              </div>
+            </div>
+          </div>
+        ))}
 
         {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE (LECTURE SEULE AUTORITÉS) */}
         <a 
@@ -355,6 +487,20 @@ export default function PcOps() {
           <Kpi label="Public sur parcours" value={persDehors} accent="text-amber-300" />
           <Kpi label="Groupes dehors" value={grpDehors.length} accent="text-slate-200" />
         </section>
+
+        {/* Jauge plaine (comptage des acces au site) */}
+        {surSite !== null && (
+          <div className="rounded-lg ring-1 ring-white/10 bg-[#131a22] px-4 py-2.5 flex items-center gap-3">
+            <Users className="w-4 h-4 text-slate-500 shrink-0" />
+            <span className="text-xs text-slate-300 shrink-0">Jauge plaine</span>
+            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div className={`h-full ${surSite / CAPACITE_SITE >= 0.9 ? "bg-red-400" : surSite / CAPACITE_SITE >= 0.72 ? "bg-amber-400" : "bg-emerald-400"}`}
+                style={{ width: `${Math.min(100, Math.round((surSite / CAPACITE_SITE) * 100))}%` }} />
+            </div>
+            <span className={`font-mono text-sm ${surSite / CAPACITE_SITE >= 0.9 ? "text-red-300" : "text-slate-200"}`}>{surSite}</span>
+            <span className="font-mono text-[10px] text-slate-500 shrink-0">/ {CAPACITE_SITE}</span>
+          </div>
+        )}
 
         {consigne && (
           <div className="rounded-md ring-1 ring-amber-400/30 bg-amber-400/5 px-3 py-2 text-xs text-amber-200">
@@ -483,6 +629,9 @@ export default function PcOps() {
           </div>
         </section>
 
+        </>
+        )}
+
         <div className="text-[10px] text-slate-600 font-mono text-center pb-2">
           {maj ? `Derniere synchronisation : ${pad(maj.getHours())}:${pad(maj.getMinutes())}:${pad(maj.getSeconds())}` : "Synchronisation..."} · rafraichissement 10 s
         </div>
@@ -496,6 +645,119 @@ function Kpi({ label, value, accent }) {
     <div className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-3">
       <div className="text-[10px] font-mono text-slate-500 tracking-wide uppercase">{label}</div>
       <div className={`font-display text-2xl mt-0.5 ${accent}`}>{value}</div>
+    </div>
+  );
+}
+/* =====================================================================
+   ONGLET DOSSIER — documents de reference, annuaire, points fixes.
+   Contenu statique : reste consultable meme si la liaison Supabase tombe.
+===================================================================== */
+
+function Dossier() {
+  return (
+    <div className="space-y-4">
+      {/* Documents */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
+          <FileText className="w-4 h-4 text-sky-300" /> DOCUMENTS DE RÉFÉRENCE
+        </h2>
+        <div className="text-[10px] font-mono text-slate-500 mb-3">
+          Consultation réservée aux autorités et disciplines — ne pas rediffuser.
+        </div>
+        <div className="space-y-2">
+          {DOCUMENTS.map((d) => {
+            const dispo = Boolean(d.url);
+            const Contenu = (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm ${dispo ? "text-slate-100" : "text-slate-400"}`}>{d.titre}</span>
+                  {dispo ? (
+                    <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-sky-300 transition-colors" />
+                  ) : (
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded ring-1 ring-amber-400/30 text-amber-300/80">à venir</span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-0.5">{d.desc}</div>
+              </>
+            );
+            return dispo ? (
+              <a key={d.titre} href={d.url} target="_blank" rel="noopener noreferrer"
+                className="group block rounded-md px-3 py-2.5 ring-1 ring-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:ring-sky-400/30 transition-all">
+                {Contenu}
+              </a>
+            ) : (
+              <div key={d.titre} className="rounded-md px-3 py-2.5 ring-1 ring-white/5 bg-white/[0.01]">
+                {Contenu}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Annuaire de crise */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <PhoneCall className="w-4 h-4 text-slate-500" /> ANNUAIRE DE CRISE
+        </h2>
+        <div className="space-y-1">
+          {ANNUAIRE.map((n) => (
+            <a key={n.nom} href={`tel:${n.num.replace(/\s/g, "")}`}
+              className={`flex items-center gap-2 rounded px-2.5 py-2 ring-1 ${n.urgent ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.02]"}`}>
+              <span className={`text-xs flex-1 ${n.urgent ? "text-red-200 font-semibold" : "text-slate-300"}`}>{n.nom}</span>
+              {n.note && <span className="text-[9px] font-mono text-amber-300/70">{n.note}</span>}
+              <span className={`font-mono text-sm ${n.urgent ? "text-red-200 font-bold" : "text-slate-200"}`}>{n.num}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Plan radio */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO
+        </h2>
+        <div className="space-y-1">
+          {RADIO_PLAN.map((c) => (
+            <div key={c.canal} className={`flex items-start gap-2 text-[11px] rounded px-2 py-1.5 ${c.urgent ? "bg-red-400/5 ring-1 ring-red-400/20" : "bg-white/[0.02]"}`}>
+              <span className={`font-mono shrink-0 w-14 ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
+              <span className="text-slate-400">{c.usage}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Points de rendez-vous secours */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
+          <MapIcon className="w-4 h-4 text-slate-500" /> POINTS DE RENDEZ-VOUS SECOURS (PRV)
+        </h2>
+        <div className="text-[10px] font-mono text-slate-500 mb-2">Coordonnées cliquables — ouvre Google Maps / navigation.</div>
+        <div className="space-y-1">
+          {PRV_LIST.map((r) => (
+            <a key={r.nom} href={`https://www.google.com/maps?q=${r.gps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
+              className="flex items-center gap-2 text-[11px] rounded px-2 py-1.5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+              <MapPin className="w-3 h-3 text-slate-600 shrink-0" />
+              <span className="text-slate-300 flex-1">{r.nom}</span>
+              <span className="font-mono text-slate-500">{r.gps}</span>
+              <ExternalLink className="w-2.5 h-2.5 text-slate-600 shrink-0" />
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Doctrine */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <LifeBuoy className="w-4 h-4 text-emerald-300" /> DOCTRINE D'ALERTE
+        </h2>
+        <ul className="space-y-1.5">
+          {DOCTRINE.map((d, i) => (
+            <li key={i} className="flex gap-2 text-xs text-slate-300 leading-relaxed">
+              <span className="font-mono text-emerald-300/70 shrink-0">{i + 1}.</span> {d}
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

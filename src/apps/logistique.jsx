@@ -21,6 +21,7 @@ import {
   Download,
   CloudLightning,
   ExternalLink,
+  QrCode,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -172,7 +173,7 @@ const SB_HEADERS = {
 };
 
 async function kvGet(key) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`, { headers: SB_HEADERS });
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`, { headers: SB_HEADERS, credentials: "omit" });
   if (!r.ok) throw new Error(`Supabase GET ${r.status}`);
   const j = await r.json();
   return j.length ? j[0].value : null;
@@ -182,6 +183,7 @@ async function kvSet(key, value) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
     method: "POST",
     headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
+    credentials: "omit",
     body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
   });
   return r.ok;
@@ -603,6 +605,13 @@ function FormNouvelle({ onClose, onSubmit, signature }) {
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
 
+        <ScannerLogistique
+          onScanSuccess={(infos) => {
+            if (infos.nature) setNature(infos.nature);
+            if (infos.lieu && POINTS_GPS[infos.lieu]) setZone(infos.lieu);
+          }}
+        />
+
         <Field label="Nature de l'incident / Besoin matériel *">
           <input className={inputCls} value={nature} onChange={(e) => setNature(e.target.value)} placeholder="Ex: Panne éclairage, manque gobelets..." required />
         </Field>
@@ -680,6 +689,86 @@ function MissionDetail({ mission, onClose, onAttribuer, onDemarrer, onResoudre }
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+
+/* ---------------------------------------------------------------------
+   SCANNER QR MATERIEL
+   Format attendu sur l'etiquette : LOC:Site bar|MAT:Panne eclairage
+   - LOC doit correspondre EXACTEMENT a une cle de POINTS_GPS pour que la
+     localisation se pre-remplisse (sinon seule la nature est reprise).
+   - La librairie html5-qrcode est chargee A LA DEMANDE (import dynamique) :
+     pas d'alourdissement du bundle, et une absence de librairie ne casse
+     pas le formulaire.
+   - Camera : necessite HTTPS (OK sur Vercel) + autorisation de l'utilisateur.
+--------------------------------------------------------------------- */
+
+export function ScannerLogistique({ onScanSuccess }) {
+  const [scanOuvert, setScanOuvert] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  useEffect(() => {
+    if (!scanOuvert) return;
+    let scanner = null;
+    let annule = false;
+
+    (async () => {
+      try {
+        const { Html5QrcodeScanner } = await import("html5-qrcode");
+        if (annule) return;
+        scanner = new Html5QrcodeScanner(
+          "qr-reader",
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          false
+        );
+        scanner.render(
+          (decodedText) => {
+            const infos = { lieu: "", nature: "" };
+            decodedText.split("|").forEach((d) => {
+              const t = d.trim();
+              if (t.startsWith("LOC:")) infos.lieu = t.slice(4).trim();
+              if (t.startsWith("MAT:")) infos.nature = t.slice(4).trim();
+            });
+            // QR non conforme : on reprend le texte brut comme nature
+            if (!infos.lieu && !infos.nature) infos.nature = decodedText.trim();
+            try { scanner.clear(); } catch (e) {}
+            setScanOuvert(false);
+            onScanSuccess(infos);
+          },
+          () => { /* erreurs de lecture continues : ignorees */ }
+        );
+      } catch (e) {
+        if (!annule) setErreur("Scanner indisponible (librairie ou caméra). Saisie manuelle possible.");
+      }
+    })();
+
+    return () => {
+      annule = true;
+      if (scanner) { try { scanner.clear(); } catch (e) {} }
+    };
+  }, [scanOuvert]); // eslint-disable-line
+
+  return (
+    <div>
+      {!scanOuvert ? (
+        <button
+          type="button"
+          onClick={() => { setErreur(""); setScanOuvert(true); }}
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded text-xs font-bold font-mono w-full justify-center transition-colors"
+        >
+          <QrCode className="w-4 h-4" /> SCANNER UN ÉQUIPEMENT (QR CODE)
+        </button>
+      ) : (
+        <div className="bg-black/50 p-2 rounded border border-indigo-500/50">
+          <div id="qr-reader" className="w-full max-w-sm mx-auto bg-white" />
+          <button type="button" onClick={() => setScanOuvert(false)} className="mt-2 w-full text-center text-xs text-red-400 py-2">
+            Annuler le scan
+          </button>
+        </div>
+      )}
+      {erreur && <div className="text-[11px] text-amber-300 mt-1.5">{erreur}</div>}
     </div>
   );
 }

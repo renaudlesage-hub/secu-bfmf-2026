@@ -23,6 +23,7 @@ const APPS_LIST = [
   { id: "maincourante", name: "Main courante QG", cat: "qg" },
   { id: "console-cm", name: "Console medias (CM)", cat: "qg" },
   { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg" },
+  { id: "radios", name: "Parc & attributions radio", cat: "qg" },
 
   // Pole Logistique & Regulation
   { id: "logistique", name: "Missions logistiques", cat: "logistique" },
