@@ -52,7 +52,7 @@ const SESS_USER = {
 async function kvGet(key) {
   const r = await fetch(
     `${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
-    { headers: SB_HEADERS }
+    { headers: SB_HEADERS, credentials: "omit" }
   );
   if (!r.ok) throw new Error(`Supabase GET ${r.status}`);
   const j = await r.json();
@@ -63,6 +63,7 @@ async function kvSet(key, value) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
     method: "POST",
     headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
+    credentials: "omit",
     body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
   });
   return r.ok;
@@ -222,7 +223,7 @@ export default function DashboardQG() {
 
   const [formLogNature, setFormLogNature] = useState("");
   const [formLogLieu, setFormLogLieu] = useState("Site zone logistique");
-  const [formLogPriorite, setFormLogPriorite] = useState("P3 - Standard");
+  const [formLogPriorite, setFormLogPriorite] = useState("P3 - important non bloquant");
   const [formLogBloquant, setFormLogBloquant] = useState("Non");
 
   const [formSanType, setFormSanType] = useState("papier");
@@ -328,7 +329,7 @@ export default function DashboardQG() {
   async function ajouterMissionLogistique(e) {
     e.preventDefault();
     const nouvelleMission = {
-      id: "log-" + Date.now(), ref: "LOG-" + pad(safeMissions.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: formLogBloquant, statut: "A affecter", heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
+      id: "log-" + Date.now(), ref: "LOG-" + pad(safeMissions.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: formLogBloquant, statut: "A traiter", heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
     };
     const next = [nouvelleMission, ...safeMissions]; setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
   }
@@ -895,9 +896,10 @@ export default function DashboardQG() {
                   </div>
                   <div>
                     <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogPriorite} onChange={(e) => setFormLogPriorite(e.target.value)}>
-                      <option value="P1 - Critique / Bloquant">P1 - Critique</option>
-                      <option value="P2 - Urgent">P2 - Urgent</option>
-                      <option value="P3 - Standard">P3 - Standard</option>
+                      <option value="P1 - immediat / critique">P1 - Immédiat / critique</option>
+                      <option value="P2 - urgent">P2 - Urgent</option>
+                      <option value="P3 - important non bloquant">P3 - Important non bloquant</option>
+                      <option value="P4 - amelioration / des que possible">P4 - Amélioration / dès que possible</option>
                     </select>
                   </div>
                 </div>
