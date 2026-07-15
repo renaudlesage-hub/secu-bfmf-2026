@@ -22,6 +22,8 @@ import {
   CloudLightning,
   ExternalLink,
   QrCode,
+  Printer,
+  Trash2,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -203,6 +205,7 @@ export default function LogistiqueMissions() {
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [filtreStatut, setFiltreStatut] = useState("Tous");
+  const [vue, setVue] = useState("missions"); // missions | qr
   const [now, setNow] = useState(new Date());
   const [meteoLive, setMeteoLive] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -383,6 +386,15 @@ export default function LogistiqueMissions() {
             <button onClick={() => setShowAlarme(true)} className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded ring-2 ring-red-400/60 bg-red-500/20 text-red-200 hover:bg-red-500/30 font-semibold">
               <TriangleAlert className="w-4 h-4" /> SOS
             </button>
+            <button
+              onClick={() => setVue(vue === "qr" ? "missions" : "qr")}
+              className={`flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${
+                vue === "qr" ? "ring-indigo-400/50 bg-indigo-400/15 text-indigo-200" : "ring-white/20 text-slate-400 hover:text-slate-200"
+              }`}
+              title="Générer les étiquettes QR à coller sur les équipements"
+            >
+              <QrCode className="w-4 h-4" /> <span className="hidden sm:inline">Étiquettes QR</span>
+            </button>
             <button onClick={() => refresh(false)} className="text-slate-500 hover:text-slate-200"><RefreshCw className="w-4 h-4" /></button>
             <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
               <Clock className="w-4 h-4 text-slate-500" />
@@ -393,6 +405,10 @@ export default function LogistiqueMissions() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+        {vue === "qr" ? (
+          <GenerateurQR />
+        ) : (
+        <>
         {alerte && (
           <div className="rounded-lg ring-2 ring-red-400/60 bg-red-500/15 p-4">
             <div className="flex items-start gap-3">
@@ -469,6 +485,8 @@ export default function LogistiqueMissions() {
             );
           })}
         </section>
+        </>
+        )}
       </main>
 
       {showForm && <FormNouvelle onClose={() => setShowForm(false)} onSubmit={addMission} signature={signature} />}
@@ -769,6 +787,144 @@ export function ScannerLogistique({ onScanSuccess }) {
         </div>
       )}
       {erreur && <div className="text-[11px] text-amber-300 mt-1.5">{erreur}</div>}
+    </div>
+  );
+}
+
+
+/* ---------------------------------------------------------------------
+   GENERATEUR D'ETIQUETTES QR -- equipements et points logistiques
+   Le QR encode le TEXTE "LOC:<lieu>|MAT:<materiel>" (pas une URL) : c'est
+   ce que lit le scanner du formulaire de demande. Scanne avec l'appareil
+   photo natif du telephone, il affichera juste ce texte -> le scan doit se
+   faire DEPUIS l'app (#logistique > Nouvelle demande > Scanner).
+   Les etiquettes personnalisees sont conservees dans le navigateur
+   (localStorage) : elles survivent aux rechargements sur ce poste.
+   >>> IMPRIMER DEPUIS L'URL DE PRODUCTION, apres deploiement.
+--------------------------------------------------------------------- */
+
+const QR_KEY_LOCAL = "bfmf2026-qr-equipements";
+
+function qrImg(texte, taille = 260) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${taille}x${taille}&margin=8&data=${encodeURIComponent(texte)}`;
+}
+
+function GenerateurQR() {
+  const [etiquettes, setEtiquettes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(QR_KEY_LOCAL) || "[]"); } catch (e) { return []; }
+  });
+  const [lieu, setLieu] = useState(Object.keys(POINTS_GPS)[0]);
+  const [materiel, setMateriel] = useState("");
+  const [onglet, setOnglet] = useState("lieux"); // lieux | equipements
+
+  function sauver(next) {
+    setEtiquettes(next);
+    try { localStorage.setItem(QR_KEY_LOCAL, JSON.stringify(next)); } catch (e) {}
+  }
+  function ajouter() {
+    if (!materiel.trim()) return;
+    sauver([...etiquettes, { id: "eq" + Date.now(), lieu, materiel: materiel.trim() }]);
+    setMateriel("");
+  }
+  function supprimer(id) {
+    sauver(etiquettes.filter((e) => e.id !== id));
+  }
+
+  return (
+    <div className="print-root">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .qr-card { break-inside: avoid; page-break-inside: avoid; }
+          body, .print-root { background: white !important; }
+        }
+      `}</style>
+
+      <div className="no-print space-y-3 mb-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
+            <QrCode className="w-4 h-4 text-indigo-300" /> ÉTIQUETTES QR À COLLER
+          </h2>
+          <button onClick={() => window.print()}
+            className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded ring-1 ring-white/20 text-slate-300 hover:text-white">
+            <Printer className="w-3.5 h-3.5" /> Imprimer cette page
+          </button>
+        </div>
+
+        <div className="flex gap-1.5">
+          {[["lieux", `Par lieu (${Object.keys(POINTS_GPS).length})`], ["equipements", `Par équipement (${etiquettes.length})`]].map(([k, lab]) => (
+            <button key={k} onClick={() => setOnglet(k)}
+              className={`text-[11px] font-mono px-3 py-1.5 rounded-full ring-1 transition-colors ${
+                onglet === k ? "ring-indigo-400/50 bg-indigo-400/10 text-indigo-300" : "ring-white/15 text-slate-400 hover:text-slate-200"
+              }`}>
+              {lab}
+            </button>
+          ))}
+        </div>
+
+        <div className="text-[11px] text-slate-500 leading-relaxed">
+          Le scan se fait depuis l'app : <span className="text-slate-300">Nouvelle demande → SCANNER UN ÉQUIPEMENT</span>.
+          La localisation (et le matériel si présent) se pré-remplit. Imprimer depuis l'URL de production, puis plastifier.
+        </div>
+
+        {onglet === "equipements" && (
+          <div className="flex gap-2 flex-wrap items-end bg-[#151b23] ring-1 ring-white/10 rounded-lg p-3">
+            <div>
+              <div className="text-[10px] font-mono text-slate-400 uppercase mb-1">Lieu</div>
+              <select className={inputCls} value={lieu} onChange={(e) => setLieu(e.target.value)}>
+                {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <div className="text-[10px] font-mono text-slate-400 uppercase mb-1">Équipement / matériel</div>
+              <input className={inputCls} value={materiel} onChange={(e) => setMateriel(e.target.value)}
+                placeholder="Ex: Tireuse n°2, Groupe électrogène A, Barrière Nadar lot 3"
+                onKeyDown={(e) => { if (e.key === "Enter") ajouter(); }} />
+            </div>
+            <button onClick={ajouter} disabled={!materiel.trim()}
+              className={`flex items-center gap-1.5 text-xs font-mono px-3 py-2.5 rounded transition-colors ${
+                materiel.trim() ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "bg-white/5 text-slate-600 cursor-not-allowed"
+              }`}>
+              <Plus className="w-3.5 h-3.5" /> Ajouter
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Grille imprimable */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {onglet === "lieux" && Object.keys(POINTS_GPS).map((p) => (
+          <div key={p} className="qr-card rounded-lg bg-white text-slate-900 p-4 text-center">
+            <div className="font-display text-base tracking-wide">SIGNALER ICI</div>
+            <div className="text-[10px] text-slate-600 mb-2">Panne, manque, incident — scanner depuis l'app logistique</div>
+            <img src={qrImg(`LOC:${p}`)} alt={`QR ${p}`} className="mx-auto w-40 h-40" />
+            <div className="mt-2 text-sm font-semibold">{p}</div>
+            <div className="text-[9px] text-slate-500 mt-0.5 font-mono">LOC:{p}</div>
+            <div className="text-[9px] text-slate-400 mt-1">BFMF 2026 · logistique</div>
+          </div>
+        ))}
+
+        {onglet === "equipements" && etiquettes.length === 0 && (
+          <div className="no-print col-span-full text-sm text-slate-500 text-center py-8 rounded-lg ring-1 ring-white/10 bg-[#151b23]">
+            Aucune étiquette d'équipement. Ajoutez-en une ci-dessus.
+          </div>
+        )}
+
+        {onglet === "equipements" && etiquettes.map((e) => (
+          <div key={e.id} className="qr-card rounded-lg bg-white text-slate-900 p-4 text-center relative">
+            <button onClick={() => supprimer(e.id)}
+              className="no-print absolute top-2 right-2 text-slate-400 hover:text-red-500" title="Supprimer">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+            <div className="font-display text-base tracking-wide">SIGNALER CET ÉQUIPEMENT</div>
+            <div className="text-[10px] text-slate-600 mb-2">Scanner depuis l'app logistique</div>
+            <img src={qrImg(`LOC:${e.lieu}|MAT:${e.materiel}`)} alt={`QR ${e.materiel}`} className="mx-auto w-40 h-40" />
+            <div className="mt-2 text-sm font-semibold">{e.materiel}</div>
+            <div className="text-[11px] text-slate-600">{e.lieu}</div>
+            <div className="text-[9px] text-slate-400 mt-1">BFMF 2026 · logistique</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
