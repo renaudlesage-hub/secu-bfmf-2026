@@ -12,10 +12,12 @@ import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, 
 const NUMEROS = [
   { nom: "URGENCE VITALE", num: "112", note: "medical / incendie — TOUJOURS en premier", urgent: true },
   { nom: "Police", num: "101", note: "" },
-  { nom: "Directeur d'événement", num: "04XX XX XX XX", note: "Jérôme" },
+  { nom: "Directeur d'événement", num: "0477 99 48 42", note: "Jérôme" },
   { nom: "Coordinateur securite", num: "0494 22 29 33", note: "Renaud" },
-  { nom: "Responsable balade", num: "04XX XX XX XX", note: "A COMPLETER" },
-  { nom: "Poste secours / Croix-Rouge", num: "04XX XX XX XX", note: "A COMPLETER" },
+  { nom: "Bourgmestre", num: "0477 63 81 88", note: "Ch. Verdin" },
+  { nom: "Coordinatrice PlanU Ferrièrs", num: "086 400 90 51", note: "C. Seynaeve" },
+  { nom: "Dispatching IILE/Hemeco en intervention", num: "04/279 13 52", note: "Dispatching Hemeco" },
+  { nom: "Numéro back-up 112 en cas de panne", num: "0471/51 31 56", note: "112 back-up" },
   { nom: "Centre antipoison", num: "070 245 245", note: "" },
 ];
 

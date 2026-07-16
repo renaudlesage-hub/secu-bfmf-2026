@@ -1,6 +1,3 @@
-
-
-Dashboard v10 · JSX
 import React, { useState, useEffect } from "react";
 import {
   ShieldAlert,
