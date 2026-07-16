@@ -29,11 +29,14 @@ const RADIO = [
 ];
 
 const PRV = [
-  { nom: "Entrée site / Depart", gps: "50.382443, 5.616178" },
-  { nom: "PRV#4 — Rue Sainte-Barbe", gps: "50.38212, 5.61673" },
-  { nom: "PRV#5 — Rue de Jehonhe", gps: "50.37568, 5.64412" },
-  { nom: "PRV#6", gps: "50.38236, 5.64579" },
-  { nom: "PRV#7 — Rue de la Chapelle", gps: "50.38865, 5.62692" },
+
+  { nom: "PRV#1 - Entrée site / Depart — Croisement Le Raumont - Chemin de l'épine", gps: "50.38242, 5.61624 " },
+  { nom: "PRV#2 - Entrée arrière site — Mon Legrand", gps: "50.38304, 5.61816" },
+  { nom: "PRV#3 — Parkin public - Le Raumont", gps: "50.38212, 5.61673" },
+  { nom: "PRV#4 — Accès étape 1 -  Rue Sainte-Barbe", gps: "50.38212, 5.61673" },
+  { nom: "PRV#5 — Accès étape 2 via Rue de Jehonhe", gps: "50.37568, 5.64412" },
+  { nom: "PRV#6 - Accès étape2 via Lesfanges", gps: "50.38236, 5.64579" },
+  { nom: "PRV#7 - Accès étape 3 — Rue de la Chapelle, 23", gps: "50.38865, 5.62692" },
   { nom: "Etape 1 (km 0,9)", gps: "50.37858, 5.62790" },
   { nom: "Etape 2 (km 2,5)", gps: "50.37828, 5.64549" },
   { nom: "Etape 3 (km 5,1)", gps: "50.38817, 5.62891" },
