@@ -26,7 +26,7 @@ export default defineConfig({
     tailwindcss(), // NE JAMAIS RETIRER : sans lui, plus aucun style (Tailwind v4)
     VitePWA({
       registerType: 'autoUpdate', // la nouvelle version prend la main au rechargement
-      includeAssets: ['favicon.svg', 'icons.svg'],
+      includeAssets: ['favicon.svg', 'icons.svg', 'apple-touch-icon.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/index.html', // routes #hash disponibles hors ligne
@@ -59,7 +59,11 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         icons: [
-          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          // 'maskable' : Android recadre l'icone (cercle, goutte...). Le contenu
+          // de nos PNG tient dans la zone de securite centrale, donc rien n'est rogne.
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),
