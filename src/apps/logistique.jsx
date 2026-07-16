@@ -35,24 +35,6 @@ const ALERT_KEY = "bfmf2026-logistique-alerte";
 const PROFILE_KEY = "bfmf2026-profil";
 const KEY_METEO = "bfmf2026-meteo";
 
-const ROLES = [
-  "QG / PCE",
-  "Coordination générale",
-  "Volante",
-  "Responsable scène 1",
-  "Responsable scène 2",
-  "Responsable Étape 1",
-  "Responsable Étape 2",
-  "Responsable Étape 3",
-  "Bénévole parking",
-  "Bénévole sanitaire",
-  "Sécurité privée",
-  "Technique",
-  "Bar / restauration",
-  "Logistique",
-  "Médical / secouriste",
-  "Autre",
-];
 
 const MOTIFS_ALERTE = [
   "Situation bloquante générale",
@@ -166,6 +148,7 @@ const inputCls =
 
 const MISSIONS_DEMO = [];
 
+import { ROLES } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
 const SB_HEADERS = {

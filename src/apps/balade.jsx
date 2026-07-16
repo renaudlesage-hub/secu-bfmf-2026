@@ -30,16 +30,6 @@ const STORAGE_KEY = "bfmf2026-suivi-balade";
 const ALERT_KEY = "bfmf2026-suivi-balade-alerte";
 const PROFILE_KEY = "bfmf2026-profil";
 
-const ROLES = [
-  "QG / PCE",
-  "Encadrant tête",
-  "Encadrant serre-file",
-  "Encadrant",
-  "Volante",
-  "Sécurité privée",
-  "Médical / secouriste",
-  "Autre",
-];
 
 // Positions successives d'un groupe sur le parcours
 const POSITIONS = [
@@ -111,6 +101,7 @@ function posIndex(id) {
 }
 
 /* ------------------------------ Supabase ------------------------------ */
+import { ROLES } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 
 const SB_HEADERS = {
@@ -122,7 +113,7 @@ const SB_HEADERS = {
 async function kvGet(key) {
   const r = await fetch(
     `${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
-    { headers: SB_HEADERS }
+    { headers: SB_HEADERS, credentials: "omit" }
   );
   if (!r.ok) throw new Error(`Supabase GET ${r.status}`);
   const j = await r.json();
@@ -133,6 +124,7 @@ async function kvSet(key, value) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
     method: "POST",
     headers: { ...SB_HEADERS, Prefer: "resolution=merge-duplicates" },
+    credentials: "omit",
     body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
   });
   return r.ok;
