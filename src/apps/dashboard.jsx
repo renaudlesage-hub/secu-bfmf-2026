@@ -31,27 +31,27 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
- 
+
 /* ---------------------------------------------------------------------
    DASHBOARD QG — CONSOLE DE SUPERVISION INTERACTIVE AVEC ACQUITTEMENT
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
- 
+
 import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_EN_COURS, STATUT_RESOLU, priorite } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
- 
+
 const SB_HEADERS = {
   apikey: SUPABASE_ANON_KEY,
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
   "Content-Type": "application/json",
 };
- 
+
 const SESS_USER = {
   nom: "Radio-PC",
   role: "Opérateur QG / PCE",
 };
- 
+
 async function kvGet(key) {
   const r = await fetch(
     `${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
@@ -61,7 +61,7 @@ async function kvGet(key) {
   const j = await r.json();
   return j.length ? j[0].value : null;
 }
- 
+
 async function kvSet(key, value) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/app_store`, {
     method: "POST",
@@ -71,7 +71,7 @@ async function kvSet(key, value) {
   });
   return r.ok;
 }
- 
+
 const KEY_MISSIONS = "bfmf2026-missions-logistique";
 const KEY_GROUPES = "bfmf2026-suivi-balade";
 const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
@@ -84,7 +84,7 @@ const KEY_CRISE = "bfmf2026-crise";
 const KEY_RECH = "bfmf2026-recherche";
 const KEY_JAUGE = "bfmf2026-jauge";
 const CAPACITE_SITE = 1500; 
- 
+
 const MOTIFS_CRISE = [
   "METEO — mise a l'abri generale",
   "SUSPENSION des departs balade",
@@ -93,7 +93,7 @@ const MOTIFS_CRISE = [
   "FIN D'ALERTE — reprise normale",
   "Autre consigne generale",
 ];
- 
+
 let _audioCtx = null;
 function bipAlerte() {
   try {
@@ -110,9 +110,9 @@ function bipAlerte() {
     });
   } catch (e) {}
 }
- 
+
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
- 
+
 const POINTS_GPS = {
   "Site grande scène": { km: 0, segment: "Plaine centrale — Grande Scène" },
   "Site petite scène": { km: 0, segment: "Plaine centrale — Petite Scène" },
@@ -128,10 +128,10 @@ const POINTS_GPS = {
   "Etape 2": { km: 2.53, segment: "Ravitaillement 2" },
   "Etape 3": { km: 5.06, segment: "Ravitaillement 3" },
 };
- 
+
 const LONGUEUR_KM = 6.5;
 const POS_KM = { p0: 0, t1: 0.45, e1: 0.9, t2: 1.7, e2: 2.53, t3: 3.8, e3: 5.06, tr: 5.8, ret: 6.5 };
- 
+
 const REPERES = [
   { nom: "P0", km: 0 },
   { nom: "E1", km: 0.9 },
@@ -139,7 +139,7 @@ const REPERES = [
   { nom: "E3", km: 5.06 },
   { nom: "P0", km: 6.5 },
 ];
- 
+
 const METEO_FALLBACK = {
   live: false, province: "Liege", codeActuel: "vert", maj: "—",
   timeline: [{ creneau: "FLUX METEO NON RECU — verifier Edge Function meteo-irm + cron", code: "jaune", phenomene: "indisponible" }],
@@ -148,21 +148,21 @@ const METEO_FALLBACK = {
   source: "—", obsHeure: "—", obsResume: "OBSERVATION INDISPONIBLE",
   obsLever: "—", obsCoucher: "—", obsUV: "—", urlFerrieres: "https://www.meteo.be/fr/ferrieres"
 };
- 
+
 const MEDIAS_FALLBACK = {
   ambiance: "neutre", maj: "En direct",
   canaux: [{ name: "Réseaux Sociaux", statut: "ok", note: "Aucun signalement critique" }]
 };
- 
+
 const CANAUX_RADIO = [
   { canal: "PMR4.1", usage: "Coord. Générale" },
   { canal: "PMR5", usage: "Parking / Sanitaires" },
   { canal: "PMR15", usage: "Sécurité Privée" },
   { canal: "PMR333", usage: "URGENCE" },
 ];
- 
+
 function pad(n) { return n.toString().padStart(2, "0"); }
- 
+
 export default function DashboardQG() {
   const [now, setNow] = useState(new Date());
   const [missionsLog, setMissionsLog] = useState([]);
@@ -187,7 +187,7 @@ export default function DashboardQG() {
   const wakeRef = React.useRef(null);
   const wakeDispo = typeof navigator !== "undefined" && "wakeLock" in navigator;
   const prevCritiques = React.useRef(null);
- 
+
   async function acquerirWake() {
     try {
       const s = await navigator.wakeLock.request("screen");
@@ -228,7 +228,7 @@ export default function DashboardQG() {
       if (wakeRef.current) { try { wakeRef.current.release(); } catch (e) {} wakeRef.current = null; }
     };
   }, [wakeActif]); // eslint-disable-line
- 
+
   async function declencherCrise() {
     const dn = new Date();
     const c = {
@@ -248,11 +248,11 @@ export default function DashboardQG() {
     setCrise(null);
     await kvSet(KEY_CRISE, c);
   }
- 
+
   const surSite = jauge
     ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
     : null;
- 
+
   const nbCritiques =
     sosParticipants.filter((s) => s.statut === "nouveau").length +
     alertesCrises.length + (crise ? 1 : 0) + recherches.length;
@@ -266,32 +266,31 @@ export default function DashboardQG() {
   const [prvChoisi, setPrvChoisi] = useState(PRVS[0]);
   const [msgConsigne, setMsgConsigne] = useState("");
   const [sbError, setSbError] = useState(false);
- 
+
   const [formMotif, setFormMotif] = useState("Urgence médicale / Malaise");
   const [formLieu, setFormLieu] = useState("Site grande scène");
   const [formNom, setFormNom] = useState(SESS_USER.nom);
   const [formDetails, setFormDetails] = useState("");
- 
+
   const [formLogNature, setFormLogNature] = useState("");
   const [formLogLieu, setFormLogLieu] = useState("Site zone logistique");
   const [formLogPriorite, setFormLogPriorite] = useState(PRIORITE_DEFAUT);
   const [formLogBloquant, setFormLogBloquant] = useState("Non");
- 
+
   const [formSanType, setFormSanType] = useState("papier");
   const [formSanTypeLabel, setFormSanTypeLabel] = useState("Plus de papier toilette");
   const [formSanLieu, setFormSanLieu] = useState(LIEUX[0]?.nom || "Zone sanitaires");
   const [formSanCommentaire, setFormSanCommentaire] = useState("");
- 
+
   const [mgtVigilance, setMgtVigilance] = useState("vert");
   const [mgtCreneau, setMgtCreneau] = useState("Dans les 2h (+2h)");
-  const [mgtCouleurLigne, setMgtCouleurLigne] = useState("vert");
   const [mgtTexteAlea, setMgtTexteAlea] = useState("Conditions normales / RAS");
- 
+
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
- 
+
   async function pullAllData() {
     try {
       const [mi, gr, aLog, aBal, sosP, co, mto, san, med, cri, rch, jg] = await Promise.all([
@@ -322,7 +321,7 @@ export default function DashboardQG() {
             idOriginal: s.id
           }))
         : [];
- 
+
       setAlertesCrises([
         aLog && aLog.active ? { ...aLog, source: "Logistique", keyDb: KEY_ALERTE_LOG } : null,
         aBal && aBal.active ? { ...aBal, source: "Balade / Secours", keyDb: KEY_ALERTE_BAL } : null,
@@ -333,19 +332,19 @@ export default function DashboardQG() {
       setSbError(true);
     }
   }
- 
+
   useEffect(() => {
     pullAllData();
     const t = setInterval(pullAllData, 10000);
     return () => clearInterval(t);
   }, []);
- 
+
   async function acquitterAlerteQg(keyDb, objetAlerte) {
     const tempsFige = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const alerteMiseAJour = { ...objetAlerte, acquittePar: `${SESS_USER.nom} (${SESS_USER.role})`, heureAcquittement: tempsFige };
     await kvSet(keyDb, alerteMiseAJour); pullAllData();
   }
- 
+
   async function leverAlerteQg(keyDb, alerteInfo) {
     if (keyDb === KEY_SOS_PART) {
       const updatedSos = safeSos.map(s => s.id === alerteInfo.idOriginal ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
@@ -355,17 +354,17 @@ export default function DashboardQG() {
     }
     pullAllData();
   }
- 
+
   async function prendreEnCompteSos(id) {
     const next = safeSos.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
     setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
   }
- 
+
   async function cloturerSos(id) {
     const next = safeSos.map((s) => s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
     setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
   }
- 
+
   async function declencherSosManuel(e) {
     e.preventDefault();
     const geoRef = POINTS_GPS[formLieu];
@@ -376,7 +375,7 @@ export default function DashboardQG() {
     };
     const next = [nouveauSos, ...safeSos]; setSosParticipants(next); setFormDetails(""); await kvSet(KEY_SOS_PART, next); pullAllData();
   }
- 
+
   async function ajouterMissionLogistique(e) {
     e.preventDefault();
     const nouvelleMission = {
@@ -384,7 +383,7 @@ export default function DashboardQG() {
     };
     const next = [nouvelleMission, ...safeMissions]; setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
   }
- 
+
   async function ajouterMissionSanitaire(e) {
     e.preventDefault();
     const nouvelleMissionSan = {
@@ -401,65 +400,65 @@ export default function DashboardQG() {
     const next = [nouvelleMissionSan, ...safeSanitaire];
     setSanitaire(next); setFormSanCommentaire(""); await kvSet(KEY_SANITAIRE, next);
   }
- 
+
   async function resoudreMissionSanQG(id) {
     const next = safeSanitaire.map((s) => s.id === id ? { ...s, statut: "resolu", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}`, resoluPar: "PC Course (Radio)" } : s);
     setSanitaire(next); await kvSet(KEY_SANITAIRE, next);
   }
- 
+
   async function attribuerMissionLog(id, equipe) {
     const next = safeMissions.map((m) => m.id === id ? { ...m, statut: STATUT_EN_COURS, attribueA: equipe, heurePriseEnCharge: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
     setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
   }
- 
+
   async function resoudreMissionLog(id) {
     const next = safeMissions.map((m) => m.id === id ? { ...m, statut: STATUT_RESOLU, heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
     setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
   }
- 
+
   async function pousserEnCriseLog(m) {
     const al = { active: true, motif: `[LOGISTIQUE CRITIQUE] ${m.nature}`, details: `Localisé à ${m.zone}`, heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`, auteur: "Console QG" };
     await kvSet(KEY_ALERTE_LOG, al); pullAllData();
   }
- 
+
   async function engagerVolante() {
     const c = { active: true, prv: prvChoisi, message: msgConsigne.trim(), heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`, auteur: `${SESS_USER.nom}` };
     setConsigne(c); setMsgConsigne(""); await kvSet(KEY_CONSIGNE, c);
   }
- 
+
   async function leverConsigne() {
     if (!consigne) return;
     const c = { ...consigne, active: false }; setConsigne(null); await kvSet(KEY_CONSIGNE, c);
   }
- 
+
   async function soumettreAjustementMeteo(e) {
     e.preventDefault();
     const baseMeteo = meteoLive || METEO_FALLBACK;
-    const nouvelleLigne = { creneau: mgtCreneau, code: mgtCouleurLigne, phenomene: mgtTexteAlea.trim() };
+    const nouvelleLigne = { creneau: mgtCreneau, code: mgtVigilance, phenomene: mgtTexteAlea.trim() };
     const payload = { ...baseMeteo, live: true, codeActuel: mgtVigilance, maj: `QG à ${pad(now.getHours())}:${pad(now.getMinutes())}`, timeline: [nouvelleLigne, ...(baseMeteo.timeline || [])].slice(0, 5) };
     setMeteoLive(payload); await kvSet(KEY_METEO, payload); setMgtTexteAlea("");
   }
- 
+
   async function purgerTimelineMeteo() {
     const payload = { ...METEO_FALLBACK, live: true, maj: `Purgé à ${pad(now.getHours())}:${pad(now.getMinutes())}`, timeline: [{ creneau: "Actuel", code: "vert", phenomene: "Conditions normales / RAS" }] };
     setMeteoLive(payload); await kvSet(KEY_METEO, payload);
   }
- 
+
   const METEO = meteoLive || METEO_FALLBACK;
   const MEDIAS = mediasLive || MEDIAS_FALLBACK;
   const safeMissions = missionsLog, safeGroupes = groupesBalade, safeSos = sosParticipants, safeSanitaire = sanitaire;
- 
+
   const logOuvertes = safeMissions.filter((m) => m && m.statut !== STATUT_RESOLU && m.statut !== "Résolue");
   const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
   const totalMarcheursEnForet = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
   const persAttente = safeGroupes.filter((g) => g && g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
   const persRentres = safeGroupes.filter((g) => g && g.position === "ret").reduce((s, g) => s + (Number(g.participants) || 0), 0);
- 
+
   const sosVisibles = safeSos.filter((s) => s && s.statut !== "cloture" && s.statut !== "clôture" && s.statut !== "cloturé" && s.statut !== "clos");
   const sanActifs = safeSanitaire.filter((s) => s && s.statut !== "resolu" && s.statut !== "résolu");
   const sanParLieu = {}; sanActifs.forEach((s) => { if(s?.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + 1; });
   const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 2);
- 
+
   return (
     <div className="min-h-screen bg-[#0f1319] text-slate-100 font-sans antialiased w-full">
       <style>{`
@@ -469,7 +468,7 @@ export default function DashboardQG() {
         @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
         .pulse-slow { animation: pulseSlow 1.6s ease-in-out infinite; }
       `}</style>
- 
+
       {/* HEADER DE SUPERVISION */}
       <header className="border-b border-white/5 bg-[#141922]/90 backdrop-blur sticky top-0 z-30 px-4 py-2.5 flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
@@ -486,7 +485,7 @@ export default function DashboardQG() {
           </div>
         </div>
       </header>
- 
+
       {/* BANDEAU ALERTES INTERACTIF ET FLASH SOS TERRAIN */}
       {alertesCrises.length > 0 && (
         <div className="p-3 bg-red-950/40 border-b border-red-500/30 space-y-1.5 w-full">
@@ -507,7 +506,7 @@ export default function DashboardQG() {
           ))}
         </div>
       )}
- 
+
       {/* CONTENU PANORAMIQUE MULTI-COLONNES */}
       <main className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
         {/* ===== BLOC PLEINE LARGEUR : consigne generale / recherches / jauge ===== */}
@@ -569,7 +568,7 @@ export default function DashboardQG() {
               </div>
             )}
           </section>
- 
+
           {sosParticipants.filter((s) => s.statut === "nouveau").map((s) => (
             <div key={s.id} className="rounded-lg ring-2 ring-red-500/70 bg-red-500/15 px-4 py-3">
               <div className="flex items-start gap-3 flex-wrap">
@@ -600,14 +599,14 @@ export default function DashboardQG() {
               </div>
             </div>
           ))}
- 
+
           {recherches.map((r) => (
             <div key={r.id} className="rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100">
               <span className="font-semibold uppercase">Recherche {r.categorie}</span> — {r.prenom || "?"}{r.age ? `, ${r.age}` : ""} · {r.description}
               <span className="opacity-80"> · vu(e) : {r.dernierLieu} · depuis {r.heure} · gestion : app Personne recherchee (#recherche)</span>
             </div>
           ))}
- 
+
           {surSite !== null && (
             <div className="rounded-lg ring-1 ring-white/10 bg-[#151b23] px-4 py-2.5 flex items-center gap-3">
               <Users className="w-4 h-4 text-slate-500 shrink-0" />
@@ -621,7 +620,7 @@ export default function DashboardQG() {
             </div>
           )}
         </div>
- 
+
         {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE 🚨 ==================== */}
         <div className="space-y-4 w-full lg:col-span-1">
           
@@ -642,7 +641,7 @@ export default function DashboardQG() {
               <span className="flex items-center gap-0.5"><Sunset className="w-3 h-3 text-orange-400" /> Coucher: {METEO.obsCoucher}</span>
             </div>
           </a>
- 
+
           {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
@@ -652,7 +651,7 @@ export default function DashboardQG() {
             <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs flex-1 flex flex-col justify-end pt-2">
               <div className="grid grid-cols-3 gap-1.5">
                 <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200 focus:outline-none" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
-                  <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option>
+                  <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option><option value="rouge">ROUGE</option>
                 </select>
                 <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200 focus:outline-none" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
                   <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
@@ -662,7 +661,7 @@ export default function DashboardQG() {
               <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none text-[11px]" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
             </form>
           </div>
- 
+
           {/* 🚨 MONITEUR SÉCURITÉ */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
             <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
@@ -694,7 +693,7 @@ export default function DashboardQG() {
                 )))}
             </div>
           </div>
- 
+
           {/* INJECTION SOS TERRAIN */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md h-[116px] flex flex-col justify-between">
             <div className="text-xs font-display text-red-400 tracking-wider uppercase flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
@@ -718,7 +717,7 @@ export default function DashboardQG() {
               </div>
             </form>
           </div>
- 
+
           {/* ENGAGEMENT ÉQUIPE VOLANTE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
             <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
@@ -739,7 +738,7 @@ export default function DashboardQG() {
             )}
           </div>
         </div>
- 
+
         {/* ==================== BLOC DROIT AVANCÉ MUTÉ ==================== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
           
@@ -758,7 +757,7 @@ export default function DashboardQG() {
               ))}
             </div>
           </div>
- 
+
           {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
@@ -767,7 +766,7 @@ export default function DashboardQG() {
               </h2>
               <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
             </div>
- 
+
             <div className="relative h-14 mt-2">
               <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
               {REPERES.map((r, i) => (
@@ -797,7 +796,7 @@ export default function DashboardQG() {
               <span>Rentré QG : {persRentres}</span>
             </div>
           </div>
- 
+
           {/* ==================== SUB-COLONNE 2 ==================== */}
           <div className="space-y-4 w-full">
             
@@ -809,7 +808,7 @@ export default function DashboardQG() {
                 </h3>
                 <span className="font-mono text-xxs bg-cyan-500/10 text-cyan-400 px-1.5 rounded border border-cyan-500/20">{sanActifs.length} Actives</span>
               </div>
- 
+
               <div className="space-y-2 overflow-y-auto pr-1 flex-1">
                 {sanActifs.length === 0 ? (
                   <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune alerte sanitaire active sur les blocs.</div>
@@ -845,7 +844,7 @@ export default function DashboardQG() {
                 )}
               </div>
             </div>
- 
+
             {/* 📥 CRÉER UNE DEMANDE SANITAIRE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[116px] flex flex-col justify-between">
               <form onSubmit={ajouterMissionSanitaire} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
@@ -886,7 +885,7 @@ export default function DashboardQG() {
                 </div>
               </form>
             </div>
- 
+
             {/* SIGNALEMENTS SANITAIRES TOP ACCUMULATIONS */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Zones Sanitaires Chaudes</h3>
@@ -904,7 +903,7 @@ export default function DashboardQG() {
               )}
             </div>
           </div>
- 
+
           {/* ==================== SUB-COLONNE 3 ==================== */}
           <div className="space-y-4 w-full">
             
@@ -945,7 +944,7 @@ export default function DashboardQG() {
                 )}
               </div>
             </div>
- 
+
             {/* 📥 CRÉER UNE DEMANDE LOGISTIQUE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md h-[116px] flex flex-col justify-between">
               <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique</div>
@@ -970,7 +969,7 @@ export default function DashboardQG() {
                 </div>
               </form>
             </div>
- 
+
             {/* VEILLE RÉSEAUX */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex justify-between items-center mb-2">
@@ -985,7 +984,7 @@ export default function DashboardQG() {
               ))}
             </div>
           </div>
- 
+
         </div>
       </main>
     </div>
