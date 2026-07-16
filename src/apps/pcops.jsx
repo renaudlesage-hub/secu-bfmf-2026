@@ -20,6 +20,7 @@ import {
   LifeBuoy,
   Map as MapIcon,
 } from "lucide-react";
+import { STATUT_RESOLU, estUrgente, priorite } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
 
 /* ---------------------------------------------------------------------
@@ -276,14 +277,14 @@ export default function PcOps() {
   });
 
   missions
-    .filter((m) => m.statut !== "Resolue" && (m.bloquant === "Oui" || (m.priorite || "").startsWith("P1") || (m.priorite || "").startsWith("P2")))
+    .filter((m) => m.statut !== STATUT_RESOLU && (m.bloquant === "Oui" || estUrgente(m.priorite)))
     .forEach((m) => {
       evenements.push({
         id: m.id || m.ref,
         heure: m.heureConstat,
         type: "Logistique " + (m.priorite || "").slice(0, 2),
         libelle: m.nature,
-        gravite: m.bloquant === "Oui" || (m.priorite || "").startsWith("P1") ? "grave" : "modere",
+        gravite: m.bloquant === "Oui" || priorite(m.priorite).rang === 1 ? "grave" : "modere",
         localisation: `${m.zone}${m.localisation ? " · " + m.localisation : ""}`,
         km: null,
         gps: null,

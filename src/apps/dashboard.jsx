@@ -35,6 +35,7 @@ import {
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
+import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_EN_COURS, STATUT_RESOLU, priorite } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
 
@@ -223,7 +224,7 @@ export default function DashboardQG() {
 
   const [formLogNature, setFormLogNature] = useState("");
   const [formLogLieu, setFormLogLieu] = useState("Site zone logistique");
-  const [formLogPriorite, setFormLogPriorite] = useState("P3 - important non bloquant");
+  const [formLogPriorite, setFormLogPriorite] = useState(PRIORITE_DEFAUT);
   const [formLogBloquant, setFormLogBloquant] = useState("Non");
 
   const [formSanType, setFormSanType] = useState("papier");
@@ -329,7 +330,7 @@ export default function DashboardQG() {
   async function ajouterMissionLogistique(e) {
     e.preventDefault();
     const nouvelleMission = {
-      id: "log-" + Date.now(), ref: "LOG-" + pad(safeMissions.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: formLogBloquant, statut: "A traiter", heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
+      id: "log-" + Date.now(), ref: "LOG-" + pad(safeMissions.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: formLogBloquant, statut: STATUT_INITIAL, heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
     };
     const next = [nouvelleMission, ...safeMissions]; setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
   }
@@ -357,12 +358,12 @@ export default function DashboardQG() {
   }
 
   async function attribuerMissionLog(id, equipe) {
-    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: "En cours", attribueA: equipe, heurePriseEnCharge: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
+    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: STATUT_EN_COURS, attribueA: equipe, heurePriseEnCharge: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
     setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
   }
 
   async function resoudreMissionLog(id) {
-    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: "Resolue", heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
+    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: STATUT_RESOLU, heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
     setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
   }
 
@@ -398,7 +399,7 @@ export default function DashboardQG() {
   const MEDIAS = mediasLive || MEDIAS_FALLBACK;
   const safeMissions = missionsLog, safeGroupes = groupesBalade, safeSos = sosParticipants, safeSanitaire = sanitaire;
 
-  const logOuvertes = safeMissions.filter((m) => m && m.statut !== "Resolue" && m.statut !== "Résolue");
+  const logOuvertes = safeMissions.filter((m) => m && m.statut !== STATUT_RESOLU && m.statut !== "Résolue");
   const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
   const totalMarcheursEnForet = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
   const persAttente = safeGroupes.filter((g) => g && g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
@@ -860,8 +861,8 @@ export default function DashboardQG() {
                     <div key={m.id} className="text-xs bg-white/[0.02] p-2.5 rounded border border-white/5 space-y-1.5">
                       <div className="flex justify-between items-start gap-2">
                         <span className="text-slate-200 font-medium flex-1 leading-snug">{m.nature}</span>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${m.priorite?.startsWith("P1") ? "bg-red-500/20 text-red-400 border border-red-500/20" : m.priorite?.startsWith("P2") ? "bg-amber-500/20 text-amber-400 border border-amber-500/20" : "bg-slate-500/10 text-slate-400"}`}>
-                          {m.priorite ? m.priorite.slice(0,2) : "P3"}
+                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${priorite(m.priorite).badge}`}>
+                          {priorite(m.priorite).court}
                         </span>
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono flex justify-between items-center">
@@ -896,10 +897,9 @@ export default function DashboardQG() {
                   </div>
                   <div>
                     <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogPriorite} onChange={(e) => setFormLogPriorite(e.target.value)}>
-                      <option value="P1 - immediat / critique">P1 - Immédiat / critique</option>
-                      <option value="P2 - urgent">P2 - Urgent</option>
-                      <option value="P3 - important non bloquant">P3 - Important non bloquant</option>
-                      <option value="P4 - amelioration / des que possible">P4 - Amélioration / dès que possible</option>
+                      {Object.entries(PRIORITES).map(([val, p]) => (
+                        <option key={val} value={val}>{p.libelle}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

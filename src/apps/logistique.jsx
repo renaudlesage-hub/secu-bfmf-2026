@@ -45,7 +45,6 @@ const MOTIFS_ALERTE = [
   "Autre",
 ];
 
-const STATUTS = ["A traiter", "Attribuee", "En cours", "Resolue"];
 
 // Synchronisation complète des localisations avec le Dashboard QG
 const POINTS_GPS = {
@@ -73,12 +72,6 @@ const POINTS_GPS = {
   "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
 };
 
-const PRIORITES = {
-  "P1 - immediat / critique": { dot: "bg-red-400", text: "text-red-300", ring: "ring-red-400/30", bg: "bg-red-400/10" },
-  "P2 - urgent": { dot: "bg-amber-400", text: "text-amber-300", ring: "ring-amber-400/30", bg: "bg-amber-400/10" },
-  "P3 - important non bloquant": { dot: "bg-sky-400", text: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10" },
-  "P4 - amelioration / des que possible": { dot: "bg-emerald-400", text: "text-emerald-300", ring: "ring-emerald-400/30", bg: "bg-emerald-400/10" },
-};
 
 const CATEGORIES = [
   "Acces / circulation",
@@ -148,7 +141,7 @@ const inputCls =
 
 const MISSIONS_DEMO = [];
 
-import { ROLES } from "./referentiels";
+import { ROLES, PRIORITES, PRIORITE_DEFAUT, STATUTS, STATUT_INITIAL, priorite } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
 const SB_HEADERS = {
@@ -453,7 +446,7 @@ export default function LogistiqueMissions() {
 
         <section className="space-y-2">
           {filtered.map((m) => {
-            const p = PRIORITES[m.priorite] || PRIORITES["P3 - important non bloquant"];
+            const p = priorite(m.priorite);
             const Icon = CATEGORIE_ICONS[m.categorie] || ClipboardList;
             return (
               <button key={m.id} onClick={() => setSelected(m)} className="w-full text-left rounded-lg ring-1 p-3.5 bg-[#151b23] ring-white/10 hover:bg-[#1a212b] flex items-center justify-between">
@@ -581,7 +574,7 @@ function Field({ label, children }) {
 function FormNouvelle({ onClose, onSubmit, signature }) {
   const [nature, setNature] = useState("");
   const [zone, setZone] = useState("Site zone logistique");
-  const [formPriorite, setFormPriorite] = useState("P3 - important non bloquant");
+  const [formPriorite, setFormPriorite] = useState(PRIORITE_DEFAUT);
   const [formCategorie, setFormCategorie] = useState("Autre");
   const [formBloquant, setFormBloquant] = useState("Non");
 
