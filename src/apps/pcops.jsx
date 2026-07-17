@@ -19,6 +19,11 @@ import {
   UserSearch,
   LifeBuoy,
   Map as MapIcon,
+  ShieldAlert,
+  Zap,
+  Droplets,
+  Flag,
+  Truck,
 } from "lucide-react";
 import { STATUT_RESOLU, estUrgente, priorite } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
@@ -116,6 +121,60 @@ const PRV_LIST = [
   { nom: "Étape 1 (km 0,9)", gps: "50.37858, 5.62790" },
   { nom: "Étape 2 (km 2,5)", gps: "50.37828, 5.64549" },
   { nom: "Étape 3 (km 5,1)", gps: "50.38817, 5.62891" },
+];
+
+/* =====================================================================
+   ONGLET INTERVENTION -- ce que demande un Dir-PC-Ops en arrivant de nuit.
+   TOUT EST STATIQUE : reste affiche meme si la liaison Supabase tombe.
+   >>> A RENSEIGNER DEPUIS LE DOSSIER DE SECURITE ET LE PPUI. Tant que les
+   champs portent "A COMPLETER", ils s'affichent en ambre : mieux vaut un
+   trou visible qu'une information fausse.
+===================================================================== */
+
+const ACCES_SECOURS = [
+  {
+    nom: "Accès principal — À COMPLÉTER",
+    gps: "50.3835, 5.6215",
+    detail: "À COMPLÉTER : rue exacte, largeur utile, portail/barrière, revêtement, pente.",
+    vehicules: "À COMPLÉTER : autopompe ? ambulance ? grue ?",
+    cle: "À COMPLÉTER : cadenas ? qui détient la clé ? joignable comment ?",
+  },
+  {
+    nom: "Accès secondaire / parcours — À COMPLÉTER",
+    gps: "",
+    detail: "À COMPLÉTER : chemin d'accès aux étapes de la balade (6,5 km), praticabilité 4x4.",
+    vehicules: "À COMPLÉTER",
+    cle: "À COMPLÉTER",
+  },
+];
+
+const POINT_RENCONTRE = {
+  lieu: "À COMPLÉTER : point de rencontre des secours (nom + repère visible de nuit)",
+  gps: "50.3835, 5.6215",
+  qui: "Coordinateur sécurité festival",
+  tel: "04XX XX XX XX",
+  suppleant: "À COMPLÉTER : suppléant + numéro",
+};
+
+const RISQUES_SITE = [
+  { titre: "Foodtrucks — bonbonnes de gaz", detail: "À COMPLÉTER : nombre, emplacement, vanne de coupure, distance aux scènes." },
+  { titre: "Alimentation électrique / groupes électrogènes", detail: "À COMPLÉTER : emplacement, puissance, coupure générale (qui, où)." },
+  { titre: "Structures scéniques", detail: "À COMPLÉTER : hauteur, PV de montage, seuil de vent d'arrêt (km/h)." },
+  { titre: "Pyrotechnie / effets", detail: "À COMPLÉTER : prévu ou non. Si oui : opérateur, horaires, périmètre." },
+  { titre: "Public — jauge et évacuation", detail: "À COMPLÉTER : capacité plaine, largeur des sorties, points de rassemblement." },
+  { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
+];
+
+const RESSOURCES_EAU = [
+  { titre: "Hydrant / bouche incendie le plus proche", detail: "À COMPLÉTER : emplacement, débit, GPS." },
+  { titre: "Point d'eau naturel", detail: "À COMPLÉTER : cours d'eau, accès engin, aspiration possible ?" },
+];
+
+const MOYENS_ORGA = [
+  { titre: "Poste de secours / secouristes", detail: "À COMPLÉTER : organisme, nombre, emplacement, moyens (DSA, brancard, VPSP ?)." },
+  { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
+  { titre: "Équipe volante organisateur", detail: "À COMPLÉTER : nombre, moyen de déplacement, canal PMR4.1." },
+  { titre: "Encadrants balade", detail: "À COMPLÉTER : nombre, tête/serre-file par groupe." },
 ];
 
 const DOCTRINE = [
@@ -321,6 +380,22 @@ export default function PcOps() {
     ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
     : null;
 
+  /* ----------------------- BILAN VICTIMES -----------------------
+     "3 evenements critiques" ne dit rien a un Dir-PC-Ops : il lui faut
+     COMBIEN de victimes, de quelle nature, ou, et prises en charge ou non.
+     On isole donc les SOS a caractere medical (les autres motifs -- surete,
+     personne perdue, fumee -- ne sont pas des victimes) et on les classe
+     par etat de prise en charge.
+  --------------------------------------------------------------- */
+  const estVictime = (m) => /m[ée]dical|malaise|bless|chute/i.test(m || "");
+  const victimes = sosVisibles.filter((s) => estVictime(s.motif));
+  const vicNonPrises = victimes.filter((s) => (s.statut || "").toLowerCase() === "nouveau");
+  const vicEnCharge = victimes.filter((s) => (s.statut || "").toLowerCase() === "prise en charge");
+  const vicEnCours = victimes.filter((s) => {
+    const st = (s.statut || "").toLowerCase();
+    return st !== "nouveau" && st !== "prise en charge";
+  });
+
   const critiques = evenements.filter((e) => e.gravite === "critique").length + (crise ? 1 : 0);
   const niveau = critiques > 0 ? "critique" : evenements.length > 0 || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
   const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
@@ -365,7 +440,7 @@ export default function PcOps() {
         </div>
         {/* Onglets : SITUATION (temps reel) / DOSSIER (references) */}
         <div className="max-w-3xl mx-auto px-4 pb-2 flex gap-1.5">
-          {[["situation", "Situation", CircleDot], ["dossier", "Dossier & contacts", FileText]].map(([k, lab, Ic]) => (
+          {[["situation", "Situation", CircleDot], ["intervention", "Intervention", ShieldAlert], ["dossier", "Dossier", FileText]].map(([k, lab, Ic]) => (
             <button
               key={k}
               onClick={() => setVue(k)}
@@ -386,11 +461,15 @@ export default function PcOps() {
           </div>
         )}
 
-        {vue === "dossier" ? (
-          <Dossier />
-        ) : (
-        <>
-        {/* CONSIGNE GENERALE DU QG (mode crise) — priorite absolue pour les autorites */}
+        {/* ------------------------------------------------------------------
+            BANDEAUX PERMANENTS — hors onglets.
+            Une autorite consultant le Dossier doit voir passer une mise a
+            l'abri : ces blocs restent donc affiches quel que soit l'onglet.
+            LECTURE SEULE, volontairement sans bouton "BIEN RECU" : les
+            accuses de reception comptabilisent les EQUIPES du festival. Un
+            clic d'autorite fausserait le decompte du QG ("qui a lu ma
+            consigne ?") et partirait sans nom (pas de profil cote autorite).
+        ------------------------------------------------------------------ */}
         {crise && (
           <section className="rounded-lg ring-2 ring-red-500/70 bg-red-500/15 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -405,7 +484,6 @@ export default function PcOps() {
           </section>
         )}
 
-        {/* RECHERCHES DE PERSONNE EN COURS (donnees minimales — RGPD) */}
         {recherches.map((r) => (
           <div key={r.id} className="rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100 flex items-start gap-2">
             <UserSearch className="w-4 h-4 shrink-0 mt-0.5 text-amber-300" />
@@ -418,6 +496,12 @@ export default function PcOps() {
           </div>
         ))}
 
+        {vue === "dossier" ? (
+          <Dossier />
+        ) : vue === "intervention" ? (
+          <Intervention victimes={victimes} nonPrises={vicNonPrises} enCours={vicEnCours} enCharge={vicEnCharge} surSite={surSite} persDehors={persDehors} />
+        ) : (
+        <>
         {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE (LECTURE SEULE AUTORITÉS) */}
         <a 
           href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres}
@@ -758,6 +842,182 @@ function Dossier() {
             </li>
           ))}
         </ul>
+      </section>
+    </div>
+  );
+}
+
+/* =====================================================================
+   ONGLET INTERVENTION — ce dont un Dir-PC-Ops a besoin en arrivant.
+   Ordre volontaire : d'abord le bilan humain, puis comment entrer, qui
+   commander, ce qui peut aggraver, avec quels moyens.
+   Les blocs statiques restent lisibles meme si Supabase est injoignable.
+===================================================================== */
+
+function AC({ texte }) {
+  // Affiche un champ non renseigne en ambre : un trou visible vaut mieux
+  // qu'une information fausse dans une vue de crise.
+  const vide = /À COMPLÉTER/i.test(texte || "") || /04XX/.test(texte || "");
+  return <span className={vide ? "text-amber-300/80" : "text-slate-300"}>{texte}</span>;
+}
+
+function Intervention({ victimes, nonPrises, enCours, enCharge, surSite, persDehors }) {
+  return (
+    <div className="space-y-4">
+      {/* 1. BILAN HUMAIN */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <LifeBuoy className="w-4 h-4 text-red-300" /> BILAN VICTIMES
+        </h2>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <Kpi label="Non prises en charge" value={nonPrises.length} accent={nonPrises.length ? "text-red-300" : "text-emerald-300"} />
+          <Kpi label="Moyens engagés" value={enCours.length} accent="text-amber-300" />
+          <Kpi label="Prises en charge" value={enCharge.length} accent="text-emerald-300" />
+        </div>
+
+        {victimes.length === 0 ? (
+          <div className="text-xs text-slate-500 flex items-center gap-2 py-1">
+            <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Aucune victime signalée en cours.
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {victimes.map((s) => {
+              const st = (s.statut || "").toLowerCase();
+              const cls = st === "nouveau" ? "ring-red-400/40 bg-red-400/10"
+                : st === "prise en charge" ? "ring-emerald-400/30 bg-emerald-400/5"
+                : "ring-amber-400/30 bg-amber-400/5";
+              return (
+                <div key={s.id} className={`rounded px-2.5 py-2 ring-1 ${cls} text-xs`}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
+                    <span className="text-slate-100 font-semibold">{s.motif}</span>
+                    {st === "nouveau" && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-500/25 text-red-200">NON PRISE EN CHARGE</span>}
+                  </div>
+                  <div className="text-slate-400 mt-0.5 flex items-center gap-1 flex-wrap">
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    {s.surTrace ? `km ${s.surTrace.km} · ${s.surTrace.segment}` : "position non géolocalisée"}
+                    {s.gps && (
+                      <a href={`https://www.google.com/maps?q=${s.gps.lat},${s.gps.lon}`} target="_blank" rel="noreferrer"
+                        className="text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5 ml-1">
+                        Carte <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
+          Bilan consolidé depuis les SOS à caractère médical (malaise, blessure, chute). Les motifs sûreté,
+          personne perdue et fumée figurent dans l'onglet Situation. Un SOS non signalé n'apparaît pas ici :
+          ce bilan complète le point de situation verbal du coordinateur, il ne le remplace pas.
+        </div>
+      </section>
+
+      {/* 2. ACCES SECOURS */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <Truck className="w-4 h-4 text-sky-300" /> ACCÈS SECOURS
+        </h2>
+        <div className="space-y-2">
+          {ACCES_SECOURS.map((a) => (
+            <div key={a.nom} className="rounded-md ring-1 ring-white/10 bg-white/[0.02] px-3 py-2.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-slate-100"><AC texte={a.nom} /></span>
+                {a.gps && (
+                  <a href={`https://www.google.com/maps?q=${a.gps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
+                    className="text-[11px] font-mono text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5">
+                    {a.gps} <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+              <div className="text-[11px] mt-1 space-y-0.5">
+                <div><span className="text-slate-500">Voirie : </span><AC texte={a.detail} /></div>
+                <div><span className="text-slate-500">Engins : </span><AC texte={a.vehicules} /></div>
+                <div><span className="text-slate-500">Verrouillage : </span><AC texte={a.cle} /></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. POINT DE RENCONTRE / COMMANDEMENT ORGANISATEUR */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <Flag className="w-4 h-4 text-emerald-300" /> POINT DE RENCONTRE & COMMANDEMENT
+        </h2>
+        <div className="text-xs space-y-1.5">
+          <div><span className="text-slate-500">Lieu : </span><AC texte={POINT_RENCONTRE.lieu} /></div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500">GPS :</span>
+            <a href={`https://www.google.com/maps?q=${POINT_RENCONTRE.gps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
+              className="font-mono text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5">
+              {POINT_RENCONTRE.gps} <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          </div>
+          <div><span className="text-slate-500">Interlocuteur : </span><span className="text-slate-200">{POINT_RENCONTRE.qui}</span></div>
+          <a href={`tel:${POINT_RENCONTRE.tel.replace(/\s/g, "")}`}
+            className="flex items-center gap-2 rounded px-2.5 py-2 ring-1 ring-emerald-400/30 bg-emerald-400/10 mt-1">
+            <PhoneCall className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+            <span className="flex-1 text-slate-300">Coordinateur sécurité</span>
+            <span className="font-mono text-sm text-emerald-200"><AC texte={POINT_RENCONTRE.tel} /></span>
+          </a>
+          <div><span className="text-slate-500">Suppléant : </span><AC texte={POINT_RENCONTRE.suppleant} /></div>
+        </div>
+        <div className="text-[10px] font-mono text-slate-600 mt-2.5">
+          L'organisateur conserve la direction de son dispositif jusqu'à la prise en charge par les disciplines.
+        </div>
+      </section>
+
+      {/* 4. RISQUES PARTICULIERS */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-amber-400/30 p-4">
+        <h2 className="font-display tracking-wide text-sm text-amber-200 flex items-center gap-2 mb-1">
+          <Zap className="w-4 h-4 text-amber-300" /> RISQUES PARTICULIERS DU SITE
+        </h2>
+        <div className="text-[10px] font-mono text-slate-500 mb-2.5">Synthèse du dossier de sécurité et du PPUI — le détail reste dans les documents (onglet Dossier).</div>
+        <div className="space-y-1.5">
+          {RISQUES_SITE.map((r) => (
+            <div key={r.titre} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
+              <div className="text-xs text-slate-100">{r.titre}</div>
+              <div className="text-[11px] mt-0.5"><AC texte={r.detail} /></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. RESSOURCES EAU */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <Droplets className="w-4 h-4 text-sky-300" /> RESSOURCES EN EAU
+        </h2>
+        <div className="space-y-1.5">
+          {RESSOURCES_EAU.map((r) => (
+            <div key={r.titre} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
+              <div className="text-xs text-slate-100">{r.titre}</div>
+              <div className="text-[11px] mt-0.5"><AC texte={r.detail} /></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 6. MOYENS DE L'ORGANISATEUR */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <Users className="w-4 h-4 text-slate-500" /> MOYENS DE L'ORGANISATEUR
+        </h2>
+        <div className="space-y-1.5">
+          {MOYENS_ORGA.map((m) => (
+            <div key={m.titre} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
+              <div className="text-xs text-slate-100">{m.titre}</div>
+              <div className="text-[11px] mt-0.5"><AC texte={m.detail} /></div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-2.5 border-t border-white/5 text-[11px] text-slate-400">
+          Public présent à l'instant : <span className="font-mono text-slate-200">{surSite !== null ? surSite : "—"}</span> sur la plaine ·
+          <span className="font-mono text-slate-200"> {persDehors}</span> sur le parcours de 6,5 km.
+        </div>
       </section>
     </div>
   );

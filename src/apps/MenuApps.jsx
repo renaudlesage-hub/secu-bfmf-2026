@@ -14,6 +14,7 @@ const CATEGORIES = {
   qg: { label: "Commandement & QG", icon: Shield, color: "text-amber-400" },
   logistique: { label: "Logistique & Regulation", icon: Truck, color: "text-sky-400" },
   terrain: { label: "Secours & Terrain", icon: HeartPulse, color: "text-cyan-400" },
+  benevoles: { label: "Benevoles — lien direct (sans menu)", icon: HeartPulse, color: "text-teal-400" },
   public: { label: "Acces publics (QR / liens)", icon: Globe, color: "text-red-400" },
 };
 
@@ -32,9 +33,12 @@ const APPS_LIST = [
 
   // Pole Secours & Terrain
   { id: "volante", name: "Equipe volante", cat: "terrain" },
-  { id: "balade", name: "Suivi balade & parcours", cat: "terrain" },
-  { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "terrain" },
   { id: "recherche", name: "Personne recherchee", cat: "terrain", alerte: true },
+
+  // Benevoles : ouvertes par lien direct, sans menu (bandeaux conserves).
+  // Depuis le QG, le bouton RETOUR du navigateur ramene au menu.
+  { id: "balade", name: "Suivi balade & parcours", cat: "benevoles" },
+  { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "benevoles" },
 
   // Acces publics — a diffuser aux festivaliers uniquement
   { id: "pcops", name: "PC-Ops / Autorité (lien direct)", cat: "public" },
@@ -44,7 +48,7 @@ const APPS_LIST = [
 
 export default function MenuApps({ currentApp, onChangeApp, onClose }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, terrain: true, public: false });
+  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, terrain: true, benevoles: true, public: false });
 
   const toggleCat = (cat) => setOpenCats((prev) => ({ ...prev, [cat]: !prev[cat] }));
 

@@ -25,8 +25,20 @@ import Signaler from "./apps/signaler";
    la source de verite -> liens partageables, bouton retour, et
    surtout QR CODES publics fonctionnels (#sos et #signaler/ID).
    Le menu lateral ne fait que changer le hash.
-   Les routes PUBLIQUES s'affichent PLEIN ECRAN, sans menu interne
-   ni bandeau equipe (un festivalier ne voit jamais les outils QG).
+   TROIS NIVEAUX D'AFFICHAGE :
+   - ROUTES_PUBLIQUES : plein ecran, AUCUN element interne (ni menu, ni
+     bandeau). Destine aux festivaliers et aux autorites.
+   - ROUTES_SANS_MENU : plein ecran SANS menu, mais AVEC les bandeaux crise
+     et recherche. Pour les benevoles qui n'ont a utiliser qu'une seule app :
+     ils ne doivent pas se perdre dans les outils du QG, mais ils DOIVENT
+     recevoir une consigne de mise a l'abri et pouvoir en accuser reception.
+     (Les encadrants de balade sont les plus isoles du dispositif : leur
+     retirer le bandeau reviendrait a les rendre injoignables par l'app.)
+   - le reste : menu lateral + bandeaux.
+
+   ATTENTION : ce n'est PAS une securite. Le menu est masque, mais taper
+   #dashboard dans l'URL donne quand meme acces au QG. C'est une
+   simplification d'usage, pas un cloisonnement.
 ------------------------------------------------------------------ */
 
 const COMPOSANTS = {
@@ -47,6 +59,7 @@ const COMPOSANTS = {
   signaler: Signaler,
 };
 const ROUTES_PUBLIQUES = ["sos", "signaler", "pcops"];
+const ROUTES_SANS_MENU = ["sanitaire", "balade"];
 
 function parseHash() {
   const h = (window.location.hash || "").slice(1);
@@ -75,6 +88,16 @@ export default function App() {
   // Routes publiques : plein ecran, aucun element interne visible
   if (estPublique) {
     return <Comp />;
+  }
+
+  // Apps benevoles : pas de menu, mais bandeaux crise/recherche conserves
+  if (ROUTES_SANS_MENU.includes(currentApp)) {
+    return (
+      <div className="w-screen h-screen overflow-y-auto bg-[#0f1319]">
+        <BandeauGeneral />
+        <Comp />
+      </div>
+    );
   }
 
   return (
