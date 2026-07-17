@@ -30,6 +30,7 @@ import {
   BellOff,
   Eye,
   EyeOff,
+  HardDriveDownload,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -37,7 +38,7 @@ import {
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
-import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_EN_COURS, STATUT_RESOLU, priorite } from "./referentiels";
+import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_EN_COURS, STATUT_RESOLU, priorite, POINTS_GPS } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
 
@@ -60,6 +61,28 @@ async function kvGet(key) {
   if (!r.ok) throw new Error(`Supabase GET ${r.status}`);
   const j = await r.json();
   return j.length ? j[0].value : null;
+}
+
+/* ---------------------------------------------------------------------
+   ANTI-COLLISION -- lecture-modification-ecriture
+   Le stockage est "1 bloc JSON par cle, derniere ecriture gagnante".
+   Ecrire depuis l'etat local (vieux de 8 a 15 s selon le polling) ecrase
+   en silence tout ce qui a ete ecrit entre-temps par un autre poste :
+   un SOS arrive pendant que le QG en clot un autre pouvait disparaitre.
+   On relit donc la donnee JUSTE AVANT d'ecrire et on applique la
+   modification sur la version fraiche. La fenetre de risque passe de
+   ~10 s a ~200 ms.
+   Retourne la liste fusionnee, ou null si la liaison a echoue.
+--------------------------------------------------------------------- */
+async function kvMerge(key, mutateur) {
+  try {
+    const base = await kvGet(key);
+    const fusion = mutateur(Array.isArray(base) ? base : []);
+    const ok = await kvSet(key, fusion);
+    return ok ? fusion : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 async function kvSet(key, value) {
@@ -113,21 +136,6 @@ function bipAlerte() {
 
 const PRVS = ["Point 0", "PRV#4", "PRV#5", "PRV#6", "PRV#7", "Etape 1", "Etape 2", "Etape 3"];
 
-const POINTS_GPS = {
-  "Site grande scène": { km: 0, segment: "Plaine centrale — Grande Scène" },
-  "Site petite scène": { km: 0, segment: "Plaine centrale — Petite Scène" },
-  "Site plaine": { km: 0, segment: "Zone Public / Pelouse" },
-  "Site bar": { km: 0, segment: "Zone Débit de Boissons" },
-  "Site foodtrucks": { km: 0, segment: "Allée Restauration" },
-  "Site backstage": { km: 0, segment: "Coulisses / Loges" },
-  "Site zone logistique": { km: 0, segment: "Stockage technique / Énergie" },
-  "Parking public": { km: 0, segment: "Zone Stationnement Public" },
-  "Parking artistes": { km: 0, segment: "Zone Accès Contrôlé Artistes" },
-  "Point 0": { km: 0, segment: "Secteur Départ" },
-  "Etape 1": { km: 0.9, segment: "Ravitaillement 1" },
-  "Etape 2": { km: 2.53, segment: "Ravitaillement 2" },
-  "Etape 3": { km: 5.06, segment: "Ravitaillement 3" },
-};
 
 const LONGUEUR_KM = 6.5;
 const POS_KM = { p0: 0, t1: 0.45, e1: 0.9, t2: 1.7, e2: 2.53, t3: 3.8, e3: 5.06, tr: 5.8, ret: 6.5 };
@@ -347,22 +355,67 @@ export default function DashboardQG() {
 
   async function leverAlerteQg(keyDb, alerteInfo) {
     if (keyDb === KEY_SOS_PART) {
-      const updatedSos = safeSos.map(s => s.id === alerteInfo.idOriginal ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
-      await kvSet(KEY_SOS_PART, updatedSos);
+      const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const fusion = await kvMerge(KEY_SOS_PART, (liste) =>
+        liste.map((s) => s.id === alerteInfo.idOriginal ? { ...s, statut: "pris en compte", heurePriseEnCompte: h } : s));
+      if (fusion) setSosParticipants(fusion); else setSbError(true);
     } else {
       await kvSet(keyDb, { ...alerteInfo, active: false, leveePar: `${SESS_USER.nom} (${SESS_USER.role})`, heureLevee: `${pad(now.getHours())}:${pad(now.getMinutes())}` });
     }
     pullAllData();
   }
 
+  /* ---------------------------------------------------------------------
+     SAUVEGARDE : export de TOUTES les cles bfmf2026-* dans un fichier JSON.
+     Filet de secours : si une cle est purgee ou corrompue, ce fichier permet
+     de repartir. Sert aussi au retour d'experience et a la tracabilite
+     (main courante horodatee des SOS, missions, consignes).
+     A faire : une fois avant l'ouverture, une fois en fin de chaque soiree.
+  --------------------------------------------------------------------- */
+  const [exportEnCours, setExportEnCours] = useState(false);
+  async function exporterSauvegarde() {
+    setExportEnCours(true);
+    try {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/app_store?key=like.bfmf2026-*&select=key,value,updated_at`,
+        { headers: SB_HEADERS, credentials: "omit" }
+      );
+      if (!r.ok) throw new Error("GET " + r.status);
+      const cles = await r.json();
+      const contenu = {
+        plateforme: "Securite BFMF 2026",
+        exporteLe: new Date().toISOString(),
+        exportePar: SESS_USER.nom,
+        nombreCles: cles.length,
+        donnees: cles,
+      };
+      const blob = new Blob([JSON.stringify(contenu, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const d2 = new Date();
+      a.href = url;
+      a.download = `sauvegarde-bfmf2026-${d2.toISOString().slice(0, 10)}-${pad(d2.getHours())}h${pad(d2.getMinutes())}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setSbError(false);
+    } catch (e) {
+      setSbError(true);
+    }
+    setExportEnCours(false);
+  }
+
   async function prendreEnCompteSos(id) {
-    const next = safeSos.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
-    setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
+    const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const fusion = await kvMerge(KEY_SOS_PART, (liste) =>
+      liste.map((s) => s.id === id ? { ...s, statut: "pris en compte", heurePriseEnCompte: h } : s));
+    if (fusion) { setSosParticipants(fusion); setSbError(false); } else setSbError(true);
   }
 
   async function cloturerSos(id) {
-    const next = safeSos.map((s) => s.id === id ? { ...s, statut: "cloture", heureCloture: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : s);
-    setSosParticipants(next); await kvSet(KEY_SOS_PART, next);
+    const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const fusion = await kvMerge(KEY_SOS_PART, (liste) =>
+      liste.map((s) => s.id === id ? { ...s, statut: "cloture", heureCloture: h } : s));
+    if (fusion) { setSosParticipants(fusion); setSbError(false); } else setSbError(true);
   }
 
   async function declencherSosManuel(e) {
@@ -371,9 +424,13 @@ export default function DashboardQG() {
     const nouveauSos = {
       id: "manual-" + Date.now(), heure: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
       motif: formMotif, nom: formNom, tel: "Radio", details: formDetails.trim(), statut: "nouveau",
-      surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment } : null
+      surTrace: geoRef ? { km: geoRef.km, segment: geoRef.segment, reperePlusProche: formLieu } : null,
+      gps: geoRef && geoRef.lat ? { lat: geoRef.lat, lon: geoRef.lon } : null,
     };
-    const next = [nouveauSos, ...safeSos]; setSosParticipants(next); setFormDetails(""); await kvSet(KEY_SOS_PART, next); pullAllData();
+    setFormDetails("");
+    const fusion = await kvMerge(KEY_SOS_PART, (liste) => [nouveauSos, ...liste].slice(0, 100));
+    if (fusion) { setSosParticipants(fusion); setSbError(false); } else setSbError(true);
+    pullAllData();
   }
 
   async function ajouterMissionLogistique(e) {
@@ -381,7 +438,9 @@ export default function DashboardQG() {
     const nouvelleMission = {
       id: "log-" + Date.now(), ref: "LOG-" + pad(safeMissions.length + 1), nature: formLogNature.trim(), zone: formLogLieu, localisation: POINTS_GPS[formLogLieu]?.segment || "", priorite: formLogPriorite, bloquant: formLogBloquant, statut: STATUT_INITIAL, heureConstat: `${pad(now.getHours())}:${pad(now.getMinutes())}`, signalePar: SESS_USER.nom, roleSignaleur: SESS_USER.role, attribueA: ""
     };
-    const next = [nouvelleMission, ...safeMissions]; setMissionsLog(next); setFormLogNature(""); await kvSet(KEY_MISSIONS, next);
+    setFormLogNature("");
+    const fusion = await kvMerge(KEY_MISSIONS, (liste) => [nouvelleMission, ...liste]);
+    if (fusion) { setMissionsLog(fusion); setSbError(false); } else setSbError(true);
   }
 
   async function ajouterMissionSanitaire(e) {
@@ -407,13 +466,17 @@ export default function DashboardQG() {
   }
 
   async function attribuerMissionLog(id, equipe) {
-    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: STATUT_EN_COURS, attribueA: equipe, heurePriseEnCharge: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
-    setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
+    const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const fusion = await kvMerge(KEY_MISSIONS, (liste) =>
+      liste.map((m) => m.id === id ? { ...m, statut: STATUT_EN_COURS, attribueA: equipe, heurePriseEnCharge: h } : m));
+    if (fusion) { setMissionsLog(fusion); setSbError(false); } else setSbError(true);
   }
 
   async function resoudreMissionLog(id) {
-    const next = safeMissions.map((m) => m.id === id ? { ...m, statut: STATUT_RESOLU, heureResolution: `${pad(now.getHours())}:${pad(now.getMinutes())}` } : m);
-    setMissionsLog(next); await kvSet(KEY_MISSIONS, next);
+    const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const fusion = await kvMerge(KEY_MISSIONS, (liste) =>
+      liste.map((m) => m.id === id ? { ...m, statut: STATUT_RESOLU, heureResolution: h } : m));
+    if (fusion) { setMissionsLog(fusion); setSbError(false); } else setSbError(true);
   }
 
   async function pousserEnCriseLog(m) {
@@ -480,6 +543,15 @@ export default function DashboardQG() {
         </div>
         <div className="flex items-center gap-4 font-mono text-xs text-slate-400">
           {sbError && <span className="text-red-400 animate-pulse font-bold">⚠️ SYNC ERROR</span>}
+          <button
+            onClick={exporterSauvegarde}
+            disabled={exportEnCours}
+            className="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded ring-1 ring-white/15 text-slate-400 hover:text-slate-100 hover:ring-white/30 transition-colors disabled:opacity-40"
+            title="Télécharger une sauvegarde JSON de toutes les données (SOS, missions, consignes, jauge...). À faire avant l'ouverture et en fin de soirée."
+          >
+            <HardDriveDownload className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{exportEnCours ? "Export..." : "Sauvegarde"}</span>
+          </button>
           <div className="flex items-center gap-1.5 text-slate-200">
             <Clock className="w-3.5 h-3.5 text-slate-500" /> {pad(now.getHours())}:{pad(now.getMinutes())}
           </div>
