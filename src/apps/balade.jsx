@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
+  UserCheck,
   Footprints,
   Plus,
   X,
@@ -439,10 +440,11 @@ export default function SuiviBalade() {
                 setProfile(null);
                 await saveProfile(null);
               }}
-              className="hidden sm:block text-[11px] font-mono text-slate-500 hover:text-slate-300 max-w-[120px] truncate"
-              title="Changer de profil"
+              className="flex items-center gap-1.5 text-[11px] font-mono px-2 py-1.5 rounded ring-1 ring-white/15 text-slate-400 hover:text-slate-100 hover:ring-white/30 transition-colors max-w-[140px]"
+              title="Changer de rôle / profil sur cet appareil"
             >
-              {profile ? profile.nom : ""}
+              <UserCheck className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{profile ? profile.role : "Profil"}</span>
             </button>
             <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
               <Clock className="w-4 h-4 text-slate-500" />

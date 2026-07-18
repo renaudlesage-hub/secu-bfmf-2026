@@ -348,7 +348,15 @@ export default function LogistiqueMissions() {
               <QrCode className="w-4 h-4" /> <span className="hidden sm:inline">Étiquettes QR</span>
             </button>
             <button onClick={() => refresh(false)} className="text-slate-500 hover:text-slate-200"><RefreshCw className="w-4 h-4" /></button>
-            <div className="flex items-center gap-1.5 text-slate-300 font-mono text-sm">
+            <button
+              onClick={() => { setProfile(null); try { localStorage.removeItem(PROFILE_KEY); } catch (e) {} }}
+              className="flex items-center gap-1.5 text-[11px] font-mono px-2 py-1.5 rounded ring-1 ring-white/15 text-slate-400 hover:text-slate-100 hover:ring-white/30 transition-colors max-w-[140px]"
+              title="Changer de rôle / profil sur cet appareil"
+            >
+              <UserCheck className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{profile ? profile.role : "Profil"}</span>
+            </button>
+            <div className="hidden sm:flex items-center gap-1.5 text-slate-300 font-mono text-sm">
               <Clock className="w-4 h-4 text-slate-500" />
               {pad(now.getHours())}:{pad(now.getMinutes())}
             </div>
