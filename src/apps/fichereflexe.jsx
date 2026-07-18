@@ -1,6 +1,3 @@
-
-
-Fichereflexe v2 · JSX
 import React, { useState } from "react";
 import { ANNUAIRE as NUMEROS, PRV, RADIO_PLAN as RADIO } from "./referentiels";
 import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, HeartPulse, UserSearch, CloudLightning, Footprints } from "lucide-react";
