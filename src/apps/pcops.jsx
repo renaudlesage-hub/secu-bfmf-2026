@@ -142,7 +142,7 @@ const RISQUES_SITE = [
 ];
 
 const RESSOURCES_EAU = [
-  { titre: "Hydrant / bouche incendie le plus proche", detail: "À COMPLÉTER : emplacement, débit, GPS." },
+  { titre: "Hydrant / bouche incendie le plus proche", detail: " : Bouche incendie ramenée sur le  site - 70mm + tridivision, GPS." },
   { titre: "Point d'eau naturel", detail: "À COMPLÉTER : cours d'eau, accès engin, aspiration possible ?" },
 ];
 
