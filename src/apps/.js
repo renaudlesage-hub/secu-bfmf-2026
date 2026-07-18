@@ -163,7 +163,7 @@ export const PRV = [
 
 /* --------------------------- PLAN RADIO ----------------------------- */
 export const RADIO_PLAN = [
-  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, volante)" },
+  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, Volante)" },
   { canal: "PMR5", usage: "Bénévoles parking et sanitaires" },
   { canal: "PMR15", usage: "Sécurité privée" },
   { canal: "PMR333", usage: "URGENCE — exclusivement réservé", urgent: true },
