@@ -123,3 +123,45 @@ export const POINTS_GPS = {
   "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Secteur Nord Retour P0" },
   "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
 };
+
+/* ------------------------- ANNUAIRE DE CRISE -------------------------
+   Source unique des contacts d'urgence. Importe par la fiche reflexe, le
+   PC-Ops et l'onglet Intervention. Ordre = ordre d'appel : le vital en tete.
+   >>> Mettre a jour ICI uniquement. Verifie / complete le 18/07.
+--------------------------------------------------------------------- */
+export const ANNUAIRE = [
+  { nom: "URGENCE VITALE", num: "112", note: "médical / incendie — TOUJOURS en premier", urgent: true },
+  { nom: "Police", num: "101", note: "" },
+  { nom: "Directeur d'événement", num: "0477 99 48 42", note: "Jérôme" },
+  { nom: "Coordinateur sécurité", num: "0494 22 29 33", note: "Renaud" },
+  { nom: "Bourgmestre", num: "0477 63 81 88", note: "Ch. Verdin" },
+  { nom: "Coordinatrice PlanU Ferrières", num: "086 400 90 51", note: "C. Seynaeve" },
+  { nom: "Dispatching IILE/Hemeco (en intervention)", num: "04 279 13 52", note: "Hemeco" },
+  { nom: "Back-up 112 (en cas de panne)", num: "0471 51 31 56", note: "" },
+  { nom: "Centre antipoison", num: "070 245 245", note: "" },
+];
+
+/* ------------------- POINTS DE RENDEZ-VOUS SECOURS -------------------
+   PRV verifies le 18/07. Coordonnees cliquables (Google Maps) pour guider
+   les disciplines. Importe par la fiche reflexe et le PC-Ops.
+--------------------------------------------------------------------- */
+export const PRV = [
+  { nom: "PRV#1 — Entrée site / Départ (Croisement Le Raumont – Chemin de l'Épine)", gps: "50.38242, 5.61624" },
+  { nom: "PRV#2 — Entrée arrière site (Mon Legrand)", gps: "50.38304, 5.61816" },
+  { nom: "PRV#3 — Parking public (Le Raumont)", gps: "50.38212, 5.61673" },
+  { nom: "PRV#4 — Accès Étape 1 (Rue Sainte-Barbe)", gps: "50.38212, 5.61673" },
+  { nom: "PRV#5 — Accès Étape 2 (Rue de Jehonhé)", gps: "50.37568, 5.64412" },
+  { nom: "PRV#6 — Accès Étape 2 (Lesfanges)", gps: "50.38236, 5.64579" },
+  { nom: "PRV#7 — Accès Étape 3 (Rue de la Chapelle, 23)", gps: "50.38865, 5.62692" },
+  { nom: "Étape 1 (km 0,9)", gps: "50.37858, 5.62790" },
+  { nom: "Étape 2 (km 2,5)", gps: "50.37828, 5.64549" },
+  { nom: "Étape 3 (km 5,1)", gps: "50.38817, 5.62891" },
+];
+
+/* --------------------------- PLAN RADIO ----------------------------- */
+export const RADIO_PLAN = [
+  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, volante)" },
+  { canal: "PMR5", usage: "Bénévoles parking et sanitaires" },
+  { canal: "PMR15", usage: "Sécurité privée" },
+  { canal: "PMR333", usage: "URGENCE — exclusivement réservé", urgent: true },
+];

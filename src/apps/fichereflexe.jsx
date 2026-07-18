@@ -1,6 +1,10 @@
-import React, { useState } from "react";
-import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, HeartPulse, UserSearch, CloudLightning, Footprints } from "lucide-react";
 
+
+Fichereflexe v2 · JSX
+import React, { useState } from "react";
+import { ANNUAIRE as NUMEROS, PRV, RADIO_PLAN as RADIO } from "./referentiels";
+import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, HeartPulse, UserSearch, CloudLightning, Footprints } from "lucide-react";
+ 
 /* ---------------------------------------------------------------------
    FICHE REFLEXE -- BFMF 2026
    Page STATIQUE : plan radio, numeros, PRV avec GPS, conduites a tenir.
@@ -8,40 +12,10 @@ import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, 
    4G tombe (tant que l'onglet est ouvert). A verifier au briefing.
    >>> METTEZ A JOUR LES NUMEROS ci-dessous avant impression/diffusion.
 --------------------------------------------------------------------- */
-
-const NUMEROS = [
-  { nom: "URGENCE VITALE", num: "112", note: "medical / incendie — TOUJOURS en premier", urgent: true },
-  { nom: "Police", num: "101", note: "" },
-  { nom: "Directeur d'événement", num: "0477 99 48 42", note: "Jérôme" },
-  { nom: "Coordinateur securite", num: "0494 22 29 33", note: "Renaud" },
-  { nom: "Bourgmestre", num: "0477 63 81 88", note: "Ch. Verdin" },
-  { nom: "Coordinatrice PlanU Ferrièrs", num: "086 400 90 51", note: "C. Seynaeve" },
-  { nom: "Dispatching IILE/Hemeco en intervention", num: "04/279 13 52", note: "Dispatching Hemeco" },
-  { nom: "Numéro back-up 112 en cas de panne", num: "0471/51 31 56", note: "112 back-up" },
-  { nom: "Centre antipoison", num: "070 245 245", note: "" },
-];
-
-const RADIO = [
-  { canal: "PMR4.1", usage: "Coordination generale (QG, scenes, volante)" },
-  { canal: "PMR5", usage: "Benevoles parking et sanitaires" },
-  { canal: "PMR15", usage: "Securite privee" },
-  { canal: "PMR333", usage: "URGENCE — exclusivement reserve", urgent: true },
-];
-
-const PRV = [
-
-  { nom: "PRV#1 - Entrée site / Depart — Croisement Le Raumont - Chemin de l'épine", gps: "50.38242, 5.61624 " },
-  { nom: "PRV#2 - Entrée arrière site — Mon Legrand", gps: "50.38304, 5.61816" },
-  { nom: "PRV#3 — Parkin public - Le Raumont", gps: "50.38212, 5.61673" },
-  { nom: "PRV#4 — Accès étape 1 -  Rue Sainte-Barbe", gps: "50.38212, 5.61673" },
-  { nom: "PRV#5 — Accès étape 2 via Rue de Jehonhe", gps: "50.37568, 5.64412" },
-  { nom: "PRV#6 - Accès étape2 via Lesfanges", gps: "50.38236, 5.64579" },
-  { nom: "PRV#7 - Accès étape 3 — Rue de la Chapelle, 23", gps: "50.38865, 5.62692" },
-  { nom: "Etape 1 (km 0,9)", gps: "50.37858, 5.62790" },
-  { nom: "Etape 2 (km 2,5)", gps: "50.37828, 5.64549" },
-  { nom: "Etape 3 (km 5,1)", gps: "50.38817, 5.62891" },
-];
-
+ 
+ 
+ 
+ 
 const CONDUITES = [
   {
     id: "malaise", titre: "Malaise / blessure", icon: HeartPulse,
@@ -102,7 +76,7 @@ const CONDUITES = [
     ],
   },
 ];
-
+ 
 export default function FicheReflexe() {
   const [ouvert, setOuvert] = useState(null);
   return (
@@ -112,7 +86,7 @@ export default function FicheReflexe() {
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
       `}</style>
-
+ 
       <header className="border-b border-white/10 bg-[#151b23] px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <div className="w-9 h-9 rounded-md bg-emerald-400/10 ring-1 ring-emerald-400/30 flex items-center justify-center">
@@ -124,7 +98,7 @@ export default function FicheReflexe() {
           </div>
         </div>
       </header>
-
+ 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
         {/* Numeros */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
@@ -142,7 +116,7 @@ export default function FicheReflexe() {
             ))}
           </div>
         </section>
-
+ 
         {/* Radio */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-2">
@@ -158,7 +132,7 @@ export default function FicheReflexe() {
           </div>
           <div className="text-[10px] text-slate-500 mt-2">Message type : QUI appelle · QUOI · OU (PRV/km) · COMBIEN de personnes · attendre l'accuse du QG.</div>
         </section>
-
+ 
         {/* PRV */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-2">
@@ -174,7 +148,7 @@ export default function FicheReflexe() {
             ))}
           </div>
         </section>
-
+ 
         {/* Conduites a tenir */}
         <section className="space-y-1.5">
           <h2 className="font-display tracking-wide text-sm text-slate-200 px-1">QUE FAIRE SI...</h2>
@@ -201,7 +175,7 @@ export default function FicheReflexe() {
             );
           })}
         </section>
-
+ 
         <div className="text-[10px] text-slate-600 font-mono text-center pb-3 leading-relaxed">
           Regle d'or : PROTEGER → ALERTER (112 puis PMR333 si vital) → SECOURIR.<br />
           L'app complete la radio, elle ne la remplace pas. Version {new Date().getFullYear()} — verifier les numeros avant le festival.
@@ -210,3 +184,4 @@ export default function FicheReflexe() {
     </div>
   );
 }
+ 

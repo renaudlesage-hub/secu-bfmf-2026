@@ -25,7 +25,7 @@ import {
   Flag,
   Truck,
 } from "lucide-react";
-import { STATUT_RESOLU, estUrgente, priorite } from "./referentiels";
+import { STATUT_RESOLU, estUrgente, priorite, ANNUAIRE, PRV as PRV_LIST, RADIO_PLAN } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
 
 /* ---------------------------------------------------------------------
@@ -96,32 +96,8 @@ const DOCUMENTS = [
   },
 ];
 
-const ANNUAIRE = [
-  { nom: "URGENCE VITALE", num: "112", note: "médical / incendie", urgent: true },
-  { nom: "Police (non urgent)", num: "101" },
-  { nom: "PC festival / QG (PCE)", num: "04XX XX XX XX", note: "À COMPLÉTER" },
-  { nom: "Coordinateur sécurité", num: "04XX XX XX XX", note: "À COMPLÉTER" },
-  { nom: "Poste de secours / Croix-Rouge", num: "04XX XX XX XX", note: "À COMPLÉTER" },
-  { nom: "Responsable balade", num: "04XX XX XX XX", note: "À COMPLÉTER" },
-];
 
-const RADIO_PLAN = [
-  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, volante)" },
-  { canal: "PMR5", usage: "Bénévoles parking et sanitaires" },
-  { canal: "PMR15", usage: "Sécurité privée" },
-  { canal: "PMR333", usage: "URGENCE — exclusivement réservé", urgent: true },
-];
 
-const PRV_LIST = [
-  { nom: "Point 0 / Départ — PC festival", gps: "50.3835, 5.6215" },
-  { nom: "PRV#4 — Rue Sainte-Barbe", gps: "50.38212, 5.61673" },
-  { nom: "PRV#5 — Rue de Jehonhé", gps: "50.37568, 5.64412" },
-  { nom: "PRV#6", gps: "50.38236, 5.64579" },
-  { nom: "PRV#7 — Rue de la Chapelle", gps: "50.38865, 5.62692" },
-  { nom: "Étape 1 (km 0,9)", gps: "50.37858, 5.62790" },
-  { nom: "Étape 2 (km 2,5)", gps: "50.37828, 5.64549" },
-  { nom: "Étape 3 (km 5,1)", gps: "50.38817, 5.62891" },
-];
 
 /* =====================================================================
    ONGLET INTERVENTION -- ce que demande un Dir-PC-Ops en arrivant de nuit.
@@ -149,11 +125,11 @@ const ACCES_SECOURS = [
 ];
 
 const POINT_RENCONTRE = {
-  lieu: "À COMPLÉTER : point de rencontre des secours (nom + repère visible de nuit)",
-  gps: "50.3835, 5.6215",
-  qui: "Coordinateur sécurité festival",
-  tel: "04XX XX XX XX",
-  suppleant: "À COMPLÉTER : suppléant + numéro",
+  lieu: "PRV#1 — Entrée site / Départ (Croisement Le Raumont – Chemin de l'Épine)",
+  gps: "50.38242, 5.61624",
+  qui: "Renaud — Coordinateur sécurité",
+  tel: "0494 22 29 33",
+  suppleant: "Jérôme — Directeur d'événement · 0477 99 48 42",
 };
 
 const RISQUES_SITE = [
