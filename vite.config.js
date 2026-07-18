@@ -56,7 +56,8 @@ export default defineConfig({
         theme_color: '#0f1319',
         background_color: '#0f1319',
         display: 'standalone',
-        orientation: 'portrait',
+        // Pas de verrou d'orientation : l'app doit suivre le telephone/tablette.
+        // (un 'orientation: portrait' empeche le passage en paysage une fois installee)
         start_url: '/',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
