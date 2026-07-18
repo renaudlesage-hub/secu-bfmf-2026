@@ -142,7 +142,7 @@ const RISQUES_SITE = [
 ];
 
 const RESSOURCES_EAU = [
-  { titre: "Hydrant / bouche incendie le plus proche", detail: " : Bouche incendie ramenée sur le  site - 70mm + tridivision, GPS." },
+  { titre: "Hydrant / bouche incendie le plus proche", detail: "À COMPLÉTER : emplacement, débit, GPS." },
   { titre: "Point d'eau naturel", detail: "À COMPLÉTER : cours d'eau, accès engin, aspiration possible ?" },
 ];
 
@@ -182,6 +182,16 @@ const GRAV = {
   critique: { rang: 3, cls: "text-red-300", ring: "ring-red-400/40", bg: "bg-red-400/10", dot: "bg-red-400" },
   grave: { rang: 2, cls: "text-amber-300", ring: "ring-amber-400/40", bg: "bg-amber-400/10", dot: "bg-amber-400" },
   modere: { rang: 1, cls: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10", dot: "bg-sky-400" },
+};
+
+// Habillage couleur du panneau meteo selon le niveau de vigilance IRM
+// (vert / jaune / orange / rouge). Evite l'incoherence "vigilance verte
+// mais panneau jaune" : tout le bloc prend la couleur du niveau reel.
+const VIGILANCE_STYLE = {
+  vert:   { border: "border-emerald-400", ring: "ring-emerald-400/30", ringHover: "hover:ring-emerald-400/50", titre: "text-emerald-300", icone: "text-emerald-400", dot: "bg-emerald-400", badge: "bg-emerald-400/10 text-emerald-300 border-emerald-400/20", label: "VERT" },
+  jaune:  { border: "border-amber-400", ring: "ring-amber-400/30", ringHover: "hover:ring-amber-400/50", titre: "text-amber-300", icone: "text-amber-400", dot: "bg-amber-400", badge: "bg-amber-400/10 text-amber-300 border-amber-400/20", label: "JAUNE" },
+  orange: { border: "border-orange-400", ring: "ring-orange-400/40", ringHover: "hover:ring-orange-400/60", titre: "text-orange-300", icone: "text-orange-400", dot: "bg-orange-400", badge: "bg-orange-400/10 text-orange-300 border-orange-400/30", label: "ORANGE" },
+  rouge:  { border: "border-red-500", ring: "ring-red-500/40", ringHover: "hover:ring-red-500/60", titre: "text-red-300", icone: "text-red-400", dot: "bg-red-500", badge: "bg-red-500/15 text-red-300 border-red-500/30", label: "ROUGE" },
 };
 
 const METEO_FALLBACK = {
@@ -377,6 +387,8 @@ export default function PcOps() {
   const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
 
   const METEO = meteoLive || METEO_FALLBACK;
+  // Couleur du panneau meteo = niveau de vigilance courant (defaut vert)
+  const vig = VIGILANCE_STYLE[(METEO.codeActuel || "vert").toLowerCase()] || VIGILANCE_STYLE.vert;
   const pad = (n) => String(n).padStart(2, "0");
 
   return (
@@ -483,25 +495,25 @@ export default function PcOps() {
           href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres}
           target="_blank"
           rel="noopener noreferrer"
-          className="block bg-[#131a22] rounded-lg p-4 ring-1 ring-amber-400/30 border-t-4 border-amber-400 shadow-xl hover:bg-[#1a232e] hover:ring-amber-400/50 transition-all cursor-pointer group"
+          className={`block bg-[#131a22] rounded-lg p-4 ring-1 ${vig.ring} border-t-4 ${vig.border} shadow-xl hover:bg-[#1a232e] ${vig.ringHover} transition-all cursor-pointer group`}
         >
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400 pulse-slow" />
-              <h2 className="font-display tracking-wide text-sm text-amber-300 uppercase flex items-center gap-1.5">
+              <AlertTriangle className={`w-4 h-4 ${vig.icone} pulse-slow`} />
+              <h2 className={`font-display tracking-wide text-sm ${vig.titre} uppercase flex items-center gap-1.5`}>
                 {meteoLive ? "IRM LIVE — AVERTISSEMENTS OFFICIELS" : "MÉTÉO HORS LIGNE — DONNÉES NON REÇUES"} ({METEO.station})
-                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-300 transition-colors inline" />
+                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-colors inline" />
               </h2>
             </div>
-            <div className="text-[10px] font-mono bg-amber-400/10 text-amber-300 px-2 py-0.5 rounded border border-amber-400/20 uppercase tracking-wider">
-              Vigilance : {METEO.statutAlerte || METEO_FALLBACK.statutAlerte}
+            <div className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider ${vig.badge}`}>
+              Vigilance : {vig.label}
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
             <div className="md:col-span-2 bg-white/[0.02] border border-white/5 rounded p-2.5">
               <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className={`w-2 h-2 rounded-full ${vig.dot}`} />
                 {METEO.titre || METEO_FALLBACK.titre}
               </div>
               <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">

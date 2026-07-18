@@ -106,10 +106,10 @@ const METEO_FALLBACK = {
 };
 
 const CODE_METEO = {
-  vert: { text: "text-emerald-300", bg: "bg-emerald-400/10", ring: "ring-emerald-400/30", dot: "bg-emerald-400", label: "VERT" },
-  jaune: { text: "text-amber-300", bg: "bg-amber-400/10", ring: "ring-amber-400/40", dot: "bg-amber-400", label: "JAUNE" },
-  orange: { text: "text-orange-300", bg: "bg-orange-400/10", ring: "ring-orange-400/40", dot: "bg-orange-400", label: "ORANGE" },
-  rouge: { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-400", label: "ROUGE" },
+  vert:   { text: "text-emerald-300", bg: "bg-emerald-400/10", ring: "ring-emerald-400/30", dot: "bg-emerald-400", border: "border-emerald-400", borderT: "border-t-emerald-400", ringHover: "hover:ring-emerald-400/50", label: "VERT" },
+  jaune:  { text: "text-amber-300", bg: "bg-amber-400/10", ring: "ring-amber-400/40", dot: "bg-amber-400", border: "border-amber-400", borderT: "border-t-amber-400", ringHover: "hover:ring-amber-400/50", label: "JAUNE" },
+  orange: { text: "text-orange-300", bg: "bg-orange-400/10", ring: "ring-orange-400/40", dot: "bg-orange-400", border: "border-orange-400", borderT: "border-t-orange-400", ringHover: "hover:ring-orange-400/60", label: "ORANGE" },
+  rouge:  { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-500", border: "border-red-500", borderT: "border-t-red-500", ringHover: "hover:ring-red-500/60", label: "ROUGE" },
 };
 
 const inputCls =
