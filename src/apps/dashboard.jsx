@@ -580,9 +580,9 @@ export default function DashboardQG() {
       )}
 
       {/* CONTENU PANORAMIQUE MULTI-COLONNES */}
-      <main className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
+      <main className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
         {/* ===== BLOC PLEINE LARGEUR : consigne generale / recherches / jauge ===== */}
-        <div className="lg:col-span-3 space-y-3">
+        <div className="md:col-span-3 space-y-3">
           <section className={`rounded-lg p-4 ${crise ? "ring-2 ring-red-500/70 bg-red-500/15" : "bg-[#151b23] ring-1 ring-white/10"}`}>
             <div className="flex items-center justify-between mb-2">
               <h2 className={`font-display tracking-wide text-sm flex items-center gap-2 ${crise ? "text-red-200" : "text-slate-200"}`}>
@@ -694,7 +694,7 @@ export default function DashboardQG() {
         </div>
 
         {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE 🚨 ==================== */}
-        <div className="space-y-4 w-full lg:col-span-1">
+        <div className="space-y-4 w-full md:col-span-1">
           
           {/* DISPLAY MÉTÉO SOURCÉ IRM */}
           <a 
@@ -812,10 +812,10 @@ export default function DashboardQG() {
         </div>
 
         {/* ==================== BLOC DROIT AVANCÉ MUTÉ ==================== */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:col-span-2 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2 w-full">
           
           {/* ⚡ PLAN RADIO LARGE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md lg:col-span-2 min-h-[102px] max-h-[102px] flex flex-col justify-between">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md md:col-span-2 min-h-[102px] max-h-[102px] flex flex-col justify-between">
             <div className="flex items-center gap-2 pb-1 border-b border-white/5">
               <Radio className="w-4 h-4 text-amber-400" />
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission & d'Urgence Radio (BFMF 2026)</h2>
@@ -831,7 +831,7 @@ export default function DashboardQG() {
           </div>
 
           {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md lg:col-span-2 min-h-[155px] max-h-[155px] flex flex-col justify-between">
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md md:col-span-2 min-h-[155px] max-h-[155px] flex flex-col justify-between">
             <div className="flex items-center justify-between pb-1 border-b border-white/5">
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
                 <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
