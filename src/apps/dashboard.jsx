@@ -48,10 +48,13 @@ const SB_HEADERS = {
   "Content-Type": "application/json",
 };
 
-const SESS_USER = {
-  nom: "Radio-PC",
-  role: "Opérateur QG / PCE",
-};
+// Poste QG : role fixe (c'est LE poste, pas une personne), mais l'operateur
+// qui le tient peut se nommer -> tracabilite dans la main courante.
+const OPERATEUR_KEY = "bfmf2026-operateur-qg";
+const ROLE_QG = "Opérateur QG / PCE";
+function chargerOperateur() {
+  try { return localStorage.getItem(OPERATEUR_KEY) || "Radio-PC"; } catch (e) { return "Radio-PC"; }
+}
 
 async function kvGet(key) {
   const r = await fetch(
@@ -173,6 +176,16 @@ function pad(n) { return n.toString().padStart(2, "0"); }
 
 export default function DashboardQG() {
   const [now, setNow] = useState(new Date());
+  const [operateur, setOperateur] = useState(chargerOperateur);
+  // Objet compatible avec les usages existants (SESS_USER.nom / SESS_USER.role)
+  const SESS_USER = { nom: operateur, role: ROLE_QG };
+  function changerOperateur() {
+    const saisi = window.prompt("Nom de l'opérateur qui tient le QG :", operateur);
+    if (saisi === null) return;                 // annulation
+    const v = saisi.trim() || "Radio-PC";
+    setOperateur(v);
+    try { localStorage.setItem(OPERATEUR_KEY, v); } catch (e) {}
+  }
   const [missionsLog, setMissionsLog] = useState([]);
   const [groupesBalade, setGroupesBalade] = useState([]);
   const [alertesCrises, setAlertesCrises] = useState([]);
@@ -277,7 +290,7 @@ export default function DashboardQG() {
 
   const [formMotif, setFormMotif] = useState("Urgence médicale / Malaise");
   const [formLieu, setFormLieu] = useState("Site grande scène");
-  const [formNom, setFormNom] = useState(SESS_USER.nom);
+  const [formNom, setFormNom] = useState("");
   const [formDetails, setFormDetails] = useState("");
 
   const [formLogNature, setFormLogNature] = useState("");
@@ -537,9 +550,13 @@ export default function DashboardQG() {
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
           <span className="font-display tracking-wider text-sm">QG BUCO — CONSOLE DE SUPERVISION PRINCIPALE</span>
-          <div className="hidden md:flex items-center gap-1.5 ml-4 bg-white/5 px-2 py-0.5 rounded text-[11px] font-mono text-slate-400">
+          <button
+            onClick={changerOperateur}
+            className="hidden md:flex items-center gap-1.5 ml-4 bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded text-[11px] font-mono text-slate-400 hover:text-slate-200 transition-colors"
+            title="Cliquer pour indiquer qui tient le QG (tracé dans la main courante)"
+          >
             <UserCheck className="w-3 h-3 text-sky-400" /> PC Ops : {SESS_USER.nom}
-          </div>
+          </button>
         </div>
         <div className="flex items-center gap-4 font-mono text-xs text-slate-400">
           {sbError && <span className="text-red-400 animate-pulse font-bold">⚠️ SYNC ERROR</span>}
