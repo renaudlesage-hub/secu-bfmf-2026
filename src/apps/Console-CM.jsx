@@ -12,7 +12,9 @@ import {
   FileText,
   UserCheck,
   MessageSquare,
-  Upload
+  Upload,
+  AlertTriangle,
+  Megaphone
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
@@ -36,6 +38,56 @@ const PLATFORMES_DISPONIBLES = [
   { id: "twitter", label: "X / Twitter", prefix: "X ", icon: Share2, color: "text-slate-300", bgBadge: "bg-slate-500/20 text-slate-300" },
   { id: "site_live", label: "Flux Live Web", prefix: "🌐", icon: Globe, color: "text-emerald-400", bgBadge: "bg-emerald-500/20 text-emerald-300" },
 ];
+
+// -------------------------------------------------------------------
+// MODE CRISE — modèles de consignes pré-rédigés déclenchés depuis le QG.
+// IMPORTANT : les réseaux sociaux ne sont PAS le canal d'alerte primaire
+// (sono + équipes + radio le sont). Ces messages servent à INFORMER et
+// à RELAYER, en complément. L'interface le rappelle explicitement.
+// -------------------------------------------------------------------
+const MODELES_CONSIGNE = [
+  {
+    id: "meteo_abri",
+    label: "Météo — mise à l'abri",
+    urgence: true,
+    texte: "⚠️ INFO SÉCURITÉ — En raison des conditions météo, nous vous invitons à rejoindre les zones abritées et à suivre les consignes des équipes sur place. Merci de votre coopération.",
+  },
+  {
+    id: "site_ferme",
+    label: "Site fermé / n'approchez pas",
+    urgence: true,
+    texte: "⛔ Le site est actuellement fermé pour raisons de sécurité. Si vous n'êtes pas encore sur place, ne vous déplacez pas. Nous vous tiendrons informés de la reprise.",
+  },
+  {
+    id: "evacuation_info",
+    label: "Évacuation en cours (relais info)",
+    urgence: true,
+    texte: "⚠️ Une évacuation est en cours sur le site. Suivez calmement les consignes des équipes et le fléchage. Ne revenez pas sur vos pas. Tenez-vous informés ici.",
+  },
+  {
+    id: "situation_controle",
+    label: "Situation sous contrôle (rassurer)",
+    urgence: false,
+    texte: "ℹ️ La situation est sous contrôle. Les équipes de secours sont sur place. Merci de votre calme et de votre coopération. Prochain point d'information à venir.",
+  },
+  {
+    id: "reprise",
+    label: "Reprise / réouverture",
+    urgence: false,
+    texte: "✅ La situation est revenue à la normale, les activités reprennent. Merci de votre patience et de votre compréhension.",
+  },
+  {
+    id: "dementi",
+    label: "Démenti / anti-rumeur",
+    urgence: false,
+    texte: "ℹ️ Des informations non vérifiées circulent. Seuls les messages officiels de l'organisation font foi. Nous vous tiendrons informés ici en priorité.",
+  },
+];
+
+// Webhook Discord de PRÉVISUALISATION (bac à sable). En mode dev, chaque
+// consigne part ici sous forme de carte, PAS sur les vrais réseaux.
+// >>> Coller l'URL du webhook de votre canal #pre-visualisation-posts.
+const DISCORD_WEBHOOK_URL = ""; // ex: https://discord.com/api/webhooks/....
 
 const inputCls =
   "w-full bg-[#232b36] ring-1 ring-white/25 rounded px-3 py-2.5 text-[15px] text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/60";
@@ -85,6 +137,56 @@ export default function CommunityManagerConsole() {
   const [platformesChoisies, setPlatformesChoisies] = useState(["facebook", "instagram", "site_live"]);
   const [urlsMedias, setUrlsMedias] = useState([]); // Contient les chaînes de caractères Base64 des images
   const [ambianceGlobale, setAmbianceGlobale] = useState("bonne");
+  // Mode consigne de crise : type de message (normal vs consigne officielle)
+  const [estConsigne, setEstConsigne] = useState(false);
+  const [urgence, setUrgence] = useState(false);
+  const [discordStatut, setDiscordStatut] = useState(""); // "", "envoi", "ok", "erreur"
+
+  function appliquerModele(m) {
+    setTextePublication(m.texte);
+    setEstConsigne(true);
+    setUrgence(m.urgence);
+  }
+
+  // Envoi vers Discord (bac à sable) : carte riche pour prévisualisation.
+  // Ne touche JAMAIS les vrais réseaux — c'est le but du mode test.
+  async function previsualiserSurDiscord(pub) {
+    if (!DISCORD_WEBHOOK_URL) {
+      setDiscordStatut("erreur");
+      return false;
+    }
+    try {
+      setDiscordStatut("envoi");
+      const couleur = pub.urgence ? 0xdc2626 : pub.estConsigne ? 0xf59e0b : 0x22b08d;
+      const titre = pub.urgence ? "🚨 CONSIGNE URGENTE — PRÉVISUALISATION"
+        : pub.estConsigne ? "⚠️ CONSIGNE — PRÉVISUALISATION"
+        : "📣 POST — PRÉVISUALISATION";
+      const embed = {
+        title: titre,
+        description: pub.texte,
+        color: couleur,
+        fields: [
+          { name: "Canaux visés", value: (pub.platformes || []).join(", ") || "—", inline: true },
+          { name: "Auteur", value: pub.auteur || "—", inline: true },
+          { name: "Heure", value: pub.heure || "—", inline: true },
+        ],
+        footer: { text: "BFMF 2026 · Bac à sable — ceci n'est PAS publié sur les vrais réseaux" },
+      };
+      if (pub.medias && pub.medias[0] && /^https?:\/\//.test(pub.medias[0])) {
+        embed.image = { url: pub.medias[0] };
+      }
+      const r = await fetch(DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ embeds: [embed] }),
+      });
+      setDiscordStatut(r.ok ? "ok" : "erreur");
+      return r.ok;
+    } catch (e) {
+      setDiscordStatut("erreur");
+      return false;
+    }
+  }
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -167,8 +269,16 @@ export default function CommunityManagerConsole() {
       auteur: auteurSignature,
       platformes: platformesChoisies,
       medias: urlsMedias,
-      statutEnvoi: "En attente de propagation API"
+      estConsigne,
+      urgence,
+      type: urgence ? "consigne-urgente" : estConsigne ? "consigne" : "post",
+      statutEnvoi: "Prévisualisation (bac à sable)"
     };
+
+    // Bac à sable : on envoie la carte sur Discord pour validation visuelle.
+    // Rien ne part sur les vrais réseaux tant que la publication réelle
+    // n'est pas explicitement mise en place (chantier séparé, post-festival).
+    await previsualiserSurDiscord(nouvellePublication);
 
     const nouvelHistorique = [nouvellePublication, ...historiquePublications];
     setHistoriquePublications(nouvelHistorique);
@@ -188,6 +298,8 @@ export default function CommunityManagerConsole() {
     if (ok) {
       setTextePublication("");
       setUrlsMedias([]);
+      setEstConsigne(false);
+      setUrgence(false);
     }
   };
 
@@ -277,6 +389,63 @@ export default function CommunityManagerConsole() {
                   <p className="text-red-400 text-xs font-mono mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Choisissez au moins une plate-forme.</p>
                 )}
               </div>
+
+              {/* MODE CONSIGNE DE CRISE — modèles pré-rédigés */}
+              <div className="rounded-lg ring-1 ring-amber-400/30 bg-amber-400/[0.04] p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Megaphone className="w-4 h-4 text-amber-300" />
+                  <span className="text-[11px] font-mono text-amber-200 uppercase tracking-wide">Consigne de crise — modèles</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {MODELES_CONSIGNE.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => appliquerModele(m)}
+                      className={`text-left text-[11px] px-2 py-1.5 rounded ring-1 transition-colors ${
+                        m.urgence
+                          ? "ring-red-400/30 bg-red-400/5 text-red-200 hover:bg-red-400/10"
+                          : "ring-white/10 bg-white/[0.02] text-slate-300 hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      {m.urgence && <AlertTriangle className="w-3 h-3 inline mr-1 -mt-0.5" />}
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[9px] font-mono text-slate-500 mt-2 leading-relaxed">
+                  ⚠️ Les réseaux sociaux ne sont PAS le canal d'alerte primaire. L'alerte immédiate passe par
+                  la sonorisation, les équipes terrain et la radio (PMR333). Ces messages INFORMENT et RELAIENT.
+                </div>
+              </div>
+
+              {/* Indicateur du type de message en cours */}
+              {estConsigne && (
+                <div className={`flex items-center justify-between rounded px-3 py-2 ring-1 text-xs ${
+                  urgence ? "ring-red-500/50 bg-red-500/10 text-red-200" : "ring-amber-400/40 bg-amber-400/10 text-amber-200"
+                }`}>
+                  <span className="flex items-center gap-1.5 font-semibold">
+                    {urgence ? <AlertTriangle className="w-3.5 h-3.5" /> : <Megaphone className="w-3.5 h-3.5" />}
+                    {urgence ? "CONSIGNE URGENTE" : "CONSIGNE"}
+                  </span>
+                  <button type="button" onClick={() => { setEstConsigne(false); setUrgence(false); }}
+                    className="text-[10px] font-mono underline opacity-70 hover:opacity-100">repasser en post normal</button>
+                </div>
+              )}
+
+              {/* Statut de la prévisualisation Discord */}
+              {discordStatut && (
+                <div className={`text-[11px] font-mono px-3 py-1.5 rounded ${
+                  discordStatut === "ok" ? "bg-emerald-400/10 text-emerald-300"
+                  : discordStatut === "envoi" ? "bg-slate-400/10 text-slate-300"
+                  : "bg-red-400/10 text-red-300"
+                }`}>
+                  {discordStatut === "ok" ? "✓ Prévisualisation envoyée sur Discord (bac à sable)"
+                  : discordStatut === "envoi" ? "Envoi de la prévisualisation..."
+                  : DISCORD_WEBHOOK_URL ? "Échec de l'envoi Discord — vérifier le webhook"
+                  : "Webhook Discord non configuré (coller l'URL dans le code)"}
+                </div>
+              )}
 
               {/* CORPS DU TEXTE */}
               <div>
