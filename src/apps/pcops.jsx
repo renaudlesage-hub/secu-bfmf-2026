@@ -366,24 +366,60 @@ export default function PcOps() {
     ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
     : null;
 
-  /* ----------------------- BILAN VICTIMES -----------------------
-     "3 evenements critiques" ne dit rien a un Dir-PC-Ops : il lui faut
-     COMBIEN de victimes, de quelle nature, ou, et prises en charge ou non.
-     On isole donc les SOS a caractere medical (les autres motifs -- surete,
-     personne perdue, fumee -- ne sont pas des victimes) et on les classe
-     par etat de prise en charge.
-  --------------------------------------------------------------- */
-  const estVictime = (m) => /m[ée]dical|malaise|bless|chute/i.test(m || "");
-  const victimes = sosVisibles.filter((s) => estVictime(s.motif));
-  // Statuts reels d'un SOS : nouveau -> pris en compte -> en route -> prise en charge.
-  // "pris en compte" = le QG a acquitte, SANS forcement engager de moyen : ce
-  // n'est donc PAS un moyen engage. Seul "en route" = un vehicule roule.
-  const vicNonPrises = victimes.filter((s) => {
+  /* --------------------- BILAN DES INTERVENTIONS ---------------------
+     Vue GLOBALE pour le Dir-PC-Ops : TOUTES les interventions en cours
+     (medicales ET non medicales : securite, feu, personne perdue...),
+     ventilees par TYPE et par STATUT de prise en charge. On ne discrimine
+     plus le medical -- un depart de feu ou une bagarre compte autant.
+  ------------------------------------------------------------------- */
+  // Categorisation par type a partir du motif du SOS / de l'alerte.
+  function typeIntervention(motif) {
+    const m = (motif || "").toLowerCase();
+    if (/m[ée]dical|malaise|bless|chute|soin|inconsc|douleur|crise/.test(m)) return "Médical";
+    if (/feu|fum[ée]e|incendie|flamme/.test(m)) return "Incendie / fumée";
+    if (/bagarre|agress|vol|s[ûu]ret[ée]|alterc|violence|intrus/.test(m)) return "Sûreté";
+    if (/perdu|recherche|disparu|[ée]gar[ée]|enfant/.test(m)) return "Personne recherchée";
+    if (/[ée]lec|technique|structure|barri[èe]re|panne/.test(m)) return "Technique / matériel";
+    return "Autre";
+  }
+  // Statuts reels : nouveau -> pris en compte -> en route -> prise en charge.
+  // "pris en compte" = QG a acquitte sans forcement engager de moyen.
+  function statutIntervention(s) {
     const st = (s.statut || "").toLowerCase();
-    return st === "nouveau" || st === "pris en compte";
-  });
-  const vicEnCours = victimes.filter((s) => (s.statut || "").toLowerCase() === "en route");
-  const vicEnCharge = victimes.filter((s) => (s.statut || "").toLowerCase() === "prise en charge");
+    if (st === "nouveau" || st === "pris en compte") return "en_attente";
+    if (st === "en route" || st === "sur place") return "moyen_engage";
+    if (st === "prise en charge") return "prise_en_charge";
+    return "en_attente";
+  }
+
+  // Interventions = SOS participants + alertes equipes non acquittees.
+  // (Les missions logistiques P3/P4 restent hors bilan : ce ne sont pas
+  //  des interventions de secours mais de la maintenance.)
+  const interventions = [
+    ...sosVisibles.map((s) => ({
+      id: s.id, heure: s.heure, motif: s.motif, nom: s.nom, details: s.details,
+      surTrace: s.surTrace, gps: s.gps,
+      type: typeIntervention(s.motif),
+      etat: statutIntervention(s),
+      statutBrut: s.statut,
+    })),
+    ...alertes.filter((a) => !a.acquittePar).map((a, i) => ({
+      id: "al" + i, heure: a.heure, motif: a.motif, details: a.details,
+      localisation: a.groupe || a.details,
+      type: typeIntervention(a.motif),
+      etat: "en_attente",
+      statutBrut: "alerte non acquittée",
+    })),
+  ];
+
+  const intEnAttente = interventions.filter((i) => i.etat === "en_attente");
+  const intEngage = interventions.filter((i) => i.etat === "moyen_engage");
+  const intPriseEnCharge = interventions.filter((i) => i.etat === "prise_en_charge");
+
+  // Repartition par type (pour le tableau de synthese)
+  const parType = {};
+  interventions.forEach((i) => { parType[i.type] = (parType[i.type] || 0) + 1; });
+  const typesTries = Object.entries(parType).sort((a, b) => b[1] - a[1]);
 
   const critiques = evenements.filter((e) => e.gravite === "critique").length + (crise ? 1 : 0);
   const niveau = critiques > 0 ? "critique" : evenements.length > 0 || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
@@ -490,7 +526,15 @@ export default function PcOps() {
         {vue === "dossier" ? (
           <Dossier />
         ) : vue === "intervention" ? (
-          <Intervention victimes={victimes} nonPrises={vicNonPrises} enCours={vicEnCours} enCharge={vicEnCharge} surSite={surSite} persDehors={persDehors} />
+          <Intervention
+            interventions={interventions}
+            enAttente={intEnAttente}
+            engage={intEngage}
+            priseEnCharge={intPriseEnCharge}
+            typesTries={typesTries}
+            surSite={surSite}
+            persDehors={persDehors}
+          />
         ) : (
         <>
         {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE (LECTURE SEULE AUTORITÉS) */}
@@ -852,58 +896,69 @@ function AC({ texte }) {
   return <span className={vide ? "text-amber-300/80" : "text-slate-300"}>{texte}</span>;
 }
 
-function Intervention({ victimes, nonPrises, enCours, enCharge, surSite, persDehors }) {
+const ETAT_STYLE = {
+  en_attente:      { label: "EN ATTENTE",       cls: "ring-red-400/40 bg-red-400/10",     badge: "bg-red-500/25 text-red-200" },
+  moyen_engage:    { label: "MOYEN ENGAGÉ",     cls: "ring-amber-400/30 bg-amber-400/5",  badge: "bg-amber-500/25 text-amber-200" },
+  prise_en_charge: { label: "PRISE EN CHARGE",  cls: "ring-emerald-400/30 bg-emerald-400/5", badge: "bg-emerald-500/25 text-emerald-200" },
+};
+
+function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTries, surSite, persDehors }) {
   return (
     <div className="space-y-4">
-      {/* 1. BILAN HUMAIN */}
+      {/* 1. BILAN DES INTERVENTIONS (toutes natures) */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <LifeBuoy className="w-4 h-4 text-red-300" /> BILAN VICTIMES
+          <LifeBuoy className="w-4 h-4 text-red-300" /> BILAN DES INTERVENTIONS
+          <span className="text-[11px] font-mono text-slate-500 font-normal">{interventions.length} en cours</span>
         </h2>
+
+        {/* Statut de prise en charge */}
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <Kpi label="Non prises en charge" value={nonPrises.length} accent={nonPrises.length ? "text-red-300" : "text-emerald-300"} />
-          <Kpi label="Moyens engagés" value={enCours.length} accent="text-amber-300" />
-          <Kpi label="Prises en charge" value={enCharge.length} accent="text-emerald-300" />
+          <Kpi label="En attente" value={enAttente.length} accent={enAttente.length ? "text-red-300" : "text-emerald-300"} />
+          <Kpi label="Moyen engagé" value={engage.length} accent="text-amber-300" />
+          <Kpi label="Prises en charge" value={priseEnCharge.length} accent="text-emerald-300" />
         </div>
 
-        {victimes.length === 0 ? (
+        {/* Repartition par type */}
+        {typesTries.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {typesTries.map(([type, n]) => (
+              <span key={type} className="text-[11px] font-mono px-2 py-1 rounded ring-1 ring-white/10 bg-white/[0.02] text-slate-300">
+                {type} <span className="text-slate-100 font-semibold">{n}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Liste detaillee */}
+        {interventions.length === 0 ? (
           <div className="text-xs text-slate-500 flex items-center gap-2 py-1">
-            <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Aucune victime signalée en cours.
+            <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Aucune intervention en cours.
           </div>
         ) : (
           <div className="space-y-1.5">
-            {victimes.map((s) => {
-              const st = (s.statut || "").toLowerCase();
-              const nonPrise = st === "nouveau" || st === "pris en compte";
-              const cls = nonPrise ? "ring-red-400/40 bg-red-400/10"
-                : st === "prise en charge" ? "ring-emerald-400/30 bg-emerald-400/5"
-                : "ring-amber-400/30 bg-amber-400/5";
-              const etatLabel = st === "nouveau" ? "NON PRISE EN CHARGE"
-                : st === "pris en compte" ? "SIGNALÉE — AUCUN MOYEN ENGAGÉ"
-                : st === "en route" ? "MOYEN EN ROUTE"
-                : st === "prise en charge" ? "PRISE EN CHARGE" : st.toUpperCase();
-              const etatCls = nonPrise ? "bg-red-500/25 text-red-200"
-                : st === "en route" ? "bg-amber-500/25 text-amber-200"
-                : "bg-emerald-500/25 text-emerald-200";
+            {interventions.map((it) => {
+              const es = ETAT_STYLE[it.etat] || ETAT_STYLE.en_attente;
               return (
-                <div key={s.id} className={`rounded px-2.5 py-2 ring-1 ${cls} text-xs`}>
+                <div key={it.id} className={`rounded px-2.5 py-2 ring-1 ${es.cls} text-xs`}>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
-                    <span className="text-slate-100 font-semibold">{s.motif}</span>
-                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${etatCls}`}>{etatLabel}</span>
+                    <span className="font-mono text-[11px] text-slate-400">{it.heure}</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded ring-1 ring-white/15 text-slate-300">{it.type}</span>
+                    <span className="text-slate-100 font-semibold">{it.motif}{it.nom && it.nom !== "Anonyme" ? ` — ${it.nom}` : ""}</span>
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${es.badge}`}>{es.label}</span>
                   </div>
                   <div className="text-slate-400 mt-0.5 flex items-center gap-1 flex-wrap">
                     <MapPin className="w-3 h-3 shrink-0" />
-                    {s.surTrace ? `km ${s.surTrace.km} · ${s.surTrace.segment}` : "position non géolocalisée"}
-                    {s.gps && (
-                      <a href={`https://www.google.com/maps?q=${s.gps.lat},${s.gps.lon}`} target="_blank" rel="noreferrer"
+                    {it.surTrace ? `km ${it.surTrace.km} · ${it.surTrace.segment}` : (it.localisation || "position non géolocalisée")}
+                    {it.gps && (
+                      <a href={`https://www.google.com/maps?q=${it.gps.lat},${it.gps.lon}`} target="_blank" rel="noreferrer"
                         className="text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5 ml-1">
                         Carte <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     )}
                   </div>
-                  {s.details && (
-                    <div className="text-slate-300 mt-1 italic">"{s.details}"</div>
+                  {it.details && (
+                    <div className="text-slate-300 mt-1 italic">"{it.details}"</div>
                   )}
                 </div>
               );
@@ -911,9 +966,9 @@ function Intervention({ victimes, nonPrises, enCours, enCharge, surSite, persDeh
           </div>
         )}
         <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
-          Bilan consolidé depuis les SOS à caractère médical (malaise, blessure, chute). Les motifs sûreté,
-          personne perdue et fumée figurent dans l'onglet Situation. Un SOS non signalé n'apparaît pas ici :
-          ce bilan complète le point de situation verbal du coordinateur, il ne le remplace pas.
+          Toutes les interventions en cours (médicales, sûreté, incendie, personne recherchée, technique),
+          ventilées par type et par statut de prise en charge. Source : SOS participants + alertes équipes.
+          Ce bilan complète le point de situation verbal du coordinateur, il ne le remplace pas.
         </div>
       </section>
 
