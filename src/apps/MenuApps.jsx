@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Shield, Truck, HeartPulse, Search, ChevronDown, ChevronRight,
-  LayoutDashboard, X, Globe, ShieldAlert,
+  LayoutDashboard, X, Globe, ShieldAlert, Users,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------
@@ -13,6 +13,7 @@ import {
 const CATEGORIES = {
   qg: { label: "Commandement & QG", icon: Shield, color: "text-amber-400" },
   logistique: { label: "Logistique & Regulation", icon: Truck, color: "text-sky-400" },
+  rh: { label: "Ressources humaines", icon: Users, color: "text-violet-400" },
   terrain: { label: "Secours & Terrain", icon: HeartPulse, color: "text-cyan-400" },
   benevoles: { label: "Benevoles — lien direct (sans menu)", icon: HeartPulse, color: "text-teal-400" },
   public: { label: "Acces publics (QR / liens)", icon: Globe, color: "text-red-400" },
@@ -31,6 +32,9 @@ const APPS_LIST = [
   { id: "stocks", name: "Stocks bar (plaine + etapes)", cat: "logistique" },
   { id: "jauge", name: "Jauge plaine / acces", cat: "logistique" },
 
+  // Pole Ressources humaines
+  { id: "equipe-benevoles", name: "Benevoles (planning / contacts)", cat: "rh" },
+
   // Pole Secours & Terrain
   { id: "volante", name: "Equipe volante", cat: "terrain" },
   { id: "recherche", name: "Personne recherchee", cat: "terrain", alerte: true },
@@ -48,7 +52,7 @@ const APPS_LIST = [
 
 export default function MenuApps({ currentApp, onChangeApp, onClose }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, terrain: true, benevoles: true, public: false });
+  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, rh: true, terrain: true, benevoles: true, public: false });
 
   const toggleCat = (cat) => setOpenCats((prev) => ({ ...prev, [cat]: !prev[cat] }));
 
