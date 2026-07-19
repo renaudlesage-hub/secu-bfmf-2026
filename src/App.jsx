@@ -19,6 +19,7 @@ import Balade from "./apps/balade";
 import EnfantPerdu from "./apps/enfantperdu";
 import Sos from "./apps/sos";
 import Signaler from "./apps/signaler";
+import GestionBenevoles from "./apps/Benevoles";
 
 /* ------------------------------------------------------------------
    NAVIGATION : le hash (#dashboard, #volante, #signaler/ID...) reste
@@ -57,6 +58,7 @@ const COMPOSANTS = {
   recherche: EnfantPerdu,
   sos: Sos,
   signaler: Signaler,
+  "equipe-benevoles": GestionBenevoles,
 };
 const ROUTES_PUBLIQUES = ["sos", "signaler", "pcops"];
 const ROUTES_SANS_MENU = ["sanitaire", "balade"];
