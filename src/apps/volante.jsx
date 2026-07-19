@@ -459,7 +459,13 @@ export default function AppVolante() {
                   {s.surTrace && (
                     <div className="text-xs text-slate-300 bg-white/[0.02] p-2 rounded-lg border border-white/5 font-mono">
                       📍 Alignement : {s.surTrace.segment || s.surTrace.reperePlusProche || "—"} {s.surTrace.km ? `(km ${s.surTrace.km})` : ""}
-                      {s.surTrace.ecartMetres > 100 && <span className="text-amber-400 block mt-1 font-bold">⚠️ Écart : ~{s.surTrace.ecartMetres} m HORS TRACE</span>}
+                      {s.surTrace.ecartMetres > 100 && (
+                        s.surTrace.ecartMetres > 10000
+                          ? <span className="text-amber-400 block mt-1 font-bold">⚠️ Position très éloignée (~{Math.round(s.surTrace.ecartMetres / 1000)} km) — GPS douteux / test</span>
+                          : s.surTrace.ecartMetres > 2000
+                          ? <span className="text-amber-400 block mt-1 font-bold">⚠️ Écart : ~{(s.surTrace.ecartMetres / 1000).toFixed(1)} km HORS TRACE</span>
+                          : <span className="text-amber-400 block mt-1 font-bold">⚠️ Écart : ~{s.surTrace.ecartMetres} m HORS TRACE</span>
+                      )}
                     </div>
                   )}
 

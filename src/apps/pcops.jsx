@@ -375,12 +375,15 @@ export default function PcOps() {
   --------------------------------------------------------------- */
   const estVictime = (m) => /m[ée]dical|malaise|bless|chute/i.test(m || "");
   const victimes = sosVisibles.filter((s) => estVictime(s.motif));
-  const vicNonPrises = victimes.filter((s) => (s.statut || "").toLowerCase() === "nouveau");
-  const vicEnCharge = victimes.filter((s) => (s.statut || "").toLowerCase() === "prise en charge");
-  const vicEnCours = victimes.filter((s) => {
+  // Statuts reels d'un SOS : nouveau -> pris en compte -> en route -> prise en charge.
+  // "pris en compte" = le QG a acquitte, SANS forcement engager de moyen : ce
+  // n'est donc PAS un moyen engage. Seul "en route" = un vehicule roule.
+  const vicNonPrises = victimes.filter((s) => {
     const st = (s.statut || "").toLowerCase();
-    return st !== "nouveau" && st !== "prise en charge";
+    return st === "nouveau" || st === "pris en compte";
   });
+  const vicEnCours = victimes.filter((s) => (s.statut || "").toLowerCase() === "en route");
+  const vicEnCharge = victimes.filter((s) => (s.statut || "").toLowerCase() === "prise en charge");
 
   const critiques = evenements.filter((e) => e.gravite === "critique").length + (crise ? 1 : 0);
   const niveau = critiques > 0 ? "critique" : evenements.length > 0 || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
@@ -871,15 +874,23 @@ function Intervention({ victimes, nonPrises, enCours, enCharge, surSite, persDeh
           <div className="space-y-1.5">
             {victimes.map((s) => {
               const st = (s.statut || "").toLowerCase();
-              const cls = st === "nouveau" ? "ring-red-400/40 bg-red-400/10"
+              const nonPrise = st === "nouveau" || st === "pris en compte";
+              const cls = nonPrise ? "ring-red-400/40 bg-red-400/10"
                 : st === "prise en charge" ? "ring-emerald-400/30 bg-emerald-400/5"
                 : "ring-amber-400/30 bg-amber-400/5";
+              const etatLabel = st === "nouveau" ? "NON PRISE EN CHARGE"
+                : st === "pris en compte" ? "SIGNALÉE — AUCUN MOYEN ENGAGÉ"
+                : st === "en route" ? "MOYEN EN ROUTE"
+                : st === "prise en charge" ? "PRISE EN CHARGE" : st.toUpperCase();
+              const etatCls = nonPrise ? "bg-red-500/25 text-red-200"
+                : st === "en route" ? "bg-amber-500/25 text-amber-200"
+                : "bg-emerald-500/25 text-emerald-200";
               return (
                 <div key={s.id} className={`rounded px-2.5 py-2 ring-1 ${cls} text-xs`}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-[11px] text-slate-400">{s.heure}</span>
                     <span className="text-slate-100 font-semibold">{s.motif}</span>
-                    {st === "nouveau" && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-500/25 text-red-200">NON PRISE EN CHARGE</span>}
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${etatCls}`}>{etatLabel}</span>
                   </div>
                   <div className="text-slate-400 mt-0.5 flex items-center gap-1 flex-wrap">
                     <MapPin className="w-3 h-3 shrink-0" />
@@ -891,6 +902,9 @@ function Intervention({ victimes, nonPrises, enCours, enCharge, surSite, persDeh
                       </a>
                     )}
                   </div>
+                  {s.details && (
+                    <div className="text-slate-300 mt-1 italic">"{s.details}"</div>
+                  )}
                 </div>
               );
             })}

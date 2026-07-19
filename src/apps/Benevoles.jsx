@@ -10,7 +10,7 @@ import { ROLES } from "./referentiels";
    GESTION DES BENEVOLES -- BFMF 2026
    Trois vues combinees :
      - DE GARDE : qui est de service a l'instant present, par poste.
-     - PLANNING : grille des creneaux sur les 2 jours du festival.
+     - PLANNING : grille des creneaux sur les jours du festival.
      - ANNUAIRE : fiche de chaque benevole (role, contact) + affectation.
    Persistance Supabase partagee (cle bfmf2026-benevoles), comme le reste
    de la plateforme : ce qui est saisi au QG est visible partout.
@@ -60,10 +60,11 @@ async function kvMerge(key, mutateur) {
 const pad = (n) => String(n).padStart(2, "0");
 const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
-// Les 2 jours du festival. minH/maxH bornent la grille horaire affichee.
+// Les jours du festival (dont fermeture le lundi). minH/maxH bornent la grille horaire.
 const JOURS = [
   { id: "j1", label: "Sam 15/08", date: "2026-08-15" },
   { id: "j2", label: "Dim 16/08", date: "2026-08-16" },
+  { id: "j3", label: "Lun 17/08", date: "2026-08-17" },
 ];
 const H_MIN = 8;   // 08:00
 const H_MAX = 30;  // 06:00 le lendemain (24 + 6) -> festival de nuit
@@ -241,7 +242,7 @@ export default function GestionBenevoles() {
             </h2>
             {!jourActif && (
               <div className="text-[11px] text-slate-500 mb-2">
-                La date actuelle n'est pas un jour de festival — cette vue s'activera les 15 et 16/08.
+                La date actuelle n'est pas un jour de festival — cette vue s'activera les 15, 16 et 17/08.
                 Consultez le <button onClick={() => setVue("planning")} className="text-cyan-300 underline">planning</button> en attendant.
               </div>
             )}
