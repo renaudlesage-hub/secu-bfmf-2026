@@ -369,6 +369,18 @@ export default function DashboardQG() {
 
   async function acquitterAlerteQg(keyDb, objetAlerte) {
     const tempsFige = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    // Les SOS participants sont un TABLEAU : ne jamais ecrire un objet unique
+    // dessus (cela ecraserait toute la liste). On fusionne dans la liste.
+    if (keyDb === KEY_SOS_PART) {
+      const fusion = await kvMerge(KEY_SOS_PART, (liste) =>
+        liste.map((s) => s.id === objetAlerte.idOriginal
+          ? { ...s, statut: "pris en compte", heurePriseEnCompte: tempsFige,
+              acquittePar: `${SESS_USER.nom} (${SESS_USER.role})` }
+          : s));
+      if (fusion) setSosParticipants(fusion); else setSbError(true);
+      pullAllData();
+      return;
+    }
     const alerteMiseAJour = { ...objetAlerte, acquittePar: `${SESS_USER.nom} (${SESS_USER.role})`, heureAcquittement: tempsFige };
     await kvSet(keyDb, alerteMiseAJour); pullAllData();
   }

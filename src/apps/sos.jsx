@@ -343,7 +343,8 @@ export default function SosParticipants() {
     let stop = false;
     async function verifier() {
       try {
-        const liste = (await kvGet(SOS_KEY)) || [];
+        const brut = await kvGet(SOS_KEY);
+        const liste = Array.isArray(brut) ? brut : [];
         const monSos = liste.find((s) => s.id === sosEnvoye.id);
         if (!stop && monSos && monSos.statut !== "nouveau") {
           setSuiviQG(monSos);
@@ -421,7 +422,8 @@ export default function SosParticipants() {
       statut: "nouveau",
     };
     try {
-      const existants = (await kvGet(SOS_KEY)) || [];
+      const brut = await kvGet(SOS_KEY);
+      const existants = Array.isArray(brut) ? brut : [];  // blindage : ignore une valeur corrompue
       const ok = await kvSet(SOS_KEY, [sos, ...existants].slice(0, 100));
       if (!ok) throw new Error();
       setSosEnvoye(sos);
