@@ -87,7 +87,7 @@ const MODELES_CONSIGNE = [
 // Webhook Discord de PRÉVISUALISATION (bac à sable). En mode dev, chaque
 // consigne part ici sous forme de carte, PAS sur les vrais réseaux.
 // >>> Coller l'URL du webhook de votre canal #pre-visualisation-posts.
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1528482173777088592/OFCrll-Y4uXooiuEYFtHUvII5uJ4IP6kbbgeEhHDkbIw0woeuCEoMBz3h9Nqi-7Qo5Lm"; // ex: https://discord.com/api/webhooks/....
+const DISCORD_WEBHOOK_URL = ""; // ex: https://discord.com/api/webhooks/....
 
 const inputCls =
   "w-full bg-[#232b36] ring-1 ring-white/25 rounded px-3 py-2.5 text-[15px] text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/60";

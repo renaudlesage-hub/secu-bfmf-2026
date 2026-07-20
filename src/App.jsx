@@ -105,11 +105,11 @@ export default function App() {
   return (
     <div className="flex w-screen h-screen bg-[#0f1319] overflow-hidden">
       {/* Menu lateral : fixe sur grand ecran, overlay sur mobile */}
-      <div className="hidden lg:block h-full shrink-0">
+      <div className="hidden md:block h-full shrink-0">
         <MenuApps currentApp={currentApp} onChangeApp={changerApp} />
       </div>
       {menuMobile && (
-        <div className="lg:hidden fixed inset-0 z-[70] flex">
+        <div className="md:hidden fixed inset-0 z-[70] flex">
           <MenuApps currentApp={currentApp} onChangeApp={changerApp} onClose={() => setMenuMobile(false)} />
           <div className="flex-1 bg-black/60" onClick={() => setMenuMobile(false)} />
         </div>
@@ -120,7 +120,7 @@ export default function App() {
         {/* Bouton menu (mobile uniquement) */}
         <button
           onClick={() => setMenuMobile(true)}
-          className="lg:hidden fixed bottom-4 left-4 z-[65] w-12 h-12 rounded-full bg-[#1a212b] ring-1 ring-white/20 shadow-xl flex items-center justify-center text-slate-200 active:scale-95"
+          className="md:hidden fixed bottom-4 left-4 z-[65] w-12 h-12 rounded-full bg-[#1a212b] ring-1 ring-white/20 shadow-xl flex items-center justify-center text-slate-200 active:scale-95"
           title="Menu des applications"
         >
           <Menu className="w-5 h-5" />

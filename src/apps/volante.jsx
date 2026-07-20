@@ -472,14 +472,25 @@ export default function AppVolante() {
                   {s.details && <div className="text-xs text-slate-300 bg-black/40 p-2.5 rounded-lg border border-white/5 leading-relaxed font-mono">"{s.details}"</div>}
 
                   <div className="grid grid-cols-2 gap-2">
-                    {s.gps && (
-                      <button
-                        onClick={() => guiderVers(`SOS: ${s.motif || "Secours"}`, s.gps.lat, s.gps.lon, `Festivalier: ${s.nom}`)}
-                        className="text-xs font-mono font-bold px-2.5 py-3 rounded-xl ring-1 ring-red-500/40 bg-red-500/10 text-red-200 flex items-center justify-center gap-1.5 active:bg-red-500/30"
-                      >
-                        <Compass className="w-4 h-4" /> Approche Victime
-                      </button>
-                    )}
+                    {s.gps && (() => {
+                      // Libellé adapté au type d'intervention : on ne "rejoint
+                      // pas une victime" pour un départ de feu.
+                      const m = (s.motif || "").toLowerCase();
+                      const cible =
+                        /feu|fum[ée]e|incendie|flamme/.test(m) ? "Rejoindre le foyer" :
+                        /m[ée]dical|malaise|bless|chute|soin|inconsc|douleur/.test(m) ? "Rejoindre la victime" :
+                        /bagarre|agress|vol|s[ûu]ret[ée]|alterc|violence/.test(m) ? "Rejoindre le lieu" :
+                        /perdu|recherche|disparu|[ée]gar[ée]|enfant/.test(m) ? "Rejoindre la zone" :
+                        "Se rendre sur place";
+                      return (
+                        <button
+                          onClick={() => guiderVers(`SOS: ${s.motif || "Secours"}`, s.gps.lat, s.gps.lon, `Festivalier: ${s.nom}`)}
+                          className="text-xs font-mono font-bold px-2.5 py-3 rounded-xl ring-1 ring-red-500/40 bg-red-500/10 text-red-200 flex items-center justify-center gap-1.5 active:bg-red-500/30"
+                        >
+                          <Compass className="w-4 h-4" /> {cible}
+                        </button>
+                      );
+                    })()}
                     {prv && (
                       <button
                         onClick={() => guiderVers(prv.nom, prv.lat, prv.lon, `Zone de dépose PRV (${fmtDist(prv.d)})`)}
@@ -526,12 +537,12 @@ export default function AppVolante() {
 
                     {currentStatutLower === "prise en charge" && (
                       <div className="space-y-2">
-                        <div className="text-[11px] font-mono text-purple-400 text-center bg-purple-500/5 py-1 rounded border border-purple-500/10">✓ Traitement médical en cours ({s.heurePriseEnCharge || "—"})</div>
+                        <div className="text-[11px] font-mono text-purple-400 text-center bg-purple-500/5 py-1 rounded border border-purple-500/10">✓ Prise en charge en cours ({s.heurePriseEnCharge || "—"})</div>
                         <button
                           onClick={() => changerStatutSos(s.id, "retour a la normale", "heureRetourNormale")}
                           className="w-full text-xs font-mono font-bold py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 transition-colors shadow-md"
                         >
-                          <CheckCircle2 className="w-4 h-4" /> LIQUIDATION DE L'INCIDENT (R.A.N)
+                          <CheckCircle2 className="w-4 h-4" /> Clôturer l'intervention (retour normale)
                         </button>
                       </div>
                     )}
@@ -580,7 +591,7 @@ export default function AppVolante() {
                       onClick={() => avancerMission(m)}
                       className="flex-1 text-xs font-mono font-bold px-3 py-2 rounded-xl ring-1 ring-emerald-400/40 bg-emerald-400/10 text-emerald-300 active:bg-emerald-400/20"
                     >
-                      {m.statut === "Attribuee" ? "Démarrer Mission" : "Clôturer la livraison"}
+                      {m.statut === "Attribuee" ? "Démarrer la mission" : "Clôturer la mission"}
                     </button>
                   </div>
                 </div>

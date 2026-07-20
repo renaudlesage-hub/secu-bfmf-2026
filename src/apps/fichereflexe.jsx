@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ANNUAIRE as NUMEROS, PRV, RADIO_PLAN as RADIO } from "./referentiels";
 import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, HeartPulse, UserSearch, CloudLightning, Footprints } from "lucide-react";
- 
+
 /* ---------------------------------------------------------------------
    FICHE REFLEXE -- BFMF 2026
    Page STATIQUE : plan radio, numeros, PRV avec GPS, conduites a tenir.
@@ -9,10 +9,10 @@ import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, 
    4G tombe (tant que l'onglet est ouvert). A verifier au briefing.
    >>> METTEZ A JOUR LES NUMEROS ci-dessous avant impression/diffusion.
 --------------------------------------------------------------------- */
- 
- 
- 
- 
+
+
+
+
 const CONDUITES = [
   {
     id: "malaise", titre: "Malaise / blessure", icon: HeartPulse,
@@ -73,7 +73,7 @@ const CONDUITES = [
     ],
   },
 ];
- 
+
 export default function FicheReflexe() {
   const [ouvert, setOuvert] = useState(null);
   return (
@@ -83,7 +83,7 @@ export default function FicheReflexe() {
         .font-display { font-family: 'Oswald', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
       `}</style>
- 
+
       <header className="border-b border-white/10 bg-[#151b23] px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <div className="w-9 h-9 rounded-md bg-emerald-400/10 ring-1 ring-emerald-400/30 flex items-center justify-center">
@@ -95,7 +95,7 @@ export default function FicheReflexe() {
           </div>
         </div>
       </header>
- 
+
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
         {/* Numeros */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
@@ -113,7 +113,7 @@ export default function FicheReflexe() {
             ))}
           </div>
         </section>
- 
+
         {/* Radio */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-2">
@@ -129,7 +129,7 @@ export default function FicheReflexe() {
           </div>
           <div className="text-[10px] text-slate-500 mt-2">Message type : QUI appelle · QUOI · OU (PRV/km) · COMBIEN de personnes · attendre l'accuse du QG.</div>
         </section>
- 
+
         {/* PRV */}
         <section className="bg-[#151b23] rounded-lg ring-1 ring-white/10 p-4">
           <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-2">
@@ -145,7 +145,7 @@ export default function FicheReflexe() {
             ))}
           </div>
         </section>
- 
+
         {/* Conduites a tenir */}
         <section className="space-y-1.5">
           <h2 className="font-display tracking-wide text-sm text-slate-200 px-1">QUE FAIRE SI...</h2>
@@ -172,7 +172,7 @@ export default function FicheReflexe() {
             );
           })}
         </section>
- 
+
         <div className="text-[10px] text-slate-600 font-mono text-center pb-3 leading-relaxed">
           Regle d'or : PROTEGER → ALERTER (112 puis PMR333 si vital) → SECOURIR.<br />
           L'app complete la radio, elle ne la remplace pas. Version {new Date().getFullYear()} — verifier les numeros avant le festival.
@@ -181,4 +181,3 @@ export default function FicheReflexe() {
     </div>
   );
 }
- 

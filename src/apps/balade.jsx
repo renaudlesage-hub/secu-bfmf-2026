@@ -272,12 +272,9 @@ export default function SuiviBalade() {
     await saveAlerte(a);
   }
 
-  async function leverAlerte() {
-    if (!alerte) return;
-    const a = { ...alerte, active: false, leveePar: signature, heureLevee: nowHM() };
-    setAlerte(null);
-    await saveAlerte(a);
-  }
+  // NB : pas de fonction "lever l'alerte" ici. Clôturer une alerte est une
+  // décision de commandement (vue d'ensemble), réservée au QG. L'encadrant
+  // terrain peut UNIQUEMENT accuser réception ("Bien reçu").
 
   function avancer(id) {
     const g = groupes.find((x) => x.id === id);
@@ -483,15 +480,17 @@ export default function SuiviBalade() {
                     onClick={acquitterAlerte}
                     className="text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-red-300/50 text-red-100 hover:bg-red-400/20"
                   >
-                    Acquitter
+                    Bien reçu
                   </button>
                 )}
-                <button
-                  onClick={leverAlerte}
-                  className="text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-white/30 text-slate-200 hover:bg-white/10"
-                >
-                  Lever l'alerte
-                </button>
+                {alerte.acquittePar && (
+                  <span className="text-[10px] font-mono text-red-200/50 text-center leading-tight">
+                    Clôture<br />par le QG
+                  </span>
+                )}
+                {/* Pas de bouton "Lever l'alerte" cote terrain : cloturer est
+                    une decision de commandement, reservee au QG. L'encadrant
+                    accuse reception ("Bien recu"), le QG cloture. */}
               </div>
             </div>
           </div>

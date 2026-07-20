@@ -110,20 +110,17 @@ export const POINTS_GPS = {
   "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie" },
   "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public" },
   "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes" },
-  "Entrée site": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Départ Balade" },
-  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Site  Vers Étape 1" },
-  "PRV#1": { lat: 50.382420, lon: 5.616240, km: 0, segment: "Entrée principale" },
-  "PRV#2": { lat: 50.38304, lon: 5.61816, km: 0, segment: "Entrée arrière site" },
-  "PRV#3": { lat:  50.38212,lon: 5.61673, km: 0, segment: "Parking public" },
-  "PRV#4": { lat: 50.382021, lon: 5.635774, km: 0.5, segment: "Balisage Secours #4" },
+  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
+  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt" },
+  "PRV#4": { lat: 50.38212, lon: 5.61673, km: 0.5, segment: "Balisage Secours #4" },
   "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
-  "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé vers Étape 2" },
+  "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé Sud - Vers Étape 2" },
   "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.5, segment: "Balisage Secours #5" },
   "Etape 2": { lat: 50.37828, lon: 5.64549, km: 2.53, segment: "Ravitaillement 2" },
-  "Parcours Balade secteur C": { lat: 50.3823, lon: 5.6457, km: 3.5, segment: "Tracé vers Étape 3" },
+  "Parcours Balade secteur C": { lat: 50.3823, lon: 5.6457, km: 3.5, segment: "Tracé Est Crête" },
   "PRV#6": { lat: 50.38236, lon: 5.64579, km: 3.8, segment: "Balisage Secours #6" },
   "Etape 3": { lat: 50.38817, lon: 5.62891, km: 5.06, segment: "Ravitaillement 3" },
-  "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Tracé retour site" },
+  "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Secteur Nord Retour P0" },
   "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.5, segment: "Balisage Secours #7" }
 };
 
@@ -135,12 +132,12 @@ export const POINTS_GPS = {
 export const ANNUAIRE = [
   { nom: "URGENCE VITALE", num: "112", note: "médical / incendie — TOUJOURS en premier", urgent: true },
   { nom: "Police", num: "101", note: "" },
-  { nom: "Directeur d'événement", num: "0477 99 48 42", note: "Jérôme Grosjean" },
-  { nom: "Coordinateur sécurité", num: "0494 22 29 33", note: "Renaud Lesage" },
-  { nom: "Bourgmestre", num: "0477 63 81 88", note: "Christian Verdin" },
-  { nom: "Coordinatrice PlanU Ferrières", num: "086 400 90 51", note: "Céverine Seynaeve" },
+  { nom: "Directeur d'événement", num: "0477 99 48 42", note: "Jérôme" },
+  { nom: "Coordinateur sécurité", num: "0494 22 29 33", note: "Renaud" },
+  { nom: "Bourgmestre", num: "0477 63 81 88", note: "Ch. Verdin" },
+  { nom: "Coordinatrice PlanU Ferrières", num: "086 400 90 51", note: "C. Seynaeve" },
   { nom: "Dispatching IILE/Hemeco (en intervention)", num: "04 279 13 52", note: "Hemeco" },
-  { nom: "Back-up 112 (en cas de panne)", num: "0471 51 31 56", note: "112" },
+  { nom: "Back-up 112 (en cas de panne)", num: "0471 51 31 56", note: "" },
   { nom: "Centre antipoison", num: "070 245 245", note: "" },
 ];
 
@@ -152,7 +149,7 @@ export const PRV = [
   { nom: "PRV#1 — Entrée site / Départ (Croisement Le Raumont – Chemin de l'Épine)", gps: "50.38242, 5.61624" },
   { nom: "PRV#2 — Entrée arrière site (Mon Legrand)", gps: "50.38304, 5.61816" },
   { nom: "PRV#3 — Parking public (Le Raumont)", gps: "50.38212, 5.61673" },
-  { nom: "PRV#4 — Accès Étape 1 (Rue Sainte-Barbe)", gps: "50.382021, 5.635774" },
+  { nom: "PRV#4 — Accès Étape 1 (Rue Sainte-Barbe)", gps: "50.38212, 5.61673" },
   { nom: "PRV#5 — Accès Étape 2 (Rue de Jehonhé)", gps: "50.37568, 5.64412" },
   { nom: "PRV#6 — Accès Étape 2 (Lesfanges)", gps: "50.38236, 5.64579" },
   { nom: "PRV#7 — Accès Étape 3 (Rue de la Chapelle, 23)", gps: "50.38865, 5.62692" },
@@ -163,7 +160,7 @@ export const PRV = [
 
 /* --------------------------- PLAN RADIO ----------------------------- */
 export const RADIO_PLAN = [
-  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, Volante)" },
+  { canal: "PMR4.1", usage: "Coordination générale (QG, scènes, volante)" },
   { canal: "PMR5", usage: "Bénévoles parking et sanitaires" },
   { canal: "PMR15", usage: "Sécurité privée" },
   { canal: "PMR333", usage: "URGENCE — exclusivement réservé", urgent: true },
