@@ -11,7 +11,7 @@ export const ROLES = [
   // --- Direction & QG ---
   "Directeur d'événement",
   "Coordination générale",
-  "QG / PCE",
+  "QG",
 
   // --- Parcours / balade ---
   "Encadrant tête",
