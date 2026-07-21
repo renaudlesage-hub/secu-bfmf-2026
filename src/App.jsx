@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import MenuApps from "./apps/MenuApps";
 import BandeauGeneral from "./apps/bandeau-general";
+import BandeauUrgence from "./apps/BandeauUrgence";
 
 // Importations de l'ensemble des modules du dossier apps
 import DashboardQG from "./apps/dashboard";
@@ -62,6 +63,9 @@ const COMPOSANTS = {
 };
 const ROUTES_PUBLIQUES = ["sos", "signaler", "pcops"];
 const ROUTES_SANS_MENU = ["sanitaire", "balade"];
+// Apps terrain qui affichent le bandeau Urgence (numeros/PRV/radio).
+// Exclut les routes publiques : le SOS a deja le 112, pcops est pour les autorites.
+const APPS_TERRAIN = ["volante", "balade", "sanitaire", "logistique", "recherche", "equipe-benevoles"];
 
 function parseHash() {
   const h = (window.location.hash || "").slice(1);
@@ -98,6 +102,7 @@ export default function App() {
       <div className="w-screen h-screen overflow-y-auto bg-[#0f1319]">
         <BandeauGeneral />
         <Comp />
+        {APPS_TERRAIN.includes(currentApp) && <BandeauUrgence />}
       </div>
     );
   }
@@ -129,6 +134,7 @@ export default function App() {
         {/* Bandeaux crise + recherches : toutes les apps EQUIPES */}
         <BandeauGeneral />
         <Comp />
+        {APPS_TERRAIN.includes(currentApp) && <BandeauUrgence />}
       </div>
     </div>
   );

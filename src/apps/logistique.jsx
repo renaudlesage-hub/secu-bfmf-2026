@@ -247,12 +247,7 @@ export default function LogistiqueMissions() {
     await kvSet(ALERT_KEY, a);
   }
 
-  async function leverAlerte() {
-    if (!alerte) return;
-    const a = { ...alerte, active: false, leveePar: signature, heureLevee: nowHM() };
-    setAlerte(null);
-    await kvSet(ALERT_KEY, a);
-  }
+  // Pas de "lever l'alerte" cote terrain : cloture = decision QG.
 
   function addMission(data) {
     const mission = {
@@ -377,9 +372,9 @@ export default function LogistiqueMissions() {
                 <div className="font-display text-red-200 text-sm">{alerte.motif}</div>
                 <div className="text-xs text-red-200/80 mt-1">Saisie par {alerte.auteur} à {alerte.heure}</div>
               </div>
-              <div className="flex gap-2">
-                {!alerte.acquittePar && <button onClick={acquitterAlerte} className="text-xs font-mono px-2 py-1 ring-1 ring-white/20 rounded">Acquitter</button>}
-                <button onClick={leverAlerte} className="text-xs font-mono px-2 py-1 ring-1 ring-white/20 rounded">Lever</button>
+              <div className="flex flex-col gap-1 items-end">
+                {!alerte.acquittePar && <button onClick={acquitterAlerte} className="text-xs font-mono px-2 py-1 ring-1 ring-white/20 rounded">Bien reçu</button>}
+                {alerte.acquittePar && <span className="text-[10px] font-mono text-red-200/50 text-right leading-tight">Clôture<br/>par le QG</span>}
               </div>
             </div>
           </div>
