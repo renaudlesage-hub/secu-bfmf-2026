@@ -1,6 +1,10 @@
 import React, { useState } from "react";
-import { ANNUAIRE as NUMEROS, PRV, RADIO_PLAN as RADIO } from "./referentiels";
+import { ANNUAIRE as NUMEROS, PRV, RADIO_PLAN as RADIO, QUE_FAIRE as CONDUITES, REGLE_OR } from "./referentiels";
 import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, HeartPulse, UserSearch, CloudLightning, Footprints } from "lucide-react";
+
+// Les conduites viennent de referentiels.js avec l'icone en CHAINE :
+// ce mapping les relie aux composants lucide.
+const ICONES = { TriangleAlert, Flame, HeartPulse, UserSearch, CloudLightning, Footprints, LifeBuoy };
 
 /* ---------------------------------------------------------------------
    FICHE REFLEXE -- BFMF 2026
@@ -13,66 +17,6 @@ import { LifeBuoy, Radio, PhoneCall, MapPin, ChevronDown, TriangleAlert, Flame, 
 
 
 
-const CONDUITES = [
-  {
-    id: "malaise", titre: "Malaise / blessure", icon: HeartPulse,
-    etapes: [
-      "Proteger : ecarter le public, securiser la zone.",
-      "Alerter : gravite ? -> 112 D'ABORD si doute vital. Puis PMR333 : qui, quoi, ou (PRV le plus proche), combien.",
-      "Ne pas deplacer la victime sauf danger immediat.",
-      "Envoyer quelqu'un au PRV pour guider les secours.",
-      "Rester aupres, couvrir, parler, surveiller la conscience.",
-    ],
-  },
-  {
-    id: "enfant", titre: "Enfant perdu / trouve", icon: UserSearch,
-    etapes: [
-      "Enfant TROUVE : rester avec lui, NE PAS le promener seul -> accompagner a deux vers l'ACCUEIL POINT 0. Annoncer sur PMR4.1.",
-      "Enfant PERDU (parent) : conduire le parent a l'accueil, lancer la recherche dans l'app (#recherche) + PMR4.1.",
-      "Description precise : age, vetements, cheveux, dernier lieu vu.",
-      "Non retrouve apres 15 min ou circonstance inquietante : 112/101.",
-      "Jamais de nom d'enfant diffuse en sono publique (attire les mal intentionnes) : description uniquement.",
-    ],
-  },
-  {
-    id: "feu", titre: "Debut d'incendie", icon: Flame,
-    etapes: [
-      "Alerter IMMEDIATEMENT : 112 puis PMR333 (lieu exact, ampleur, vent).",
-      "Eloigner le public (perimetre large), couper la sono locale si scene.",
-      "Attaquer UNIQUEMENT si feu naissant + extincteur + sans risque.",
-      "Liberer les acces secours (vehicules, PRV).",
-      "Ne jamais rester dans la fumee.",
-    ],
-  },
-  {
-    id: "meteo", titre: "Orage / mise a l'abri", icon: CloudLightning,
-    etapes: [
-      "Sur consigne QG (ou eclair < 10 s du tonnerre) : suspension des activites exposees.",
-      "Plaine : diriger le public vers les batiments/chapiteaux durs designes.",
-      "Parcours : groupes a l'abri (eviter arbres isoles, clotures) au point dur le plus proche, encadrants comptent leur groupe.",
-      "Attendre la levee de consigne QG avant reprise.",
-    ],
-  },
-  {
-    id: "balade", titre: "Incident sur le parcours", icon: Footprints,
-    etapes: [
-      "Encadrant tete : stopper le groupe en lieu sur, serre-file compte.",
-      "Alerter : PMR4.1 (ou 112 si vital) avec le km / segment / PRV.",
-      "Un encadrant reste avec la personne, le groupe continue avec les autres si consigne QG.",
-      "Utiliser l'app Suivi balade pour ajuster effectif/position.",
-    ],
-  },
-  {
-    id: "evac", titre: "Evacuation (consigne QG uniquement)", icon: TriangleAlert,
-    etapes: [
-      "Ne JAMAIS lancer une evacuation de sa propre initiative (sauf peril immediat local).",
-      "Relayer calmement la consigne exacte du QG, sans crier 'evacuation'.",
-      "Diriger vers les sorties/PRV designes, prioriser PMR et enfants.",
-      "Benevoles aux points de passage, comptage si demande.",
-      "Rendre compte au QG : zone videe / personnes restantes.",
-    ],
-  },
-];
 
 export default function FicheReflexe() {
   const [ouvert, setOuvert] = useState(null);
@@ -150,7 +94,7 @@ export default function FicheReflexe() {
         <section className="space-y-1.5">
           <h2 className="font-display tracking-wide text-sm text-slate-200 px-1">QUE FAIRE SI...</h2>
           {CONDUITES.map((c) => {
-            const Ic = c.icon;
+            const Ic = ICONES[c.icone] || LifeBuoy;
             const o = ouvert === c.id;
             return (
               <div key={c.id} className="rounded-lg ring-1 ring-white/10 bg-[#151b23] overflow-hidden">

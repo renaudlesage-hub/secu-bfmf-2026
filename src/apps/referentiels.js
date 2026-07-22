@@ -11,7 +11,7 @@ export const ROLES = [
   // --- Direction & QG ---
   "Directeur d'événement",
   "Coordination générale",
-  "QG",
+  "QG / PCE",
 
   // --- Parcours / balade ---
   "Encadrant tête",
@@ -165,3 +165,72 @@ export const RADIO_PLAN = [
   { canal: "PMR15", usage: "Sécurité privée" },
   { canal: "PMR333", usage: "URGENCE — exclusivement réservé", urgent: true },
 ];
+
+
+/* --------------------------- QUE FAIRE SI... ---------------------------
+   Conduites a tenir, reprises de la fiche reflexe. Source unique : lues
+   par la fiche reflexe ET le bandeau urgence des apps terrain.
+   >>> A ajuster selon le dossier de securite / PPUI. Icone = nom lucide.
+----------------------------------------------------------------------- */
+export const QUE_FAIRE = [
+  {
+    id: "malaise", titre: "Malaise / blessure", icone: "HeartPulse",
+    etapes: [
+      "Proteger : ecarter le public, securiser la zone.",
+      "Alerter : gravite ? -> 112 D'ABORD si doute vital. Puis PMR333 : qui, quoi, ou (PRV le plus proche), combien.",
+      "Ne pas deplacer la victime sauf danger immediat.",
+      "Envoyer quelqu'un au PRV pour guider les secours.",
+      "Rester aupres, couvrir, parler, surveiller la conscience.",
+    ],
+  },
+  {
+    id: "enfant", titre: "Enfant perdu / trouve", icone: "UserSearch",
+    etapes: [
+      "Enfant TROUVE : rester avec lui, NE PAS le promener seul -> accompagner a deux vers l'ACCUEIL POINT 0. Annoncer sur PMR4.1.",
+      "Enfant PERDU (parent) : conduire le parent a l'accueil, lancer la recherche dans l'app (#recherche) + PMR4.1.",
+      "Description precise : age, vetements, cheveux, dernier lieu vu.",
+      "Non retrouve apres 15 min ou circonstance inquietante : 112/101.",
+      "Jamais de nom d'enfant diffuse en sono publique (attire les mal intentionnes) : description uniquement.",
+    ],
+  },
+  {
+    id: "feu", titre: "Debut d'incendie", icone: "Flame",
+    etapes: [
+      "Alerter IMMEDIATEMENT : 112 puis PMR333 (lieu exact, ampleur, vent).",
+      "Eloigner le public (perimetre large), couper la sono locale si scene.",
+      "Attaquer UNIQUEMENT si feu naissant + extincteur + sans risque.",
+      "Liberer les acces secours (vehicules, PRV).",
+      "Ne jamais rester dans la fumee.",
+    ],
+  },
+  {
+    id: "meteo", titre: "Orage / mise a l'abri", icone: "CloudLightning",
+    etapes: [
+      "Sur consigne QG (ou eclair < 10 s du tonnerre) : suspension des activites exposees.",
+      "Plaine : diriger le public vers les batiments/chapiteaux durs designes.",
+      "Parcours : groupes a l'abri (eviter arbres isoles, clotures) au point dur le plus proche, encadrants comptent leur groupe.",
+      "Attendre la levee de consigne QG avant reprise.",
+    ],
+  },
+  {
+    id: "balade", titre: "Incident sur le parcours", icone: "Footprints",
+    etapes: [
+      "Encadrant tete : stopper le groupe en lieu sur, serre-file compte.",
+      "Alerter : PMR4.1 (ou 112 si vital) avec le km / segment / PRV.",
+      "Un encadrant reste avec la personne, le groupe continue avec les autres si consigne QG.",
+      "Utiliser l'app Suivi balade pour ajuster effectif/position.",
+    ],
+  },
+  {
+    id: "evac", titre: "Evacuation (consigne QG uniquement)", icone: "TriangleAlert",
+    etapes: [
+      "Ne JAMAIS lancer une evacuation de sa propre initiative (sauf peril immediat local).",
+      "Relayer calmement la consigne exacte du QG, sans crier 'evacuation'.",
+      "Diriger vers les sorties/PRV designes, prioriser PMR et enfants.",
+      "Benevoles aux points de passage, comptage si demande.",
+      "Rendre compte au QG : zone videe / personnes restantes.",
+    ],
+  },
+];
+
+export const REGLE_OR = "PROTEGER -> ALERTER (112 puis PMR333 si vital) -> SECOURIR. L'app complete la radio, elle ne la remplace pas.";
