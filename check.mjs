@@ -19,6 +19,11 @@ const T = [
   ['App — route benevoles', lire('src/App.jsx').includes('equipe-benevoles')],
   ['Console-CM — mode crise', lire('src/apps/Console-CM.jsx').includes('MODELES_CONSIGNE')],
   ['Benevoles — 17/08', lire('src/apps/Benevoles.jsx').includes('17/08')],
+  ['mode degrade — module file', existsSync('src/apps/file-attente.js')],
+  ['mode degrade — indicateur', existsSync('src/apps/IndicateurReseau.jsx')],
+  ['mode degrade — sos branche', lire('src/apps/sos.jsx').includes('envoyerAvecFile')],
+  ['mode degrade — balade branche', lire('src/apps/balade.jsx').includes('envoyerAvecFile')],
+  ['bandeau urgence — QUE_FAIRE', lire('src/apps/BandeauUrgence.jsx').includes('QUE_FAIRE')],
 ];
 let ko = 0;
 for (const [n, ok] of T) { if (!ok) ko++; console.log((ok ? '  OK     ' : '  ABSENT ') + n); }

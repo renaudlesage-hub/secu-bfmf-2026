@@ -104,6 +104,7 @@ function posIndex(id) {
 /* ------------------------------ Supabase ------------------------------ */
 import { ROLES } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
+import { envoyer as envoyerAvecFile, demarrerRejeu } from "./file-attente";
 
 const SB_HEADERS = {
   apikey: SUPABASE_ANON_KEY,
@@ -171,11 +172,9 @@ async function loadAlerte() {
   return null;
 }
 async function saveAlerte(a) {
-  try {
-    return await kvSet(ALERT_KEY, a);
-  } catch (e) {
-    return false;
-  }
+  // Passe par la file d'attente : sur le parcours, des zones sont sans 4G.
+  // Une alerte emise la-bas est conservee et rejouee au retour du reseau.
+  return await envoyerAvecFile(ALERT_KEY, a, "ecriture"); // "transmis" | "en_attente" | "perdu"
 }
 
 /* ------------------------------ App ------------------------------ */

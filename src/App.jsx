@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import MenuApps from "./apps/MenuApps";
 import BandeauGeneral from "./apps/bandeau-general";
 import BandeauUrgence from "./apps/BandeauUrgence";
+import IndicateurReseau from "./apps/IndicateurReseau";
 
 // Importations de l'ensemble des modules du dossier apps
 import DashboardQG from "./apps/dashboard";
@@ -100,6 +101,7 @@ export default function App() {
   if (ROUTES_SANS_MENU.includes(currentApp)) {
     return (
       <div className="w-screen h-screen overflow-y-auto bg-[#0f1319]">
+        <IndicateurReseau />
         <BandeauGeneral />
         <Comp />
         {APPS_TERRAIN.includes(currentApp) && <BandeauUrgence />}
@@ -132,6 +134,7 @@ export default function App() {
         </button>
 
         {/* Bandeaux crise + recherches : toutes les apps EQUIPES */}
+        <IndicateurReseau />
         <BandeauGeneral />
         <Comp />
         {APPS_TERRAIN.includes(currentApp) && <BandeauUrgence />}

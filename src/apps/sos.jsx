@@ -10,6 +10,7 @@ import { TriangleAlert, PhoneCall, MapPin, CheckCircle2, X, LocateFixed, Footpri
 
 /* ------------------------------ Supabase ------------------------------ */
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
+import { envoyer as envoyerAvecFile, demarrerRejeu } from "./file-attente";
 const SOS_KEY = "bfmf2026-sos-participants";
 
 const SB_HEADERS = {
@@ -325,7 +326,20 @@ const LIEUX_MANUELS = {
 };
 
 export default function SosParticipants() {
-  const [etape, setEtape] = useState("accueil"); // accueil | form | envoi | envoye | erreur
+  const [etape, setEtape] = useState("accueil"); // accueil | form | envoi | envoye | attente | erreur
+  const [enAttente, setEnAttente] = useState(0);
+
+  // Rejeu automatique des messages non transmis (zones sans 4G du parcours).
+  // Des que le reseau revient, le SOS part tout seul et l'ecran se met a jour.
+  React.useEffect(() => {
+    const arreter = demarrerRejeu(({ enAttente: n }) => {
+      setEnAttente(n);
+      // Le message en attente vient de partir : on bascule sur l'ecran de
+      // confirmation, l'utilisateur voit que c'est reellement transmis.
+      if (n === 0) setEtape((e) => (e === "attente" ? "envoye" : e));
+    });
+    return arreter;
+  }, []);
   const [nom, setNom] = useState("");
   const [tel, setTel] = useState("");
   const [motif, setMotif] = useState(MOTIFS[0]);
@@ -421,17 +435,13 @@ export default function SosParticipants() {
         : null,
       statut: "nouveau",
     };
-    try {
-      const brut = await kvGet(SOS_KEY);
-      const existants = Array.isArray(brut) ? brut : [];  // blindage : ignore une valeur corrompue
-      const ok = await kvSet(SOS_KEY, [sos, ...existants].slice(0, 100));
-      if (!ok) throw new Error();
-      setSosEnvoye(sos);
-      setEtape("envoye");
-    } catch (e) {
-      setSosEnvoye(sos);
-      setEtape("erreur");
-    }
+    // Envoi via la file d'attente : si le reseau est absent (vallees du
+    // parcours), le message est conserve et rejoue automatiquement.
+    const resultat = await envoyerAvecFile(SOS_KEY, sos, "ajout-liste");
+    setSosEnvoye(sos);
+    if (resultat === "transmis") setEtape("envoye");
+    else if (resultat === "en_attente") setEtape("attente");
+    else setEtape("erreur");
   }
 
   return (
@@ -636,6 +646,38 @@ export default function SosParticipants() {
             <a href="tel:112" className="flex items-center justify-center gap-2 text-red-200 text-sm font-semibold py-3 rounded-lg ring-1 ring-red-400/40 bg-red-500/15">
               <PhoneCall className="w-4 h-4" /> Situation vitale ? Appelez le 112
             </a>
+          </div>
+        )}
+
+        {etape === "attente" && (
+          <div className="w-full text-center space-y-4">
+            <TriangleAlert className="w-14 h-14 text-amber-300 mx-auto pulse-slow" />
+            <div className="font-display text-xl text-amber-200">PAS DE RESEAU ICI</div>
+            <div className="text-sm text-slate-100 leading-relaxed font-semibold">
+              Votre message n'est PAS encore parti.
+            </div>
+            <div className="text-sm text-slate-300 leading-relaxed">
+              Il est enregistre et sera transmis automatiquement des le retour du reseau.
+              <br />
+              <span className="text-red-200 font-semibold">Si c'est urgent, n'attendez pas :</span>
+            </div>
+            <a href="tel:112" className="flex items-center justify-center gap-2 text-red-100 text-lg font-semibold py-4 rounded-lg ring-2 ring-red-400/60 bg-red-500/25">
+              <PhoneCall className="w-5 h-5" /> Appeler le 112
+            </a>
+            <div className="text-xs text-slate-300 leading-relaxed">
+              Cherchez aussi un benevole ou remontez vers un point haut : le reseau y passe mieux.
+            </div>
+            {sosEnvoye && sosEnvoye.surTrace && (
+              <div className="text-xs text-slate-400">
+                A indiquer au telephone : km {sosEnvoye.surTrace.km} du parcours, {sosEnvoye.surTrace.segment}
+              </div>
+            )}
+            <div className="text-[11px] font-mono text-amber-300/70">
+              {enAttente > 0 ? `${enAttente} message(s) en attente d'envoi` : "Message transmis !"}
+            </div>
+            <button onClick={envoyer} className="text-xs font-mono text-slate-400 hover:text-slate-200 underline">
+              Reessayer maintenant
+            </button>
           </div>
         )}
 
