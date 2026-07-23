@@ -19,8 +19,10 @@
     <!-- Outil interne : ne pas indexer -->
     <meta name="robots" content="noindex, nofollow" />
 
-    <!-- Icônes. Le manifeste PWA (vite.config.js) déclare les PNG 192 et 512. -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Icônes : on réutilise le logo Bucolique déjà présent (PNG du manifeste).
+         Le favicon.svg du modèle Vite (logo StackBlitz) n'est plus référencé. -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/pwa-512x512.png" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
   </head>
   <body>
