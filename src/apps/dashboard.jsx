@@ -38,7 +38,8 @@ import {
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
-import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_EN_COURS, STATUT_RESOLU, priorite, POINTS_GPS } from "./referentiels";
+import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_EN_COURS, STATUT_RESOLU, priorite, POINTS_GPS,
+  RADIO_PLAN as CANAUX_RADIO } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
 
@@ -164,13 +165,6 @@ const MEDIAS_FALLBACK = {
   ambiance: "neutre", maj: "En direct",
   canaux: [{ name: "Réseaux Sociaux", statut: "ok", note: "Aucun signalement critique" }]
 };
-
-const CANAUX_RADIO = [
-  { canal: "PMR4.1", usage: "Coord. Générale" },
-  { canal: "PMR5", usage: "Parking / Sanitaires" },
-  { canal: "PMR15", usage: "Sécurité Privée" },
-  { canal: "PMR333", usage: "URGENCE" },
-];
 
 function pad(n) { return n.toString().padStart(2, "0"); }
 
@@ -859,8 +853,11 @@ export default function DashboardQG() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono flex-1 pt-2 items-center">
               {CANAUX_RADIO.map((c) => (
-                <div key={c.canal} className="bg-black/30 px-2 py-1 rounded border border-white/5 flex flex-col justify-center h-full">
-                  <span className="text-amber-300 font-bold text-xs">{c.canal}</span>
+                <div key={c.canal} className={`bg-black/30 px-2 py-1 rounded border flex flex-col justify-center h-full ${c.urgent ? "border-red-400/30" : "border-white/5"}`}>
+                  <span className="flex items-baseline gap-1">
+                    <span className={`font-bold text-xs ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
+                    <span className="font-mono text-[10px] text-sky-300">ch.{c.num}</span>
+                  </span>
                   <span className="text-slate-400 text-[9px] leading-tight truncate">{c.usage}</span>
                 </div>
               ))}

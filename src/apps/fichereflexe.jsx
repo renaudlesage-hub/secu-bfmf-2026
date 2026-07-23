@@ -67,10 +67,17 @@ export default function FicheReflexe() {
             {RADIO.map((c) => (
               <div key={c.canal} className={`flex items-start gap-2 text-[11px] rounded px-2 py-1.5 ${c.urgent ? "bg-red-400/5 ring-1 ring-red-400/20" : "bg-white/[0.02]"}`}>
                 <span className={`font-mono shrink-0 w-14 ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
-                <span className="text-slate-400">{c.usage}</span>
+                <span className={`font-mono shrink-0 px-1.5 rounded text-[10px] ${c.urgent ? "bg-red-500/25 text-red-100" : "bg-sky-500/15 text-sky-200"}`}>
+                  canal {c.num}{c.numAlt ? ` / ${c.numAlt}` : ""}
+                </span>
+                <span className="text-slate-400 leading-tight">
+                  {c.usage}
+                  {c.note && <span className="block text-[9px] text-slate-500">{c.note}</span>}
+                </span>
               </div>
             ))}
           </div>
+          <div className="text-[10px] text-amber-200/80 mt-2 leading-relaxed">Le numéro du poste diffère du numéro PMR : <span className="font-semibold">PMR333 = CANAL 6</span>, PMR4.1 = canal 9.</div>
           <div className="text-[10px] text-slate-500 mt-2">Message type : QUI appelle · QUOI · OU (PRV/km) · COMBIEN de personnes · attendre l'accuse du QG.</div>
         </section>
 

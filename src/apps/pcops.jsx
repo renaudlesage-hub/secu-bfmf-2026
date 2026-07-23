@@ -30,7 +30,7 @@ import {
 import {
   STATUT_RESOLU, estUrgente, priorite, ANNUAIRE, PRV as PRV_LIST, RADIO_PLAN,
   RESSOURCES_EAU as EAU_CARTE, DEA, ZONES_HELICO, VOIES_ACCES, BORNES_KM,
-  SEGMENTS_PARCOURS, HORAIRES, FREQUENTATION,
+  SEGMENTS_PARCOURS, HORAIRES, FREQUENTATION, PROGRAMMATION_RADIO, RADIO_EXCEPTION,
 } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
 
@@ -864,10 +864,52 @@ function Dossier() {
           {RADIO_PLAN.map((c) => (
             <div key={c.canal} className={`flex items-start gap-2 text-[11px] rounded px-2 py-1.5 ${c.urgent ? "bg-red-400/5 ring-1 ring-red-400/20" : "bg-white/[0.02]"}`}>
               <span className={`font-mono shrink-0 w-14 ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
-              <span className="text-slate-400">{c.usage}</span>
+              <span className={`font-mono shrink-0 px-1.5 rounded text-[10px] ${c.urgent ? "bg-red-500/25 text-red-100" : "bg-sky-500/15 text-sky-200"}`}>
+                canal {c.num}{c.numAlt ? ` / ${c.numAlt}` : ""}
+              </span>
+              <span className="text-slate-400 leading-tight">
+                {c.usage}
+                {c.note && <span className="block text-[9px] text-slate-500">{c.note}</span>}
+              </span>
             </div>
           ))}
         </div>
+
+        <div className="mt-2.5 rounded px-2.5 py-2 ring-1 ring-amber-400/30 bg-amber-400/[0.06] text-[10px] text-amber-100 leading-relaxed">
+          Le numéro affiché sur le poste ne correspond pas au numéro PMR.
+          {" "}<span className="font-semibold">L'urgence PMR333 est sur le CANAL 6</span>, la coordination PMR4.1 sur le canal 9.
+          {" "}Annoncer toujours le numéro de canal, pas seulement le nom PMR.
+          <span className="block mt-1 text-amber-200/70">{RADIO_EXCEPTION}</span>
+        </div>
+
+        {/* Table complete de programmation des postes */}
+        <details className="mt-2">
+          <summary className="text-[10px] font-mono uppercase tracking-wider text-slate-500 cursor-pointer hover:text-slate-300">
+            Programmation complète des postes ({PROGRAMMATION_RADIO.length} canaux)
+          </summary>
+          <div className="grid grid-cols-3 gap-1 mt-2">
+            {PROGRAMMATION_RADIO.map((c) => {
+              const utilise = RADIO_PLAN.some((r) => r.num === c.num);
+              const urg = c.pmr.includes("333");
+              return (
+                <div
+                  key={c.num}
+                  className={`flex items-center gap-1.5 rounded px-1.5 py-1 text-[10px] font-mono ring-1 ${
+                    urg ? "ring-red-400/40 bg-red-400/10 text-red-200"
+                      : utilise ? "ring-amber-400/25 bg-amber-400/[0.06] text-amber-200"
+                      : "ring-white/5 bg-white/[0.02] text-slate-500"
+                  }`}
+                >
+                  <span className="font-bold w-5 text-right">{c.num}</span>
+                  <span>{c.pmr}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-[9px] font-mono text-slate-600 mt-1.5">
+            En ambre : canaux utilisés par le dispositif. En rouge : canal d'urgence.
+          </div>
+        </details>
       </section>
 
       {/* Points de rendez-vous secours */}

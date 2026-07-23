@@ -64,7 +64,8 @@ const MEMENTO = {
   resetMnu: "Menu 40 → RESET → ALL",
 };
 
-const CANAUX = ["PMR4.1", "PMR5", "PMR15", "PMR333"];
+// Libelle = nom PMR + numero du canal sur le poste (ils different !).
+const CANAUX = ["PMR4.1 (ch.9)", "PMR5 (ch.10 · ch.5 parking/sanit.)", "PMR15 (ch.25)", "PMR333 (ch.6 — URGENCE)"];
 
 // Une radio physique ne doit apparaitre qu'une fois. En cas de doublon
 // (donnees anciennes), on privilegie la ligne "En service" la plus recente.
@@ -89,7 +90,7 @@ export default function GestionRadios() {
   const [sbError, setSbError] = useState(false);
   const [formSerial, setFormSerial] = useState("");
   const [formUser, setFormUser] = useState("");
-  const [formCanal, setFormCanal] = useState("PMR4.1");
+  const [formCanal, setFormCanal] = useState("PMR4.1 (ch.9)");
   const [filtre, setFiltre] = useState("");
   const [now, setNow] = useState(new Date());
 
