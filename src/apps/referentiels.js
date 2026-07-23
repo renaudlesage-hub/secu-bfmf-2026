@@ -27,6 +27,7 @@ export const ROLES = [
   "Responsable petite scène",
   "Responsable bar site",
   "Responsable backstage",
+  "Trésorier",
   "Team parking",
   "Team sanitaires",
   "Technique",
