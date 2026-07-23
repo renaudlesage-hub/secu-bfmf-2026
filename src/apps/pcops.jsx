@@ -22,10 +22,15 @@ import {
   ShieldAlert,
   Zap,
   Droplets,
+  HeartPulse,
+  Navigation,
   Flag,
   Truck,
 } from "lucide-react";
-import { STATUT_RESOLU, estUrgente, priorite, ANNUAIRE, PRV as PRV_LIST, RADIO_PLAN } from "./referentiels";
+import {
+  STATUT_RESOLU, estUrgente, priorite, ANNUAIRE, PRV as PRV_LIST, RADIO_PLAN,
+  RESSOURCES_EAU as EAU_CARTE, DEA, ZONES_HELICO, VOIES_ACCES, BORNES_KM,
+} from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
 
 /* ---------------------------------------------------------------------
@@ -116,11 +121,13 @@ const ACCES_SECOURS = [
     cle: "À COMPLÉTER : cadenas ? qui détient la clé ? joignable comment ?",
   },
   {
-    nom: "Accès secondaire / parcours — À COMPLÉTER",
-    gps: "",
-    detail: "À COMPLÉTER : chemin d'accès aux étapes de la balade (6,5 km), praticabilité 4x4.",
-    vehicules: "À COMPLÉTER",
-    cle: "À COMPLÉTER",
+    nom: "Accès parcours — voies secours balisées (carte officielle)",
+    gps: "50.38219, 5.63600",
+    detail: "3 voies d'accès depuis les PRV vers les scènes : Scène 1 par PRV#4 (721 m), "
+      + "Scène 2 par PRV#5 ressortant au PRV#6 (752 m), Scène 3 par PRV#7 (131 m). "
+      + "À COMPLÉTER : praticabilité 4x4, largeur utile, état par temps de pluie.",
+    vehicules: "À COMPLÉTER : ces voies sont-elles carrossables autopompe / ambulance ?",
+    cle: "À COMPLÉTER : barrière ou cadenas sur ces voies ?",
   },
 ];
 
@@ -141,12 +148,25 @@ const RISQUES_SITE = [
   { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
 ];
 
+// Ressources en eau : liste issue de la carte officielle (calque Pompiers).
+// Le debit de chaque hydrant reste a documenter aupres de la zone de secours.
 const RESSOURCES_EAU = [
-  { titre: "Hydrant / bouche incendie le plus proche", detail: "À COMPLÉTER : emplacement, débit, GPS." },
+  {
+    titre: "Bouches incendie et pompes — relevé carte officielle",
+    detail: `${EAU_CARTE.filter((e) => e.type.startsWith("Bouche")).length} bouches incendie, `
+      + `${EAU_CARTE.filter((e) => e.type.startsWith("Pompe")).length} pompes à eau, 1 tridivision. `
+      + `La plus proche de l'entrée : tridivision à 96 m. Détail et GPS ci-dessous.`,
+  },
+  { titre: "Débit des hydrants", detail: "À COMPLÉTER : débit (m³/h) à obtenir auprès de la zone de secours." },
   { titre: "Point d'eau naturel", detail: "À COMPLÉTER : cours d'eau, accès engin, aspiration possible ?" },
 ];
 
 const MOYENS_ORGA = [
+  {
+    titre: "Défibrillateurs (DEA) — carte officielle",
+    detail: `DEA de l'organisation sur site (50.38244, 5.61735), à 80 m de l'entrée. `
+      + `${DEA.length - 1} autres DEA dans un rayon de 4,5 km. Emplacements ci-dessous.`,
+  },
   { titre: "Poste de secours / secouristes", detail: "À COMPLÉTER : organisme, nombre, emplacement, moyens (DSA, brancard, VPSP ?)." },
   { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
   { titre: "Équipe volante organisateur", detail: "À COMPLÉTER : nombre, moyen de déplacement, canal PMR4.1." },
@@ -896,6 +916,26 @@ function AC({ texte }) {
   return <span className={vide ? "text-amber-300/80" : "text-slate-300"}>{texte}</span>;
 }
 
+// Ligne compacte : libelle + coordonnees cliquables (ouvre la carte).
+function LigneGps({ label, gps, note, accent }) {
+  return (
+    <a
+      href={`https://www.google.com/maps?q=${gps.replace(/\s/g, "")}`}
+      target="_blank" rel="noreferrer"
+      className="flex items-center gap-2 rounded px-2 py-1 ring-1 ring-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
+    >
+      <MapPin className={`w-3 h-3 shrink-0 ${accent || "text-slate-500"}`} />
+      <span className="flex-1 text-[11px] text-slate-200 leading-tight">
+        {label}
+        {note && <span className="text-slate-500"> · {note}</span>}
+      </span>
+      <span className="font-mono text-[10px] text-sky-300 flex items-center gap-0.5 shrink-0">
+        {gps} <ExternalLink className="w-2.5 h-2.5" />
+      </span>
+    </a>
+  );
+}
+
 const ETAT_STYLE = {
   en_attente:      { label: "EN ATTENTE",       cls: "ring-red-400/40 bg-red-400/10",     badge: "bg-red-500/25 text-red-200" },
   moyen_engage:    { label: "MOYEN ENGAGÉ",     cls: "ring-amber-400/30 bg-amber-400/5",  badge: "bg-amber-500/25 text-amber-200" },
@@ -1056,6 +1096,82 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
             </div>
           ))}
         </div>
+
+        {/* Liste detaillee issue de la carte officielle */}
+        <div className="mt-3 pt-2.5 border-t border-white/5">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-sky-300/70 mb-1.5">
+            Emplacements — carte officielle ({EAU_CARTE.length})
+          </div>
+          <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
+            {EAU_CARTE.map((e, i) => (
+              <LigneGps
+                key={i}
+                label={e.type}
+                note={e.repere}
+                gps={e.gps}
+                accent={e.type.startsWith("Bouche") ? "text-sky-400" : "text-cyan-300"}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5 bis. EVACUATION HELIPORTEE + VOIES D'ACCES */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <Navigation className="w-4 h-4 text-violet-300" /> ÉVACUATION HÉLIPORTÉE &amp; VOIES D'ACCÈS
+        </h2>
+
+        <div className="text-[10px] font-mono uppercase tracking-wider text-violet-300/70 mb-1.5">
+          Zones d'atterrissage CMH ({ZONES_HELICO.length})
+        </div>
+        <div className="space-y-1">
+          {ZONES_HELICO.map((z) => (
+            <LigneGps
+              key={z.nom}
+              label={z.nom}
+              note={z.nuit ? "utilisable de NUIT" : null}
+              gps={z.gps}
+              accent={z.nuit ? "text-amber-300" : "text-violet-300"}
+            />
+          ))}
+        </div>
+
+        <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-300/70 mt-3 mb-1.5">
+          Voies d'accès secours ({VOIES_ACCES.length})
+        </div>
+        <div className="space-y-1">
+          {VOIES_ACCES.map((v) => (
+            <div key={v.nom} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
+              <div className="text-[11px] text-slate-100">{v.nom}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                Depuis <span className="text-slate-200">{v.depuis}</span> vers {v.vers} · {v.longueurM} m
+              </div>
+              <a
+                href={`https://www.google.com/maps?q=${v.depart.replace(/\s/g, "")}`}
+                target="_blank" rel="noreferrer"
+                className="font-mono text-[10px] text-sky-300 inline-flex items-center gap-0.5 mt-0.5"
+              >
+                entrée : {v.depart} <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-[10px] font-mono uppercase tracking-wider text-sky-300/70 mt-3 mb-1.5">
+          Balisage kilométrique du parcours ({BORNES_KM.length} bornes)
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          {BORNES_KM.map((b) => (
+            <LigneGps key={b.nom} label={b.nom} note={`km ${b.km.toFixed(1)}`} gps={b.gps} accent="text-sky-400" />
+          ))}
+        </div>
+        <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
+          Une intervention annoncée « au km 3,2 » se situe entre BK3 et BK4. Ces bornes sont
+          physiquement posées sur le parcours : elles restent lisibles sans réseau ni batterie.
+          Zones et voies relevées sur la carte opérationnelle partagée avec les disciplines.
+          Seules les zones marquées NUIT sont utilisables après le coucher du soleil.
+        </div>
       </section>
 
       {/* 6. MOYENS DE L'ORGANISATEUR */}
@@ -1071,6 +1187,23 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
             </div>
           ))}
         </div>
+        <div className="mt-3 pt-2.5 border-t border-white/5">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-red-300/70 mb-1.5 flex items-center gap-1.5">
+            <HeartPulse className="w-3 h-3" /> Défibrillateurs (DEA) — carte officielle
+          </div>
+          <div className="space-y-1">
+            {DEA.map((d) => (
+              <LigneGps
+                key={d.gps}
+                label={d.nom}
+                note={d.note}
+                gps={d.gps}
+                accent={d.nom.includes("organisation") ? "text-red-300" : "text-slate-500"}
+              />
+            ))}
+          </div>
+        </div>
+
         <div className="mt-3 pt-2.5 border-t border-white/5 text-[11px] text-slate-400">
           Public présent à l'instant : <span className="font-mono text-slate-200">{surSite !== null ? surSite : "—"}</span> sur la plaine ·
           <span className="font-mono text-slate-200"> {persDehors}</span> sur le parcours de 6,5 km.

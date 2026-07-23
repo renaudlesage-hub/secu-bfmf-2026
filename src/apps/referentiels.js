@@ -10,20 +10,21 @@
 export const ROLES = [
   // --- Direction & QG ---
   "Directeur d'événement",
-  "Coordination générale",
-  "QG / PCE",
+  "Coordination sécurité",
+  "Opérateur QG",
 
   // --- Parcours / balade ---
-  "Encadrant tête",
-  "Encadrant serre-file",
-  "Encadrant",
+  "Accompagnateur Balade",
   "Responsable Étape 1",
+  "Adjoint Étape 1",
   "Responsable Étape 2",
+  "Adjoint Étape 2",
   "Responsable Étape 3",
+  "Adjoint Étape 3",
 
   // --- Site / plaine ---
-  "Responsable scène 1",
-  "Responsable scène 2",
+  "Responsable grande scène",
+  "Responsable petite scène",
   "Responsable bar site",
   "Responsable backstage",
   "Team parking",
@@ -149,10 +150,10 @@ export const PRV = [
   { nom: "PRV#1 — Entrée site / Départ (Croisement Le Raumont – Chemin de l'Épine)", gps: "50.38242, 5.61624" },
   { nom: "PRV#2 — Entrée arrière site (Mon Legrand)", gps: "50.38304, 5.61816" },
   { nom: "PRV#3 — Parking public (Le Raumont)", gps: "50.38212, 5.61673" },
-  { nom: "PRV#4 — Accès Étape 1 (Rue Sainte-Barbe)", gps: "50.38212, 5.61673" },
-  { nom: "PRV#5 — Accès Étape 2 (Rue de Jehonhé)", gps: "50.37568, 5.64412" },
-  { nom: "PRV#6 — Accès Étape 2 (Lesfanges)", gps: "50.38236, 5.64579" },
-  { nom: "PRV#7 — Accès Étape 3 (Rue de la Chapelle, 23)", gps: "50.38865, 5.62692" },
+  { nom: "PRV#4 — Accès Étape 1 / Scène 1 (Rue Sainte-Barbe)", gps: "50.38219, 5.63600" },
+  { nom: "PRV#5 — Accès Étape 2 / Scène 2 (Rue de Jehonhé)", gps: "50.37568, 5.64412" },
+  { nom: "PRV#6 — Accès Étape 2 / Scène 2 (Lesfanges)", gps: "50.38239, 5.64584" },
+  { nom: "PRV#7 — Accès Étape 3 / Scène 3 (Rue de la Chapelle, 23)", gps: "50.38865, 5.62692" },
   { nom: "Étape 1 (km 0,9)", gps: "50.37858, 5.62790" },
   { nom: "Étape 2 (km 2,5)", gps: "50.37828, 5.64549" },
   { nom: "Étape 3 (km 5,1)", gps: "50.38817, 5.62891" },
@@ -234,3 +235,114 @@ export const QUE_FAIRE = [
 ];
 
 export const REGLE_OR = "PROTEGER -> ALERTER (112 puis PMR333 si vital) -> SECOURIR. L'app complete la radio, elle ne la remplace pas.";
+
+
+/* ============ DONNEES ISSUES DE LA CARTE OFFICIELLE MyMaps ============
+   Extraites du KML "Buco 2026" (calques Disciplines 1/2/3 et
+   Multidisciplinaire). Ces informations sont celles que partagent les
+   services de secours : ne les modifier QUE si la carte change.
+   >>> Verifie et aligne sur la carte officielle le 23/07/2026.
+======================================================================= */
+
+/* --- Ressources en eau (Discipline 1 - Pompiers) --------------------
+   Champ "eau" du dossier d'intervention. Distance indicative au repere
+   le plus proche, pour guider une reconnaissance rapide.
+-------------------------------------------------------------------- */
+export const RESSOURCES_EAU = [
+  { type: "Tridivision",     gps: "50.38257, 5.61757", repere: "Site — 96 m de l'entrée" },
+  { type: "Bouche incendie", gps: "50.38281, 5.61920", repere: "Site — 214 m" },
+  { type: "Bouche incendie", gps: "50.38385, 5.61412", repere: "Site — 219 m" },
+  { type: "Bouche incendie", gps: "50.38391, 5.61419", repere: "Site — 220 m" },
+  { type: "Bouche incendie", gps: "50.38388, 5.61408", repere: "Site — 223 m" },
+  { type: "Bouche incendie", gps: "50.38205, 5.62006", repere: "Site — 274 m" },
+  { type: "Bouche incendie", gps: "50.38214, 5.62095", repere: "Site — 336 m" },
+  { type: "Bouche incendie", gps: "50.38203, 5.62149", repere: "Site — 375 m" },
+  { type: "Bouche incendie", gps: "50.38093, 5.62632", repere: "Scène 1 — 283 m" },
+  { type: "Bouche incendie", gps: "50.38136, 5.63157", repere: "Scène 1 — 403 m" },
+  { type: "Bouche incendie", gps: "50.38161, 5.63509", repere: "Scène 1 — 610 m" },
+  { type: "Bouche incendie", gps: "50.38219, 5.63582", repere: "Près du PRV#4" },
+  { type: "Bouche incendie", gps: "50.37529, 5.64392", repere: "Scène 2 — 352 m" },
+  { type: "Bouche incendie", gps: "50.38240, 5.64572", repere: "Scène 2 — 457 m" },
+  { type: "Bouche incendie", gps: "50.38932, 5.62584", repere: "Scène 3 — 253 m" },
+  { type: "Bouche incendie", gps: "50.38454, 5.62371", repere: "Scène 3 — 548 m" },
+  { type: "Pompe à eau",     gps: "50.38118, 5.64877", repere: "Scène 2 — 397 m" },
+  { type: "Pompe à eau",     gps: "50.38182, 5.59513", repere: "Site — 1,5 km" },
+  { type: "Pompe à eau",     gps: "50.39887, 5.61386", repere: "Nord — 1,6 km" },
+];
+
+/* --- Defibrillateurs (Discipline 2 - Aide medicale urgente) ---------- */
+export const DEA = [
+  { nom: "DEA organisation (sur site)", gps: "50.38244, 5.61735", note: "80 m de l'entrée — le plus proche" },
+  { nom: "DEA", gps: "50.37334, 5.64180", note: "2,1 km du site" },
+  { nom: "DEA", gps: "50.40015, 5.60618", note: "2,1 km du site" },
+  { nom: "DEA", gps: "50.36520, 5.64429", note: "2,8 km du site" },
+  { nom: "DEA", gps: "50.38262, 5.67998", note: "4,5 km du site" },
+];
+
+/* --- Zones d'atterrissage helicoptere medical (CMH) ------------------
+   Une zone suggeree par scene : information vitale pour une evacuation
+   heliportee. Les zones "nocturnes" sont les seules utilisables de nuit.
+-------------------------------------------------------------------- */
+export const ZONES_HELICO = [
+  { nom: "Zone suggérée — Site / entrée",  gps: "50.38348, 5.61791", nuit: false },
+  { nom: "Zone suggérée — Scène 1",        gps: "50.37874, 5.62980", nuit: false },
+  { nom: "Zone suggérée — Scène 2",        gps: "50.37764, 5.64536", nuit: false },
+  { nom: "Zone suggérée — Scène 3",        gps: "50.38812, 5.62980", nuit: false },
+  { nom: "Zone NOCTURNE — Ferrières",      gps: "50.39922, 5.60764", nuit: true },
+  { nom: "Zone NOCTURNE — Izier",          gps: "50.38038, 5.58456", nuit: true },
+];
+
+/* --- Bornes kilometriques du parcours (balisage terrain) -------------
+   Reperes physiques poses sur le parcours. Un participant ou un
+   encadrant peut dire "je suis a la BK3" : c'est plus fiable qu'un GPS.
+   Positions verifiees sur la trace : ecart max 22 m.
+-------------------------------------------------------------------- */
+export const BORNES_KM = [
+  { nom: "BK1", km: 1.0, gps: "50.37768, 5.62877" },
+  { nom: "BK2", km: 2.0, gps: "50.37670, 5.64154" },
+  { nom: "BK3", km: 3.0, gps: "50.38233, 5.64580" },
+  { nom: "BK4", km: 4.0, gps: "50.38631, 5.64100" },
+  { nom: "BK5", km: 5.0, gps: "50.38827, 5.63010" },
+  { nom: "BK6", km: 6.0, gps: "50.38451, 5.62366" },
+];
+
+/* --- Decoupage du parcours en secteurs (carte officielle) ------------ */
+export const SECTEURS_PARCOURS = [
+  { nom: "Secteur A", debutKm: 0.0, finKm: 0.83, note: "Départ → avant Scène 1" },
+  { nom: "Secteur B", debutKm: 0.83, finKm: 2.47, note: "Scène 1 → Scène 2" },
+  { nom: "Secteur C", debutKm: 2.47, finKm: 5.03, note: "Scène 2 → Scène 3" },
+  { nom: "Secteur D", debutKm: 5.03, finKm: 6.50, note: "Scène 3 → retour Point 0" },
+];
+
+// Autre ressource medicale a proximite
+export const CABINET_MEDICAL = {
+  nom: "Cabinet médical Sneessens Nicolas",
+  gps: "50.39875, 5.60932",
+  note: "≈ 2 km du site — hors urgence vitale (112 en priorité)",
+};
+
+/* --- Voies d'acces secours (Multidisciplinaire) ----------------------
+   Itineraire que doivent emprunter les vehicules de secours depuis le
+   PRV jusqu'a la scene. La longueur explique pourquoi un PRV peut
+   sembler eloigne de la scene qu'il dessert.
+-------------------------------------------------------------------- */
+export const VOIES_ACCES = [
+  {
+    nom: "Voie d'accès secours — Scène 1",
+    depuis: "PRV#4", vers: "Scène 1 / Étape 1",
+    longueurM: 721,
+    depart: "50.38219, 5.63605", arrivee: "50.37892, 5.62807",
+  },
+  {
+    nom: "Voie d'accès secours — Scène 2",
+    depuis: "PRV#5", vers: "Scène 2 / Étape 2 (ressort au PRV#6)",
+    longueurM: 752,
+    depart: "50.37575, 5.64411", arrivee: "50.38240, 5.64578",
+  },
+  {
+    nom: "Voie d'accès secours — Scène 3",
+    depuis: "PRV#7", vers: "Scène 3 / Étape 3",
+    longueurM: 131,
+    depart: "50.38860, 5.62698", arrivee: "50.38834, 5.62851",
+  },
+];
