@@ -437,18 +437,30 @@ function EditeurBenevole({ initial, onFermer, onSauver, onSupprimer }) {
             {creneaux.length === 0 && <div className="text-[11px] text-slate-500 py-1">Aucun créneau. Ajoutez-en un si le bénévole a un horaire défini.</div>}
             <div className="space-y-2">
               {creneaux.map((c, i) => (
-                <div key={i} className="grid grid-cols-[auto_auto_auto_1fr_auto] gap-1.5 items-center bg-black/30 rounded p-2">
+                <div key={i} className="flex flex-wrap gap-1.5 items-center bg-black/30 rounded p-2">
                   <select className="bg-black/40 border border-white/10 rounded px-1.5 py-1.5 text-[11px] text-white" value={c.jour} onChange={(e) => majCreneau(i, "jour", e.target.value)}>
                     {JOURS.map((j) => <option key={j.id} value={j.id}>{j.label}</option>)}
                   </select>
-                  <input className="bg-black/40 border border-white/10 rounded px-1.5 py-1.5 text-[11px] text-white w-16" value={c.debut} onChange={(e) => majCreneau(i, "debut", e.target.value)} placeholder="14:00" inputMode="numeric" />
-                  <input className="bg-black/40 border border-white/10 rounded px-1.5 py-1.5 text-[11px] text-white w-16" value={c.fin} onChange={(e) => majCreneau(i, "fin", e.target.value)} placeholder="18:00" inputMode="numeric" />
-                  <input className="bg-black/40 border border-white/10 rounded px-1.5 py-1.5 text-[11px] text-white" value={c.poste} onChange={(e) => majCreneau(i, "poste", e.target.value)} placeholder="Poste / lieu" />
-                  <button onClick={() => retirerCreneau(i)} className="text-slate-500 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <input
+                    type="time"
+                    className="bg-black/40 border border-white/10 rounded px-1.5 py-1.5 text-[11px] text-white w-[5.5rem] [color-scheme:dark]"
+                    value={c.debut}
+                    onChange={(e) => majCreneau(i, "debut", e.target.value)}
+                    aria-label="Heure de début"
+                  />
+                  <input
+                    type="time"
+                    className="bg-black/40 border border-white/10 rounded px-1.5 py-1.5 text-[11px] text-white w-[5.5rem] [color-scheme:dark]"
+                    value={c.fin}
+                    onChange={(e) => majCreneau(i, "fin", e.target.value)}
+                    aria-label="Heure de fin"
+                  />
+                  <input className="bg-black/40 border border-white/10 rounded px-1.5 py-1.5 text-[11px] text-white flex-1 min-w-[7rem]" value={c.poste} onChange={(e) => majCreneau(i, "poste", e.target.value)} placeholder="Poste / lieu" />
+                  <button onClick={() => retirerCreneau(i)} className="text-slate-500 hover:text-red-400 shrink-0 ml-auto" aria-label="Retirer ce créneau"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
             </div>
-            <div className="text-[10px] font-mono text-slate-600 mt-1.5">Format 24h. Après minuit : ex. 23:00 → 02:00.</div>
+            <div className="text-[10px] font-mono text-slate-600 mt-1.5">Créneau après minuit : mettre une fin inférieure au début (ex. 23:00 → 02:00), la garde est comptée correctement.</div>
           </div>
         </div>
 
