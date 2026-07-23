@@ -58,12 +58,12 @@ const GROUPES_DEMO = [
     vague: "Départ 1",
     heureDepart: "13:30",
     participants: 120,
-    encadrants: ["Enc. 1 (tête)", "Enc. 2", "Enc. 3", "Enc. 4 (serre-file)"],
+    encadrants: ["Acc. 1 (tête)", "Acc. 2", "Acc. 3", "Acc. 4 (serre-file)"],
     contactRadio: "PMR4.1 - call sign GA",
     position: "e2",
     heureRetour: "",
     historique: [
-      { heure: "13:30", texte: "Départ Point 0 -- 120 participants, 4 encadrants" },
+      { heure: "13:30", texte: "Départ Point 0 -- 120 participants, 4 accompagnateurs" },
       { heure: "14:05", texte: "Arrivé Etape 1" },
       { heure: "14:50", texte: "Reparti vers Etape 2" },
       { heure: "15:20", texte: "Arrivé Etape 2" },
@@ -76,12 +76,12 @@ const GROUPES_DEMO = [
     vague: "Départ 2",
     heureDepart: "14:15",
     participants: 95,
-    encadrants: ["Enc. 5 (tête)", "Enc. 6", "Enc. 7", "Enc. 8 (serre-file)"],
+    encadrants: ["Acc. 5 (tête)", "Acc. 6", "Acc. 7", "Acc. 8 (serre-file)"],
     contactRadio: "PMR4.1 - call sign GB",
     position: "e1",
     heureRetour: "",
     historique: [
-      { heure: "14:15", texte: "Départ Point 0 -- 95 participants, 4 encadrants" },
+      { heure: "14:15", texte: "Départ Point 0 -- 95 participants, 4 accompagnateurs" },
       { heure: "14:55", texte: "Arrivé Etape 1" },
     ],
     notes: "",
@@ -272,7 +272,7 @@ export default function SuiviBalade() {
   }
 
   // NB : pas de fonction "lever l'alerte" ici. Clôturer une alerte est une
-  // décision de commandement (vue d'ensemble), réservée au QG. L'encadrant
+  // décision de commandement (vue d'ensemble), réservée au QG. L'accompagnateur
   // terrain peut UNIQUEMENT accuser réception ("Bien reçu").
 
   function avancer(id) {
@@ -313,7 +313,7 @@ export default function SuiviBalade() {
       historique: [
         {
           heure: nowHM(),
-          texte: `Groupe créé -- ${data.participants} participants, ${data.encadrants.filter(Boolean).length} encadrants`,
+          texte: `Groupe créé -- ${data.participants} participants, ${data.encadrants.filter(Boolean).length} accompagnateurs`,
         },
       ],
       notes: "",
@@ -364,7 +364,7 @@ export default function SuiviBalade() {
   function exportCSV() {
     const cols = [
       ["Groupe", "nom"], ["Vague", "vague"], ["Heure depart", "heureDepart"],
-      ["Participants", "participants"], ["Encadrants", "encadrants"],
+      ["Participants", "participants"], ["Accompagnateurs", "encadrants"],
       ["Contact radio", "contactRadio"], ["Position", "position"],
       ["Heure retour", "heureRetour"], ["Historique", "historique"], ["Notes", "notes"],
     ];
@@ -488,7 +488,7 @@ export default function SuiviBalade() {
                   </span>
                 )}
                 {/* Pas de bouton "Lever l'alerte" cote terrain : cloturer est
-                    une decision de commandement, reservee au QG. L'encadrant
+                    une decision de commandement, reservee au QG. L'accompagnateur
                     accuse reception ("Bien recu"), le QG cloture. */}
               </div>
             </div>
@@ -502,7 +502,7 @@ export default function SuiviBalade() {
 
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Kpi label="Sur le parcours" value={totalSurParcours} sub={`${surParcours.length} groupe(s)`} accent="text-amber-300" icon={<Footprints className="w-4 h-4" />} />
-          <Kpi label="Encadrants dehors" value={totalEncadrantsDehors} sub="min. 4 / groupe" accent={surParcours.some((g) => (g.encadrants || []).filter(Boolean).length < 4) ? "text-red-300" : "text-emerald-300"} icon={<Users className="w-4 h-4" />} />
+          <Kpi label="Accompagnateurs dehors" value={totalEncadrantsDehors} sub="min. 4 / groupe" accent={surParcours.some((g) => (g.encadrants || []).filter(Boolean).length < 4) ? "text-red-300" : "text-emerald-300"} icon={<Users className="w-4 h-4" />} />
           <Kpi label="En transit" value={enTransit} sub="entre les étapes" accent="text-slate-200" icon={<ArrowRight className="w-4 h-4" />} />
           <Kpi label="Rentrés" value={rentres.reduce((s, g) => s + g.participants, 0)} sub={`${rentres.length} groupe(s) / ${enAttente.length} en attente`} accent="text-slate-200" icon={<Home className="w-4 h-4" />} />
         </section>
@@ -645,7 +645,7 @@ export default function SuiviBalade() {
         </section>
 
         <div className="text-[10px] text-slate-600 font-mono text-center pt-2">
-          Données partagées entre tous les utilisateurs (QG + encadrants). L'encadrant de tête met à jour la position, le QG garde la vision d'ensemble.
+          Données partagées entre tous les utilisateurs (QG + accompagnateurs). L'accompagnateur de tête met à jour la position, le QG garde la vision d'ensemble.
         </div>
       </main>
 
@@ -792,7 +792,7 @@ function AlarmeForm({ groupes, onClose, onDeclencher }) {
           </Field>
           <Field label="Qui est concerné">
             <input className={inputCls} value={qui} onChange={(e) => setQui(e.target.value)}
-              placeholder="Ex: marcheur du groupe B, encadrant, riverain..." />
+              placeholder="Ex: marcheur du groupe B, accompagnateur, riverain..." />
           </Field>
           <Field label="Détails (localisation, situation)">
             <textarea
@@ -831,6 +831,10 @@ function FormGroupe({ onClose, onSubmit }) {
   const [nom, setNom] = useState("");
   const [vague, setVague] = useState(VAGUES[0]);
   const [participants, setParticipants] = useState(50);
+  // NB VOCABULAIRE : l'interface dit "accompagnateur" (role officiel 2026).
+  // Le champ de donnees s'appelle encore "encadrants" et DOIT le rester :
+  // il est stocke tel quel dans chaque groupe en base. Le renommer ferait
+  // disparaitre les accompagnateurs des groupes deja enregistres.
   const [encadrants, setEncadrants] = useState(["", "", "", ""]);
   const [contactRadio, setContactRadio] = useState("");
 
@@ -887,14 +891,14 @@ function FormGroupe({ onClose, onSubmit }) {
           </Field>
 
           <div className="space-y-2">
-            <div className="text-[11px] font-mono text-slate-300 uppercase tracking-wide">Encadrants (min. 4 recommandés)</div>
+            <div className="text-[11px] font-mono text-slate-300 uppercase tracking-wide">Accompagnateurs (min. 4 recommandés)</div>
             {encadrants.map((enc, idx) => (
               <input
                 key={idx}
                 className={inputCls}
                 value={enc}
                 onChange={(e) => handleEncadrantChange(idx, e.target.value)}
-                placeholder={idx === 0 ? "Responsable tête de groupe" : idx === 3 ? "Responsable serre-file" : `Encadrant ${idx + 1}`}
+                placeholder={idx === 0 ? "Responsable tête de groupe" : idx === 3 ? "Responsable serre-file" : `Accompagnateur ${idx + 1}`}
               />
             ))}
           </div>

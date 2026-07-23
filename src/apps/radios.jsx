@@ -293,7 +293,7 @@ export default function GestionRadios() {
             <div className="text-[10px] font-mono text-slate-500 mb-3 leading-relaxed">
               Le numéro affiché sur le poste ne correspond pas au numéro PMR.
               C'est le <span className="text-sky-300">numéro de canal</span> qu'il faut annoncer à la radio.
-              Deux types de postes : <span className="text-sky-300">standard</span> (QG, volante, scènes, encadrants)
+              Deux types de postes : <span className="text-sky-300">standard</span> (QG, volante, scènes, accompagnateurs)
               — <span className="text-sky-200">double fréquence</span>, ils travaillent sur PMR4.1 tout en gardant
               l'écoute de PMR333 — et <span className="text-amber-300">simple</span> (parking, sanitaire, sécurité privée)
               — mono-canal, sur lesquels le n° de canal = le n° PMR.

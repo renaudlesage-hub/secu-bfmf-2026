@@ -81,7 +81,7 @@ export default function FicheReflexe() {
             ))}
           </div>
           <div className="text-[10px] text-amber-200/80 mt-2 leading-relaxed">
-            Deux types de postes : <span className="font-semibold">standard</span> (QG, volante, scènes, encadrants) —
+            Deux types de postes : <span className="font-semibold">standard</span> (QG, volante, scènes, accompagnateurs) —
             double fréquence, PMR4.1 en travail + écoute PMR333 (canal 6) — et <span className="font-semibold">simple</span>
             (parking, sanitaire, sécurité privée) — mono-canal, n° de canal = n° PMR,
             <span className="text-amber-100 font-semibold"> PMR333 non programmé</span>.

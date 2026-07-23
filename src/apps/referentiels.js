@@ -162,7 +162,7 @@ export const PRV = [
 /* --------------------------- PLAN RADIO ----------------------------- */
 export const RADIO_PLAN = [
  { canal: "PMR4.1", num: 9,  freq: "446.04375", ctcss: "67.0 Hz (Tx/Rx)",
-   usage: "Coordination générale (QG, scènes, volante, encadrants)",
+   usage: "Coordination générale (QG, scènes, volante, accompagnateurs)",
    postes: "standard" },
  { canal: "PMR5",   num: 10, numSimple: 5, freq: "446.05625", ctcss: "Aucun",
    usage: "Bénévoles parking et sanitaires",
@@ -188,7 +188,7 @@ export const RADIO_MATERIEL = {
 
 /* --- Programmation des POSTES STANDARD (25 canaux) -------------------
   Table complete des postes du QG, de la volante, des scenes et des
-  encadrants balade. Le numero de canal ne correspond PAS au numero PMR.
+  accompagnateurs balade. Le numero de canal ne correspond PAS au numero PMR.
   Les postes SIMPLES (parking/sanitaire/securite privee) ont une
   programmation differente et reduite -- voir POSTES_RADIO ci-dessous.
 -------------------------------------------------------------------- */
@@ -213,7 +213,7 @@ export const PROGRAMMATION_RADIO = [
 
   Il existe DEUX types de postes, programmes differemment :
 
-  1. POSTES STANDARD (QG, volante, scenes, encadrants balade)
+  1. POSTES STANDARD (QG, volante, scenes, accompagnateurs balade)
      -> programmation complete 25 canaux (voir PROGRAMMATION_RADIO)
      -> PMR333 (urgence) accessible sur le CANAL 6
 
@@ -235,7 +235,7 @@ export const PROGRAMMATION_RADIO = [
 export const POSTES_RADIO = {
  standard: {
    nom: "Postes standard (double fréquence)",
-   qui: "QG, équipe volante, responsables de scène, encadrants balade",
+   qui: "QG, équipe volante, responsables de scène, accompagnateurs balade",
    urgence: "PMR333 sur le canal 6",
    aUrgence: true,
    doubleVeille: true,
@@ -301,16 +301,16 @@ export const QUE_FAIRE = [
    etapes: [
      "Sur consigne QG (ou eclair < 10 s du tonnerre) : suspension des activites exposees.",
      "Plaine : diriger le public vers les batiments/chapiteaux durs designes.",
-     "Parcours : groupes a l'abri (eviter arbres isoles, clotures) au point dur le plus proche, encadrants comptent leur groupe.",
+     "Parcours : groupes a l'abri (eviter arbres isoles, clotures) au point dur le plus proche, accompagnateurs comptent leur groupe.",
      "Attendre la levee de consigne QG avant reprise.",
    ],
  },
  {
    id: "balade", titre: "Incident sur le parcours", icone: "Footprints",
    etapes: [
-     "Encadrant tete : stopper le groupe en lieu sur, serre-file compte.",
+     "Accompagnateur de tête : stopper le groupe en lieu sur, le serre-file compte.",
      "Alerter : PMR4.1 (ou 112 si vital) avec le km / segment / PRV.",
-     "Un encadrant reste avec la personne, le groupe continue avec les autres si consigne QG.",
+     "Un accompagnateur reste avec la personne, le groupe continue avec les autres si consigne QG.",
      "Utiliser l'app Suivi balade pour ajuster effectif/position.",
    ],
  },
@@ -386,7 +386,7 @@ export const ZONES_HELICO = [
 
 /* --- Bornes kilometriques du parcours (balisage terrain) -------------
   Reperes physiques poses sur le parcours. Un participant ou un
-  encadrant peut dire "je suis a la BK3" : c'est plus fiable qu'un GPS.
+  accompagnateur peut dire "je suis a la BK3" : c'est plus fiable qu'un GPS.
   Positions verifiees sur la trace : ecart max 22 m.
 -------------------------------------------------------------------- */
 export const BORNES_KM = [

@@ -171,7 +171,7 @@ const MOYENS_ORGA = [
   { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières. À COMPLÉTER : organisme, emplacement du poste, brancard, VPSP ?" },
   { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
   { titre: "Équipe volante organisateur", detail: "À COMPLÉTER : nombre, moyen de déplacement, canal PMR4.1." },
-  { titre: "Encadrants balade", detail: "4 personnes de l'organisation par groupe (dossier § 4.2), briefées sécurité. 3 groupes par jour d'environ 300 personnes." },
+  { titre: "Accompagnateurs balade", detail: "4 personnes de l'organisation par groupe (dossier § 4.2), briefées sécurité. 3 groupes par jour d'environ 300 personnes." },
 ];
 
 const DOCTRINE = [
@@ -1178,7 +1178,7 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
         <div className="mt-2.5 pt-2 border-t border-white/5 text-[11px] text-slate-400 leading-relaxed">
           {FREQUENTATION.groupesParJour} groupes/jour d'environ {FREQUENTATION.personnesParGroupe} personnes ·
           {" "}{FREQUENTATION.etapeParVague} personnes par vague à chaque étape ·
-          {" "}{FREQUENTATION.encadrantsParGroupe} encadrants par groupe.
+          {" "}{FREQUENTATION.encadrantsParGroupe} accompagnateurs par groupe.
           <br />
           Soirée : <span className="text-slate-200">{FREQUENTATION.soireeAttendue}</span> attendues.
           {" "}Capacité maximale : <AC texte={FREQUENTATION.capaciteMax} />
