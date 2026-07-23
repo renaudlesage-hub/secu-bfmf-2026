@@ -30,7 +30,7 @@ import {
 import {
   STATUT_RESOLU, estUrgente, priorite, ANNUAIRE, PRV as PRV_LIST, RADIO_PLAN,
   RESSOURCES_EAU as EAU_CARTE, DEA, ZONES_HELICO, VOIES_ACCES, BORNES_KM,
-  SEGMENTS_PARCOURS, HORAIRES, FREQUENTATION, PROGRAMMATION_RADIO, RADIO_EXCEPTION,
+  SEGMENTS_PARCOURS, HORAIRES, FREQUENTATION, PROGRAMMATION_RADIO, RADIO_EXCEPTION, POSTES_RADIO,
 } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
 
@@ -865,21 +865,37 @@ function Dossier() {
             <div key={c.canal} className={`flex items-start gap-2 text-[11px] rounded px-2 py-1.5 ${c.urgent ? "bg-red-400/5 ring-1 ring-red-400/20" : "bg-white/[0.02]"}`}>
               <span className={`font-mono shrink-0 w-14 ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
               <span className={`font-mono shrink-0 px-1.5 rounded text-[10px] ${c.urgent ? "bg-red-500/25 text-red-100" : "bg-sky-500/15 text-sky-200"}`}>
-                canal {c.num}{c.numAlt ? ` / ${c.numAlt}` : ""}
+                ch.{c.num}
+                {c.postes === "les deux" && (
+                  <span className="text-amber-200"> / {c.numSimple != null ? c.numSimple : "?"}</span>
+                )}
               </span>
               <span className="text-slate-400 leading-tight">
                 {c.usage}
-                {c.note && <span className="block text-[9px] text-slate-500">{c.note}</span>}
+                {c.postes === "standard" && (
+                  <span className="block text-[9px] text-amber-300/70">Postes standard uniquement</span>
+                )}
+                {c.postes === "les deux" && (
+                  <span className="block text-[9px] text-slate-500">
+                    canal {c.num} sur poste standard · {c.numSimple != null ? "canal " + c.numSimple : "à confirmer"} sur poste simple
+                  </span>
+                )}
               </span>
             </div>
           ))}
         </div>
 
-        <div className="mt-2.5 rounded px-2.5 py-2 ring-1 ring-amber-400/30 bg-amber-400/[0.06] text-[10px] text-amber-100 leading-relaxed">
-          Le numéro affiché sur le poste ne correspond pas au numéro PMR.
-          {" "}<span className="font-semibold">L'urgence PMR333 est sur le CANAL 6</span>, la coordination PMR4.1 sur le canal 9.
-          {" "}Annoncer toujours le numéro de canal, pas seulement le nom PMR.
-          <span className="block mt-1 text-amber-200/70">{RADIO_EXCEPTION}</span>
+        <div className="mt-2.5 rounded px-2.5 py-2 ring-1 ring-amber-400/40 bg-amber-400/[0.08] text-[10px] text-amber-100 leading-relaxed">
+          <span className="font-semibold">Deux programmations coexistent.</span>
+          {" "}Postes <span className="text-sky-200">standard</span> ({POSTES_RADIO.standard.qui}) : 25 canaux,
+          urgence PMR333 sur le <span className="font-semibold">canal 6</span>.
+          {" "}Postes <span className="text-amber-200">simples</span> ({POSTES_RADIO.simple.qui}) :
+          <span className="font-semibold"> PMR333 n'y est pas programmé</span>.
+          <span className="block mt-1 text-amber-200/80">
+            Ne jamais demander à ces équipes de passer sur PMR333. Leur circuit : 112 par téléphone
+            pour une urgence vitale, puis alerte au QG sur leur propre canal — le QG écoute PMR5,
+            émet sur PMR15 (radio n°2) et relaie vers PMR333.
+          </span>
         </div>
 
         {/* Table complete de programmation des postes */}

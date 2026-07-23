@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { RADIO_PLAN, RADIO_MATERIEL, RADIO_EXCEPTION, POSTES_RADIO } from "./referentiels";
 import {
   Radio, User, CheckCircle2, AlertTriangle, Settings2, BatteryFull,
   Clock, RefreshCw, Download, Search,
@@ -53,19 +54,27 @@ const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d
 
 /* --------------------- Memento technique (statique) --------------------- */
 /* >>> A VERIFIER avec les postes reels avant le briefing. */
+// Memento derive du referentiel : AUCUNE donnee radio en dur ici.
+// Modifier une frequence, un CTCSS ou un numero de canal se fait dans
+// src/apps/referentiels.js (RADIO_PLAN) -- et se propage partout.
 const MEMENTO = {
-  modele: "Baofeng UV-16 Pro",
-  canaux: [
-    { ch: "PMR 4.1", freq: "446.04375", ctcss: "67.0 Hz (Tx/Rx)", usage: "Coordination générale" },
-    { ch: "PMR 5.0", freq: "446.05625", ctcss: "Aucun", usage: "Parking / Sanitaires" },
-    { ch: "PMR 15", freq: "446.18125", ctcss: "114.8 Hz", usage: "Sécurité privée" },
-    { ch: "PMR 333", freq: "446.09375", ctcss: "À CONFIRMER", usage: "URGENCE — réservé" },
-  ],
-  resetMnu: "Menu 40 → RESET → ALL",
+  modele: RADIO_MATERIEL.modele,
+  canaux: RADIO_PLAN.map((c) => ({
+    ch: c.canal,
+    num: c.num,
+    numSimple: c.numSimple,
+    postes: c.postes,
+    freq: c.freq,
+    ctcss: c.ctcss,
+    usage: c.usage,
+    urgent: c.urgent,
+  })),
 };
 
-// Libelle = nom PMR + numero du canal sur le poste (ils different !).
-const CANAUX = ["PMR4.1 (ch.9)", "PMR5 (ch.10 · ch.5 parking/sanit.)", "PMR15 (ch.25)", "PMR333 (ch.6 — URGENCE)"];
+// Libelles derives du referentiel : nom PMR + numero de canal sur le poste.
+const CANAUX = RADIO_PLAN.map(
+  (c) => `${c.canal} (ch.${c.num}${c.numSimple != null ? " / " + c.numSimple : ""}${c.urgent ? " — URGENCE" : ""})`
+);
 
 // Une radio physique ne doit apparaitre qu'une fois. En cas de doublon
 // (donnees anciennes), on privilegie la ligne "En service" la plus recente.
@@ -90,7 +99,7 @@ export default function GestionRadios() {
   const [sbError, setSbError] = useState(false);
   const [formSerial, setFormSerial] = useState("");
   const [formUser, setFormUser] = useState("");
-  const [formCanal, setFormCanal] = useState("PMR4.1 (ch.9)");
+  const [formCanal, setFormCanal] = useState(CANAUX[0]);
   const [filtre, setFiltre] = useState("");
   const [now, setNow] = useState(new Date());
 
@@ -275,40 +284,97 @@ export default function GestionRadios() {
           </div>
         </div>
 
-        {/* Memento programmation */}
+        {/* Plan des canaux — ce qui est actionnable sur le terrain */}
         <div className="space-y-4">
-          <div className="bg-[#141a22] rounded-lg p-4 border border-amber-400/30">
-            <h2 className="font-display text-sm text-amber-400 tracking-wider uppercase flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4" /> Mémento programmation
+          <div className="bg-[#141a22] rounded-lg p-4 border border-sky-400/25">
+            <h2 className="font-display text-sm text-sky-300 tracking-wider uppercase flex items-center gap-2 mb-1">
+              <Radio className="w-4 h-4" /> Plan des canaux
             </h2>
-            <div className="text-xs space-y-3">
-              <div className="bg-black/30 p-2 rounded border border-white/5 font-mono">
-                <div className="text-slate-400 text-[10px] uppercase">Standard matériel</div>
-                <div className="font-bold text-white">{MEMENTO.modele}</div>
-              </div>
+            <div className="text-[10px] font-mono text-slate-500 mb-3 leading-relaxed">
+              Le numéro affiché sur le poste ne correspond pas au numéro PMR.
+              C'est le <span className="text-sky-300">numéro de canal</span> qu'il faut annoncer à la radio.
+              Deux programmations coexistent : <span className="text-sky-300">standard</span> (QG, volante,
+              scènes, encadrants) et <span className="text-amber-300">simple</span> (parking, sanitaire, sécurité privée).
+            </div>
 
-              <div className="space-y-1.5">
-                {MEMENTO.canaux.map((c, i) => (
-                  <div key={i} className="bg-black/30 p-2 rounded border border-white/5 flex justify-between items-center gap-2">
-                    <div className="min-w-0">
-                      <div className="font-bold text-sky-300 font-mono text-[11px]">{c.ch}</div>
-                      <div className="text-[9px] text-slate-500">{c.usage}</div>
-                    </div>
-                    <div className="text-right font-mono text-[10px] shrink-0">
-                      <div>{c.freq} MHz</div>
-                      <div className="text-amber-400/70">{c.ctcss}</div>
-                    </div>
-                  </div>
-                ))}
+            <div className="mb-3 p-2.5 rounded border border-amber-400/40 bg-amber-400/[0.08]">
+              <div className="text-[11px] font-bold text-amber-200 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> PMR333 absent des postes simples
               </div>
-
-              <div className="bg-red-950/30 p-2 rounded border border-red-500/20 font-mono text-[10px] text-red-300">
-                Hard reset : {MEMENTO.resetMnu}
-              </div>
-              <div className="text-[9px] text-slate-600 font-mono leading-relaxed">
-                Vérifier ces valeurs sur un poste réel avant le briefing (fichier src/apps/radios.jsx, bloc MEMENTO).
+              <div className="text-[10px] text-amber-100/80 mt-1 leading-relaxed">
+                {POSTES_RADIO.simple.qui} : le canal d'urgence <span className="font-semibold">n'est pas programmé</span> sur
+                leurs postes. Ne jamais leur demander de « passer sur PMR333 ».
+                <span className="block mt-1">
+                  Leur circuit : <span className="font-semibold">112 par téléphone</span> pour une urgence vitale,
+                  puis alerte au QG <span className="font-semibold">sur leur propre canal</span> — le QG écoute PMR5,
+                  émet sur PMR15, et relaie vers PMR333.
+                </span>
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              {MEMENTO.canaux.map((c, i) => (
+                <div key={i} className={`p-2.5 rounded border flex items-center gap-3 ${c.urgent ? "border-red-400/40 bg-red-400/[0.07]" : "border-white/5 bg-black/30"}`}>
+                  <div className="shrink-0 text-center w-16">
+                    <div className={`font-mono font-bold text-lg leading-none ${c.urgent ? "text-red-300" : "text-sky-300"}`}>{c.num}</div>
+                    <div className="text-[8px] text-slate-600 uppercase tracking-wider mt-0.5">standard</div>
+                    {c.postes === "les deux" && (
+                      <>
+                        <div className="font-mono font-bold text-sm leading-none text-amber-300 mt-1">
+                          {c.numSimple != null ? c.numSimple : "?"}
+                        </div>
+                        <div className="text-[8px] text-slate-600 uppercase tracking-wider">simple</div>
+                      </>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className={`font-mono text-xs font-bold ${c.urgent ? "text-red-200" : "text-slate-100"}`}>{c.ch}</div>
+                    <div className="text-[10px] text-slate-400 leading-tight">{c.usage}</div>
+                    {c.postes === "standard" && (
+                      <div className="text-[9px] text-amber-300/70 mt-0.5">
+                        Postes standard uniquement — absent des postes parking / sanitaire / sécurité privée
+                      </div>
+                    )}
+                    {c.postes === "les deux" && c.numSimple == null && (
+                      <div className="text-[9px] text-amber-300/80 mt-0.5">
+                        Numéro sur poste simple À CONFIRMER
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Avertissement : ne pas toucher a la programmation */}
+            <div className="mt-3 p-2.5 rounded border border-red-400/40 bg-red-500/10">
+              <div className="text-[11px] font-bold text-red-200 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Ne jamais réinitialiser un poste
+              </div>
+              <div className="text-[10px] text-red-100/80 mt-1 leading-relaxed">
+                Les postes sont préprogrammés. Une réinitialisation efface les canaux et
+                <span className="font-semibold"> aucune reprogrammation n'est possible sur le site</span>.
+                Un poste réinitialisé est un poste perdu pour l'événement : le mettre de côté et en prendre un autre.
+              </div>
+            </div>
+
+            {/* Donnees techniques : reference seulement, repliees */}
+            <details className="mt-2.5">
+              <summary className="text-[10px] font-mono uppercase tracking-wider text-slate-600 cursor-pointer hover:text-slate-400">
+                Données techniques (référence)
+              </summary>
+              <div className="mt-2 space-y-1">
+                <div className="text-[10px] font-mono text-slate-500">Matériel : {MEMENTO.modele}</div>
+                {MEMENTO.canaux.map((c, i) => (
+                  <div key={i} className="flex justify-between text-[10px] font-mono text-slate-500 px-1">
+                    <span>{c.ch}</span>
+                    <span>{c.freq} MHz · CTCSS {c.ctcss}</span>
+                  </div>
+                ))}
+                <div className="text-[9px] font-mono text-slate-600 pt-1">
+                  Programmation effectuée avant l'événement. Source : referentiels.js (RADIO_PLAN).
+                </div>
+              </div>
+            </details>
           </div>
         </div>
       </main>

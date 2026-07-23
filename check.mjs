@@ -24,6 +24,27 @@ const T = [
   ['mode degrade — sos branche', lire('src/apps/sos.jsx').includes('envoyerAvecFile')],
   ['mode degrade — balade branche', lire('src/apps/balade.jsx').includes('envoyerAvecFile')],
   ['bandeau urgence — QUE_FAIRE', lire('src/apps/BandeauUrgence.jsx').includes('QUE_FAIRE')],
+  ['carte officielle — PRV#4 corrige', lire('src/apps/referentiels.js').includes('50.38219, 5.63600')],
+  ['carte officielle — ressources eau', lire('src/apps/referentiels.js').includes('RESSOURCES_EAU')],
+  ['carte officielle — DEA', lire('src/apps/referentiels.js').includes('export const DEA')],
+  ['carte officielle — zones helico', lire('src/apps/referentiels.js').includes('ZONES_HELICO')],
+  ['carte officielle — voies acces', lire('src/apps/referentiels.js').includes('VOIES_ACCES')],
+  ['pcops — integration carte', lire('src/apps/pcops.jsx').includes('EAU_CARTE')],
+  ['dossier — segments/brancardage', lire('src/apps/referentiels.js').includes('SEGMENTS_PARCOURS')],
+  ['dossier — adresses PRV', lire('src/apps/referentiels.js').includes('4190 Burnontige')],
+  ['dossier — horaires', lire('src/apps/referentiels.js').includes('HORAIRES')],
+  ['pcops — section brancardage', lire('src/apps/pcops.jsx').includes('BRANCARDAGE')],
+  ['radio — numeros de canal', lire('src/apps/referentiels.js').includes('PROGRAMMATION_RADIO')],
+  ['radio — PMR333 canal 6', lire('src/apps/referentiels.js').includes('num: 6')],
+  ['radio — exception parking/sanit', lire('src/apps/referentiels.js').includes('RADIO_EXCEPTION')],
+  ['dashboard — plan radio centralise', !lire('src/apps/dashboard.jsx').includes('const CANAUX_RADIO = [')],
+  ['radios — memento centralise', !lire('src/apps/radios.jsx').includes('446.04375')],
+  ['radios — pas de procedure reset', !lire('src/apps/radios.jsx').includes('Menu 40')],
+  ['radio — deux programmations', lire('src/apps/referentiels.js').includes('POSTES_RADIO')],
+  ['radio — PMR333 absent postes simples', lire('src/apps/referentiels.js').includes("PMR333 n'y est pas programm")],
+  ['radio — table standard 25 canaux', lire('src/apps/referentiels.js').includes('PROGRAMMATION_RADIO')],
+  ['radio — materiel', lire('src/apps/referentiels.js').includes('RADIO_MATERIEL')],
+  ['referentiels — freq/ctcss', lire('src/apps/referentiels.js').includes('446.04375')],
 ];
 let ko = 0;
 for (const [n, ok] of T) { if (!ok) ko++; console.log((ok ? '  OK     ' : '  ABSENT ') + n); }
@@ -33,4 +54,28 @@ const inv = [];
 for (const f of readdirSync('src/apps')) { if (/\.(jsx|js)$/.test(f) && /[\u00a0\u200b\ufeff]/.test(lire(`src/apps/${f}`))) inv.push(f); }
 for (const f of ['src/App.jsx', 'vite.config.js']) { if (/[\u00a0\u200b\ufeff]/.test(lire(f))) inv.push(f); }
 console.log(inv.length === 0 ? 'Caracteres invisibles : aucun — OK' : `!!! INVISIBLES : ${inv.join(', ')}`);
-console.log(ko === 0 && cors.length === 0 && inv.length === 0 ? '\n>>> VERSION A JOUR' : `\n>>> ${ko} manquant(s)`);
+
+// --- Equilibre JSX : detecte les <div> non fermes -------------------
+// Le comptage d'accolades ne voit PAS la nidification des balises.
+// Un </div> en trop ou manquant casse le build sans qu'aucun autre
+// controle ne le remarque. Ce test l'attrape.
+const jsxPb = [];
+for (const f of readdirSync('src/apps').filter((x) => x.endsWith('.jsx')).concat(['../App.jsx'])) {
+  const p = f.startsWith('..') ? 'src/App.jsx' : `src/apps/${f}`;
+  let s = lire(p);
+  const i = s.indexOf('return (');
+  if (i < 0) continue;
+  s = s.slice(i);
+  s = s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\/[^\n]*/g, '');
+  let avant = null;
+  while (avant !== s) {           // retirer les balises auto-fermantes
+    avant = s;
+    s = s.replace(/<[A-Za-z][\w.]*(?:[^<>]|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*?\/>/g, '');
+  }
+  const ouv = (s.match(/<div(?:[^<>]|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*?>/g) || []).length;
+  const fer = (s.match(/<\/div>/g) || []).length;
+  if (ouv !== fer) jsxPb.push(`${p} (${ouv} <div> / ${fer} </div>)`);
+}
+console.log(jsxPb.length === 0 ? 'Equilibre JSX (div) : OK' : `!!! JSX DESEQUILIBRE : ${jsxPb.join(', ')}`);
+
+console.log(ko === 0 && cors.length === 0 && inv.length === 0 && jsxPb.length === 0 ? '\n>>> VERSION A JOUR' : `\n>>> ${ko} manquant(s)`);
