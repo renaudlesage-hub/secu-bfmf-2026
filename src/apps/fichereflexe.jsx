@@ -69,9 +69,7 @@ export default function FicheReflexe() {
                 <span className={`font-mono shrink-0 w-14 ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
                 <span className={`font-mono shrink-0 px-1.5 rounded text-[10px] ${c.urgent ? "bg-red-500/25 text-red-100" : "bg-sky-500/15 text-sky-200"}`}>
                   ch.{c.num}
-                  {c.postes === "les deux" && (
-                    <span className="text-amber-200"> / {c.numSimple != null ? c.numSimple : "?"}</span>
-                  )}
+                  {c.postes === "les deux" && <span className="text-amber-200"> / {c.numSimple}</span>}
                 </span>
                 <span className="text-slate-400 leading-tight">
                   {c.usage}
@@ -83,9 +81,10 @@ export default function FicheReflexe() {
             ))}
           </div>
           <div className="text-[10px] text-amber-200/80 mt-2 leading-relaxed">
-            Deux programmations : <span className="font-semibold">standard</span> (QG, volante, scènes, encadrants —
-            PMR333 sur le canal 6) et <span className="font-semibold">simple</span> (parking, sanitaire, sécurité privée —
-            <span className="text-amber-100 font-semibold"> PMR333 non programmé</span>).
+            Deux types de postes : <span className="font-semibold">standard</span> (QG, volante, scènes, encadrants) —
+            double fréquence, PMR4.1 en travail + écoute PMR333 (canal 6) — et <span className="font-semibold">simple</span>
+            (parking, sanitaire, sécurité privée) — mono-canal, n° de canal = n° PMR,
+            <span className="text-amber-100 font-semibold"> PMR333 non programmé</span>.
             <span className="block mt-0.5 text-amber-200/60">
               Postes simples : urgence vitale = 112 par téléphone, puis alerte au QG sur son propre canal.
             </span>

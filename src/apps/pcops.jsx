@@ -866,9 +866,7 @@ function Dossier() {
               <span className={`font-mono shrink-0 w-14 ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
               <span className={`font-mono shrink-0 px-1.5 rounded text-[10px] ${c.urgent ? "bg-red-500/25 text-red-100" : "bg-sky-500/15 text-sky-200"}`}>
                 ch.{c.num}
-                {c.postes === "les deux" && (
-                  <span className="text-amber-200"> / {c.numSimple != null ? c.numSimple : "?"}</span>
-                )}
+                {c.postes === "les deux" && <span className="text-amber-200"> / {c.numSimple}</span>}
               </span>
               <span className="text-slate-400 leading-tight">
                 {c.usage}
@@ -877,7 +875,7 @@ function Dossier() {
                 )}
                 {c.postes === "les deux" && (
                   <span className="block text-[9px] text-slate-500">
-                    canal {c.num} sur poste standard · {c.numSimple != null ? "canal " + c.numSimple : "à confirmer"} sur poste simple
+                    canal {c.num} sur poste standard · canal {c.numSimple} sur poste simple
                   </span>
                 )}
               </span>
@@ -888,9 +886,11 @@ function Dossier() {
         <div className="mt-2.5 rounded px-2.5 py-2 ring-1 ring-amber-400/40 bg-amber-400/[0.08] text-[10px] text-amber-100 leading-relaxed">
           <span className="font-semibold">Deux programmations coexistent.</span>
           {" "}Postes <span className="text-sky-200">standard</span> ({POSTES_RADIO.standard.qui}) : 25 canaux,
-          urgence PMR333 sur le <span className="font-semibold">canal 6</span>.
+          <span className="font-semibold"> double fréquence</span> — ils tiennent PMR4.1 tout en écoutant PMR333
+          (canal <span className="font-semibold">6</span>).
           {" "}Postes <span className="text-amber-200">simples</span> ({POSTES_RADIO.simple.qui}) :
-          <span className="font-semibold"> PMR333 n'y est pas programmé</span>.
+          mono-canal, <span className="font-semibold">PMR333 n'y est pas programmé</span>
+          (sur ces postes, n° de canal = n° PMR).
           <span className="block mt-1 text-amber-200/80">
             Ne jamais demander à ces équipes de passer sur PMR333. Leur circuit : 112 par téléphone
             pour une urgence vitale, puis alerte au QG sur leur propre canal — le QG écoute PMR5,

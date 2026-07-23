@@ -293,8 +293,10 @@ export default function GestionRadios() {
             <div className="text-[10px] font-mono text-slate-500 mb-3 leading-relaxed">
               Le numéro affiché sur le poste ne correspond pas au numéro PMR.
               C'est le <span className="text-sky-300">numéro de canal</span> qu'il faut annoncer à la radio.
-              Deux programmations coexistent : <span className="text-sky-300">standard</span> (QG, volante,
-              scènes, encadrants) et <span className="text-amber-300">simple</span> (parking, sanitaire, sécurité privée).
+              Deux types de postes : <span className="text-sky-300">standard</span> (QG, volante, scènes, encadrants)
+              — <span className="text-sky-200">double fréquence</span>, ils travaillent sur PMR4.1 tout en gardant
+              l'écoute de PMR333 — et <span className="text-amber-300">simple</span> (parking, sanitaire, sécurité privée)
+              — mono-canal, sur lesquels le n° de canal = le n° PMR.
             </div>
 
             <div className="mb-3 p-2.5 rounded border border-amber-400/40 bg-amber-400/[0.08]">
@@ -302,8 +304,9 @@ export default function GestionRadios() {
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> PMR333 absent des postes simples
               </div>
               <div className="text-[10px] text-amber-100/80 mt-1 leading-relaxed">
-                {POSTES_RADIO.simple.qui} : le canal d'urgence <span className="font-semibold">n'est pas programmé</span> sur
-                leurs postes. Ne jamais leur demander de « passer sur PMR333 ».
+                {POSTES_RADIO.simple.qui} : postes <span className="font-semibold">mono-canal</span>, et le canal
+                d'urgence <span className="font-semibold">n'y est pas programmé</span>.
+                Ne jamais leur demander de « passer sur PMR333 ».
                 <span className="block mt-1">
                   Leur circuit : <span className="font-semibold">112 par téléphone</span> pour une urgence vitale,
                   puis alerte au QG <span className="font-semibold">sur leur propre canal</span> — le QG écoute PMR5,
@@ -335,9 +338,9 @@ export default function GestionRadios() {
                         Postes standard uniquement — absent des postes parking / sanitaire / sécurité privée
                       </div>
                     )}
-                    {c.postes === "les deux" && c.numSimple == null && (
-                      <div className="text-[9px] text-amber-300/80 mt-0.5">
-                        Numéro sur poste simple À CONFIRMER
+                    {c.postes === "les deux" && (
+                      <div className="text-[9px] text-slate-600 mt-0.5">
+                        canal {c.num} sur poste standard · canal {c.numSimple} sur poste simple
                       </div>
                     )}
                   </div>
