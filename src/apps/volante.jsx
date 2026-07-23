@@ -58,9 +58,9 @@ const KEY_METEO = "bfmf2026-meteo";
 
 const POINTS = {
   "Point 0": { lat: 50.3835, lon: 5.6215 },
-  "PRV#4": { lat: 50.38212, lon: 5.61673 },
+  "PRV#4": { lat: 50.38219, lon: 5.63600 },
   "PRV#5": { lat: 50.37568, lon: 5.64412 },
-  "PRV#6": { lat: 50.38236, lon: 5.64579 },
+  "PRV#6": { lat: 50.38239, lon: 5.64584 },
   "PRV#7": { lat: 50.38865, lon: 5.62692 },
   "Etape 1": { lat: 50.37858, lon: 5.6279 },
   "Etape 2": { lat: 50.37828, lon: 5.64549 },

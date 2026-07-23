@@ -30,6 +30,7 @@ import {
 import {
   STATUT_RESOLU, estUrgente, priorite, ANNUAIRE, PRV as PRV_LIST, RADIO_PLAN,
   RESSOURCES_EAU as EAU_CARTE, DEA, ZONES_HELICO, VOIES_ACCES, BORNES_KM,
+  SEGMENTS_PARCOURS, HORAIRES, FREQUENTATION,
 } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
 
@@ -141,11 +142,11 @@ const POINT_RENCONTRE = {
 
 const RISQUES_SITE = [
   { titre: "Foodtrucks — bonbonnes de gaz", detail: "À COMPLÉTER : nombre, emplacement, vanne de coupure, distance aux scènes." },
-  { titre: "Alimentation électrique / groupes électrogènes", detail: "À COMPLÉTER : emplacement, puissance, coupure générale (qui, où)." },
-  { titre: "Structures scéniques", detail: "À COMPLÉTER : hauteur, PV de montage, seuil de vent d'arrêt (km/h)." },
+  { titre: "Alimentation électrique / groupes électrogènes", detail: "Les scènes de la balade sont alimentées par GROUPES ÉLECTROGÈNES (dossier § 11) — pas de raccordement réseau, donc pas de réception électrique SECT sur ces points. Site principal : réception électrique par SECT agréé. À COMPLÉTER : emplacement exact, puissance, organe de coupure générale (qui, où)." },
+  { titre: "Structures scéniques", detail: "Balade : installations < 250 m² au sol, aucun risque de chute ≥ 2 m (pas de réception mécanique). Site principal : réception mécanique par SECT agréé. À COMPLÉTER : hauteur, PV de montage, seuil de vent d'arrêt (km/h)." },
   { titre: "Pyrotechnie / effets", detail: "À COMPLÉTER : prévu ou non. Si oui : opérateur, horaires, périmètre." },
   { titre: "Public — jauge et évacuation", detail: "À COMPLÉTER : capacité plaine, largeur des sorties, points de rassemblement." },
-  { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
+  { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. AUCUN éclairage de secours sur les lieux de concert de la balade (milieux ouverts, dossier § 11) : prévoir l'éclairage individuel pour tout retour après le coucher du soleil. Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
 ];
 
 // Ressources en eau : liste issue de la carte officielle (calque Pompiers).
@@ -167,10 +168,10 @@ const MOYENS_ORGA = [
     detail: `DEA de l'organisation sur site (50.38244, 5.61735), à 80 m de l'entrée. `
       + `${DEA.length - 1} autres DEA dans un rayon de 4,5 km. Emplacements ci-dessous.`,
   },
-  { titre: "Poste de secours / secouristes", detail: "À COMPLÉTER : organisme, nombre, emplacement, moyens (DSA, brancard, VPSP ?)." },
+  { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières. À COMPLÉTER : organisme, emplacement du poste, brancard, VPSP ?" },
   { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
   { titre: "Équipe volante organisateur", detail: "À COMPLÉTER : nombre, moyen de déplacement, canal PMR4.1." },
-  { titre: "Encadrants balade", detail: "À COMPLÉTER : nombre, tête/serre-file par groupe." },
+  { titre: "Encadrants balade", detail: "4 personnes de l'organisation par groupe (dossier § 4.2), briefées sécurité. 3 groupes par jour d'environ 300 personnes." },
 ];
 
 const DOCTRINE = [
@@ -843,8 +844,11 @@ function Dossier() {
           {ANNUAIRE.map((n) => (
             <a key={n.nom} href={`tel:${n.num.replace(/\s/g, "")}`}
               className={`flex items-center gap-2 rounded px-2.5 py-2 ring-1 ${n.urgent ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.02]"}`}>
-              <span className={`text-xs flex-1 ${n.urgent ? "text-red-200 font-semibold" : "text-slate-300"}`}>{n.nom}</span>
-              {n.note && <span className="text-[9px] font-mono text-amber-300/70">{n.note}</span>}
+              <span className={`text-xs flex-1 leading-tight ${n.urgent ? "text-red-200 font-semibold" : "text-slate-300"}`}>
+                {n.nom}
+                {n.mail && <span className="block text-[9px] font-mono text-slate-500">{n.mail}</span>}
+              </span>
+              {n.note && <span className="text-[9px] font-mono text-amber-300/70 shrink-0">{n.note}</span>}
               <span className={`font-mono text-sm ${n.urgent ? "text-red-200 font-bold" : "text-slate-200"}`}>{n.num}</span>
             </a>
           ))}
@@ -877,8 +881,11 @@ function Dossier() {
             <a key={r.nom} href={`https://www.google.com/maps?q=${r.gps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
               className="flex items-center gap-2 text-[11px] rounded px-2 py-1.5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
               <MapPin className="w-3 h-3 text-slate-600 shrink-0" />
-              <span className="text-slate-300 flex-1">{r.nom}</span>
-              <span className="font-mono text-slate-500">{r.gps}</span>
+              <span className="flex-1 leading-tight">
+                <span className="text-slate-300">{r.nom}</span>
+                {r.adresse && <span className="block text-[10px] text-slate-500">{r.adresse}</span>}
+              </span>
+              <span className="font-mono text-slate-500 shrink-0">{r.gps}</span>
               <ExternalLink className="w-2.5 h-2.5 text-slate-600 shrink-0" />
             </a>
           ))}
@@ -912,7 +919,7 @@ function Dossier() {
 function AC({ texte }) {
   // Affiche un champ non renseigne en ambre : un trou visible vaut mieux
   // qu'une information fausse dans une vue de crise.
-  const vide = /À COMPLÉTER/i.test(texte || "") || /04XX/.test(texte || "");
+  const vide = /À COMPLÉTER|À CONFIRMER|À PRÉCISER/i.test(texte || "") || /04XX/.test(texte || "");
   return <span className={vide ? "text-amber-300/80" : "text-slate-300"}>{texte}</span>;
 }
 
@@ -1036,6 +1043,87 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* 2 bis. ACCES AUX ETAPES — BRANCARDAGE ET NATURE DES VOIES */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
+          <Footprints className="w-4 h-4 text-amber-300" /> ACCÈS AUX ÉTAPES — BRANCARDAGE
+        </h2>
+        <div className="text-[10px] font-mono text-slate-500 mb-3 leading-relaxed">
+          Dossier de sécurité § 9. La <span className="text-amber-200">distance de brancardage</span> est
+          l'éloignement maximal entre un point du tronçon et un véhicule : c'est elle qui dimensionne
+          l'équipe de portage, pas le cumul de voies non carrossables.
+        </div>
+
+        <div className="space-y-2">
+          {SEGMENTS_PARCOURS.map((s) => {
+            const dur = s.brancardageMaxM >= 400 ? "ring-red-400/40 bg-red-400/[0.07]"
+              : s.brancardageMaxM >= 250 ? "ring-amber-400/30 bg-amber-400/[0.05]"
+              : "ring-white/10 bg-white/[0.02]";
+            const txt = s.brancardageMaxM >= 400 ? "text-red-200"
+              : s.brancardageMaxM >= 250 ? "text-amber-200" : "text-emerald-200";
+            return (
+              <div key={s.nom} className={`rounded px-2.5 py-2 ring-1 ${dur}`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-slate-100 font-semibold">{s.nom}</span>
+                  <span className="font-mono text-[10px] text-slate-500">{s.distanceM} m</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/30 ${txt}`}>
+                    brancardage max {s.brancardageMaxM} m
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1 leading-snug">{s.voies}</div>
+                <div className="mt-1 flex items-center gap-2 flex-wrap text-[10px]">
+                  <span className="text-slate-500">Arrivée :</span>
+                  <span className="text-slate-300">{s.arriveeNom}</span>
+                  <a
+                    href={`https://www.google.com/maps?q=${s.arriveeGps.replace(/\s/g, "")}`}
+                    target="_blank" rel="noreferrer"
+                    className="text-sky-300 inline-flex items-center gap-0.5"
+                  >
+                    {s.arriveeGps} <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                  <span className="text-slate-500">·</span>
+                  <span className="text-slate-400">{s.arriveeAdresse}</span>
+                  <span className="text-slate-500">· PRV :</span>
+                  <span className="text-amber-200/80 font-mono">{s.prv.join(" / ")}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
+          Lecture : les longueurs par type de voie sont des <span className="text-slate-400">cumuls sur le tronçon</span>,
+          pas des portions continues. Un tronçon « 1250 m non carrossables » comporte plusieurs sections
+          entrecoupées de chemins accessibles aux véhicules.
+        </div>
+      </section>
+
+      {/* 2 ter. HORAIRES ET FREQUENTATION */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <Clock className="w-4 h-4 text-sky-300" /> HORAIRES &amp; FRÉQUENTATION
+        </h2>
+        <div className="space-y-1.5">
+          {HORAIRES.map((h) => (
+            <div key={h.jour} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
+              <div className="text-xs text-slate-100">{h.jour}</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">
+                Départs balade : <span className="font-mono text-slate-200">{h.departs.join(" · ")}</span>
+                {" — "}Concerts : <span className="font-mono text-slate-200">{h.concerts}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2.5 pt-2 border-t border-white/5 text-[11px] text-slate-400 leading-relaxed">
+          {FREQUENTATION.groupesParJour} groupes/jour d'environ {FREQUENTATION.personnesParGroupe} personnes ·
+          {" "}{FREQUENTATION.etapeParVague} personnes par vague à chaque étape ·
+          {" "}{FREQUENTATION.encadrantsParGroupe} encadrants par groupe.
+          <br />
+          Soirée : <span className="text-slate-200">{FREQUENTATION.soireeAttendue}</span> attendues.
+          {" "}Capacité maximale : <AC texte={FREQUENTATION.capaciteMax} />
         </div>
       </section>
 
