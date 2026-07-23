@@ -1,6 +1,11 @@
 import { readFileSync, existsSync, readdirSync } from 'fs';
 const lire = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : '');
 const T = [
+  ['index.html — titre festival', lire('index.html').includes('Sécurité BFMF 2026')],
+  ['index.html — pas le titre Vite', !lire('index.html').includes('Vite + React')],
+  ['index.html — lang fr', lire('index.html').includes('lang="fr"')],
+  ['icone PWA 192', existsSync('public/pwa-192x192.png')],
+  ['icone PWA 512', existsSync('public/pwa-512x512.png')],
   ['vite.config — Tailwind', lire('vite.config.js').includes('tailwindcss()')],
   ['vite.config — PWA', lire('vite.config.js').includes('VitePWA')],
   ['vite.config — pas de lock orientation', !lire('vite.config.js').includes("orientation: 'portrait'")],
