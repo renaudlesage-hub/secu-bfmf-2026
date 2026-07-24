@@ -29,6 +29,9 @@ import {
 
 const STORAGE_KEY = "bfmf2026-suivi-balade";
 const ALERT_KEY = "bfmf2026-suivi-balade-alerte";
+// Liste commune des interventions : c'est elle qui alimente le Moniteur
+// securite du QG, la file de la volante et le bilan du PC-Ops.
+const KEY_INTERVENTIONS = "bfmf2026-sos-participants";
 const PROFILE_KEY = "bfmf2026-profil";
 
 
@@ -249,6 +252,7 @@ export default function SuiviBalade() {
 
   async function declencherAlerte(data) {
     const a = {
+      id: "bal-" + Date.now(),
       active: true,
       heure: nowHM(),
       auteur: signature,
@@ -267,6 +271,28 @@ export default function SuiviBalade() {
     };
     setAlerte(a);
     await saveAlerte(a);
+
+    // --- Traçabilité -----------------------------------------------------
+    // Le bandeau rouge alerte tout le monde immédiatement, mais il ne permet
+    // pas de SUIVRE l'intervention (prise en compte, moyen engagé, clôture).
+    // On crée donc aussi une entrée dans la liste commune des interventions :
+    // elle apparaît au Moniteur sécurité du QG, dans la file de la volante et
+    // dans le bilan du PC-Ops, avec un statut qui évolue.
+    const intervention = {
+      id: a.id,
+      refAlerte: a.id,               // lien avec le bandeau, évite le double comptage
+      heure: a.heure,
+      nom: a.auteur || "Accompagnateur",
+      motif: a.motif,
+      details: [a.qui ? `Concerne : ${a.qui}` : "", a.details].filter(Boolean).join(" — "),
+      lieu: a.lieu,
+      gps: a.gps || null,
+      surTrace: a.surTrace || null,
+      statut: "nouveau",
+      source: "Alerte balade",
+    };
+    await envoyerAvecFile(KEY_INTERVENTIONS, intervention, "ajout-liste");
+
     setShowAlarme(false);
   }
 

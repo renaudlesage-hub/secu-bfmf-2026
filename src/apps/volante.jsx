@@ -443,10 +443,20 @@ export default function AppVolante() {
                       <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
                         <span className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300">{s.heure}</span>
                         <span className="truncate text-slate-300 font-medium">{s.nom}</span>
+                        {s.source === "Alerte balade" && (
+                          <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-200 ring-1 ring-amber-400/25">
+                            BALADE
+                          </span>
+                        )}
                       </div>
                       {/* FIX : ALIGNEMENT ROBUSTE DE L'AFFICHAGE DU NOM DU INCIDENT/SOS */}
                       <h3 className="text-base font-bold text-white mt-1 leading-tight">
                         {s.motif || s.typeLabel || s.texte || "Alerte Secours Victime"}
+                        {s.lieu && !s.surTrace && (
+                          <span className="block text-[10px] font-normal text-amber-200/80 mt-0.5">
+                            Position déclarée : {s.lieu}
+                          </span>
+                        )}
                       </h3>
                     </div>
                     {s.tel && (

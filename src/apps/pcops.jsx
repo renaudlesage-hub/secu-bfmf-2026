@@ -424,13 +424,20 @@ export default function PcOps() {
       etat: statutIntervention(s),
       statutBrut: s.statut,
     })),
-    ...alertes.filter((a) => !a.acquittePar).map((a, i) => ({
-      id: "al" + i, heure: a.heure, motif: a.motif, details: a.details,
-      localisation: a.groupe || a.details,
-      type: typeIntervention(a.motif),
-      etat: "en_attente",
-      statutBrut: "alerte non acquittée",
-    })),
+    // Alertes équipes NON acquittées, et qui n'ont pas déjà généré une
+    // intervention suivie. Depuis que l'alerte balade crée sa propre
+    // intervention (avec statut évolutif), la compter ici en plus la
+    // ferait apparaître DEUX FOIS dans le bilan.
+    ...alertes
+      .filter((a) => !a.acquittePar)
+      .filter((a) => !a.id || !sosVisibles.some((s) => s.refAlerte === a.id))
+      .map((a, i) => ({
+        id: "al" + i, heure: a.heure, motif: a.motif, details: a.details,
+        localisation: a.groupe || a.details,
+        type: typeIntervention(a.motif),
+        etat: "en_attente",
+        statutBrut: "alerte non acquittée",
+      })),
   ];
 
   const intEnAttente = interventions.filter((i) => i.etat === "en_attente");
