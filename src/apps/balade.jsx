@@ -105,6 +105,7 @@ function posIndex(id) {
 import { ROLES } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 import { envoyer as envoyerAvecFile, demarrerRejeu } from "./file-attente";
+import { localiser } from "./referentiels";
 
 const SB_HEADERS = {
   apikey: SUPABASE_ANON_KEY,
@@ -253,11 +254,16 @@ export default function SuiviBalade() {
       auteur: signature,
       groupe: data.groupe || "",
       motif: data.motif || "Alerte",
-      lieu: data.lieu || "",
+      lieu: data.lieu || "",        // position DECLAREE : toujours presente
       qui: data.qui || "",
       details: data.details || "",
       acquittePar: "",
       heureAcquittement: "",
+      // Position GPS : COMPLEMENT facultatif. Absente si l'accompagnateur a
+      // refuse la localisation, si le GPS ne capte pas (couvert forestier) ou
+      // s'il n'a pas eu le temps. L'alerte part dans tous les cas.
+      gps: data.gps || null,
+      surTrace: data.surTrace || null,
     };
     setAlerte(a);
     await saveAlerte(a);
@@ -755,6 +761,40 @@ function AlarmeForm({ groupes, onClose, onDeclencher }) {
   const [lieu, setLieu] = useState(LIEUX_PARCOURS[0]);
   const [qui, setQui] = useState("");
   const [details, setDetails] = useState("");
+
+  // --- Position GPS : COMPLEMENT, jamais un prerequis --------------------
+  // On tente de capter la position des l'ouverture du formulaire, en tache
+  // de fond. Si ca echoue (refus, sous les arbres, pas le temps), l'alerte
+  // part quand meme avec la position DECLAREE, qui reste obligatoire.
+  const [gps, setGps] = useState(null);          // { lat, lon, precision }
+  const [surTrace, setSurTrace] = useState(null);
+  const [etatGps, setEtatGps] = useState("recherche"); // recherche|ok|refus|indispo
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setEtatGps("indispo"); return; }
+    let annule = false;
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (annule) return;
+        const lat = pos.coords.latitude, lon = pos.coords.longitude;
+        setGps({ lat, lon, precision: Math.round(pos.coords.accuracy || 0) });
+        try {
+          const l = localiser(lat, lon);
+          setSurTrace({
+            km: Math.round(l.kmTrace * 100) / 100,
+            segment: l.avant && l.apres ? `${l.avant.nom} → ${l.apres.nom}` : "",
+            reperePlusProche: l.plusProche ? l.plusProche.nom : "",
+            ecartMetres: Math.round(l.distTrace),
+          });
+        } catch (e) { /* projection impossible : on garde le GPS brut */ }
+        setEtatGps("ok");
+      },
+      () => { if (!annule) setEtatGps("refus"); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+    return () => { annule = true; navigator.geolocation.clearWatch(id); };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-[#1a212b] ring-2 ring-red-400/50 rounded-lg w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
@@ -804,8 +844,48 @@ function AlarmeForm({ groupes, onClose, onDeclencher }) {
             />
           </Field>
         </div>
+        {/* Etat de la position GPS : dire la verite, ne jamais laisser croire
+            qu'une position a ete transmise si ce n'est pas le cas. */}
+        <div className={`mt-3 rounded px-2.5 py-2 text-[11px] leading-snug ring-1 ${
+          etatGps === "ok" ? "ring-emerald-400/30 bg-emerald-400/[0.07] text-emerald-100"
+            : etatGps === "recherche" ? "ring-white/10 bg-white/[0.03] text-slate-300"
+            : "ring-amber-400/30 bg-amber-400/[0.07] text-amber-100"
+        }`}>
+          {etatGps === "ok" && (
+            <>
+              <span className="font-semibold">Position GPS captée</span>
+              {surTrace && (
+                <span className="block text-emerald-200/80">
+                  km {surTrace.km} · {surTrace.segment || surTrace.reperePlusProche}
+                  {surTrace.ecartMetres > 100 && ` · ${surTrace.ecartMetres} m de la trace`}
+                </span>
+              )}
+              <span className="block text-emerald-200/60">
+                Elle sera transmise en plus de la localisation choisie ci-dessus.
+              </span>
+            </>
+          )}
+          {etatGps === "recherche" && (
+            <>
+              Recherche de la position GPS…
+              <span className="block text-slate-500">
+                Inutile d'attendre : l'alerte peut partir tout de suite.
+              </span>
+            </>
+          )}
+          {(etatGps === "refus" || etatGps === "indispo") && (
+            <>
+              <span className="font-semibold">Pas de position GPS</span>
+              <span className="block text-amber-200/80">
+                Seule la localisation choisie ci-dessus sera transmise. Soyez précis
+                dans les détails (borne kilométrique, repère visible).
+              </span>
+            </>
+          )}
+        </div>
+
         <button
-          onClick={() => onDeclencher({ motif, groupe, lieu, qui: qui.trim(), details })}
+          onClick={() => onDeclencher({ motif, groupe, lieu, qui: qui.trim(), details, gps, surTrace })}
           className="w-full mt-4 text-sm font-mono font-semibold px-4 py-3 rounded ring-2 ring-red-400/70 bg-red-500/25 text-red-100 hover:bg-red-500/40 transition-colors"
         >
           DECLENCHER L'ALERTE

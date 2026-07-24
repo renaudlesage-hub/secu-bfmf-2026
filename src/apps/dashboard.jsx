@@ -598,7 +598,23 @@ export default function DashboardQG() {
                 <TriangleAlert className="w-4 h-4 text-red-400 pulse-slow shrink-0" />
                 <span className="font-bold text-red-200 uppercase shrink-0">SOS {al.source} :</span>
                 <span className="text-slate-200 truncate">
-                  "{al.motif}"{al.lieu ? ` · ${al.lieu}` : ""}{al.qui ? ` · concerne : ${al.qui}` : ""} {al.details} {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
+                  "{al.motif}"{al.lieu ? ` · ${al.lieu}` : ""}{al.qui ? ` · concerne : ${al.qui}` : ""} {al.details}
+                  {al.surTrace && (
+                    <span className="font-mono text-[11px] text-amber-200 ml-2">
+                      · km {al.surTrace.km}
+                      {al.surTrace.ecartMetres > 100 ? ` (${al.surTrace.ecartMetres} m hors trace)` : ""}
+                    </span>
+                  )}
+                  {al.gps && (
+                    <a
+                      href={`https://www.google.com/maps?q=${al.gps.lat},${al.gps.lon}`}
+                      target="_blank" rel="noreferrer"
+                      className="font-mono text-[11px] text-sky-300 hover:text-sky-200 underline ml-2"
+                    >
+                      voir sur la carte
+                    </a>
+                  )}
+                  {al.acquittePar && <span className="text-emerald-400 font-mono ml-2">✔️ Pris en compte par {al.acquittePar}</span>}
                 </span>
               </div>
               <div className="flex gap-1.5 justify-end shrink-0">
