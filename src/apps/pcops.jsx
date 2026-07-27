@@ -115,19 +115,29 @@ const DOCUMENTS = [
 
 const ACCES_SECOURS = [
   {
-    nom: "Accès principal — ENTREE FESTIVAL",
-    gps: "50.382457, 5.61623",
-    detail: "Croisement Rue Le Raumont et Cheminde l'Epine, largeur utile = 4m, double barrière Heras, revêtement = prairie.",
-    ouverture: "ouvert durant les heures du festival, ouvrable par le garde en nuit",
+    nom: "Accès principal — À COMPLÉTER",
+    gps: "50.3835, 5.6215",
+    detail: "À COMPLÉTER : rue exacte, largeur utile, portail/barrière, revêtement, pente.",
+    vehicules: "À COMPLÉTER : autopompe ? ambulance ? grue ?",
+    cle: "À COMPLÉTER : cadenas ? qui détient la clé ? joignable comment ?",
+  },
+  {
+    nom: "Accès parcours — voies secours balisées (carte officielle)",
+    gps: "50.38219, 5.63600",
+    detail: "3 voies d'accès depuis les PRV vers les scènes : Scène 1 par PRV#4 (721 m), "
+      + "Scène 2 par PRV#5 ressortant au PRV#6 (752 m), Scène 3 par PRV#7 (131 m). "
+      + "À COMPLÉTER : praticabilité 4x4, largeur utile, état par temps de pluie.",
+    vehicules: "À COMPLÉTER : ces voies sont-elles carrossables autopompe / ambulance ?",
+    cle: "À COMPLÉTER : barrière ou cadenas sur ces voies ?",
   },
 ];
 
 const POINT_RENCONTRE = {
-  lieu: "PRV#1 — Entrée fstival(Croisement Le Raumont – Chemin de l'Épine)",
-  gps: "50.382457, 5.61623",
-  qui: "Renaud LESAGE — Coordinateur sécurité",
+  lieu: "PRV#1 — Entrée site / Départ (Croisement Le Raumont – Chemin de l'Épine)",
+  gps: "50.38242, 5.61624",
+  qui: "Renaud — Coordinateur sécurité",
   tel: "0494 22 29 33",
-  suppleant: "Jérôme GROSJEAN — Directeur d'événement · 0477 99 48 42",
+  suppleant: "Jérôme — Directeur d'événement · 0477 99 48 42",
 };
 
 const RISQUES_SITE = [
@@ -342,8 +352,8 @@ export default function PcOps() {
         libelle: m.nature,
         gravite: m.bloquant === "Oui" || priorite(m.priorite).rang === 1 ? "grave" : "modere",
         localisation: `${m.zone}${m.localisation ? " · " + m.localisation : ""}`,
-        km: null,
-        gps: null,
+        km: m.surTrace ? m.surTrace.km : null,
+        gps: m.gps || null,
         statut: m.statut + (m.attribueA ? ` — ${m.attribueA}` : " — non attribuee"),
         details: "",
       });
@@ -414,6 +424,24 @@ export default function PcOps() {
       etat: statutIntervention(s),
       statutBrut: s.statut,
     })),
+    // Missions logistiques URGENTES (nées d'une demande urgente : elles
+    // portent un refAlerte). Elles doivent figurer dans le bilan comme les
+    // SOS, avec un cycle de statut suivable. Les missions logistiques
+    // ordinaires (P3/P4, sans refAlerte) restent hors bilan : maintenance,
+    // pas intervention de secours.
+    ...missions
+      .filter((m) => m.refAlerte && m.statut !== STATUT_RESOLU)
+      .map((m) => ({
+        id: m.id, heure: m.heureConstat, motif: m.nature, nom: m.attribueA || "",
+        details: m.details, gps: m.gps || null, surTrace: m.surTrace || null,
+        localisation: `${m.zone || ""}${m.localisation ? " · " + m.localisation : ""}`,
+        type: "Logistique",
+        etat: m.statut === "En cours" ? "prise_en_charge"
+            : m.statut === "Attribuee" ? "moyen_engage"
+            : "en_attente",
+        priorite: m.priorite || null,
+        statutBrut: `${priorite(m.priorite).court} · ${m.statut}`,
+      })),
     // Alertes équipes NON acquittées, et qui n'ont pas déjà généré une
     // intervention suivie. Depuis que l'alerte balade crée sa propre
     // intervention (avec statut évolutif), la compter ici en plus la
@@ -421,12 +449,20 @@ export default function PcOps() {
     ...alertes
       .filter((a) => !a.acquittePar)
       .filter((a) => !a.id || !sosVisibles.some((s) => s.refAlerte === a.id))
+      // L'alerte logistique urgente cree deja une mission P1 (ci-dessus) :
+      // ne pas la compter une 2e fois comme alerte en attente.
+      .filter((a) => !missions.some((m) => m.refAlerte === (a.heure + "|" + a.auteur)))
       .map((a, i) => ({
         id: "al" + i, heure: a.heure, motif: a.motif, details: a.details,
-        localisation: a.groupe || a.details,
+        localisation: a.groupe || a.lieu || a.details,
         type: typeIntervention(a.motif),
         etat: "en_attente",
-        statutBrut: "alerte non acquittée",
+        // Une demande urgente logistique porte une priorite P1 : on la
+        // remonte pour qu'elle soit classee comme les missions urgentes.
+        priorite: a.priorite || null,
+        gps: a.gps || null,
+        surTrace: a.surTrace || null,
+        statutBrut: a.priorite ? `${priorite(a.priorite).court} — non acquittée` : "alerte non acquittée",
       })),
   ];
 
@@ -1005,6 +1041,39 @@ const ETAT_STYLE = {
 };
 
 function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTries, surSite, persDehors }) {
+  // Tri de la liste. Par defaut : le plus RECENT en haut — en situation, on
+  // veut voir la derniere intervention immediatement, sans faire defiler.
+  const [tri, setTri] = useState("recent"); // recent | ancien | priorite
+
+  const rangEtat = { en_attente: 0, moyen_engage: 1, prise_en_charge: 2 };
+  const interventionsTriees = [...interventions].sort((a, b) => {
+    if (tri === "priorite") {
+      // P1 avant P2… ; a priorite egale, non pris en charge d'abord, puis recent
+      const pa = a.priorite ? priorite(a.priorite).rang : 99;
+      const pb = b.priorite ? priorite(b.priorite).rang : 99;
+      if (pa !== pb) return pa - pb;
+      const ea = rangEtat[a.etat] ?? 9, eb = rangEtat[b.etat] ?? 9;
+      if (ea !== eb) return ea - eb;
+      return (b.heure || "").localeCompare(a.heure || "");
+    }
+    // Tri chronologique par heure "HH:MM" (comparaison lexicographique OK)
+    const cmp = (a.heure || "").localeCompare(b.heure || "");
+    return tri === "recent" ? -cmp : cmp;
+  });
+
+  const BoutonTri = ({ id, children }) => (
+    <button
+      onClick={() => setTri(id)}
+      className={`text-[10px] font-mono px-2 py-1 rounded ring-1 transition-colors ${
+        tri === id
+          ? "ring-sky-400/50 bg-sky-400/15 text-sky-200 font-semibold"
+          : "ring-white/10 text-slate-400 hover:text-slate-200"
+      }`}
+    >
+      {children}
+    </button>
+  );
+
   return (
     <div className="space-y-4">
       {/* 1. BILAN DES INTERVENTIONS (toutes natures) */}
@@ -1038,8 +1107,15 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
             <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Aucune intervention en cours.
           </div>
         ) : (
-          <div className="space-y-1.5">
-            {interventions.map((it) => {
+          <>
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mr-1">Trier :</span>
+              <BoutonTri id="recent">Plus récent</BoutonTri>
+              <BoutonTri id="ancien">Plus ancien</BoutonTri>
+              <BoutonTri id="priorite">Priorité</BoutonTri>
+            </div>
+            <div className="space-y-1.5">
+            {interventionsTriees.map((it) => {
               const es = ETAT_STYLE[it.etat] || ETAT_STYLE.en_attente;
               return (
                 <div key={it.id} className={`rounded px-2.5 py-2 ring-1 ${es.cls} text-xs`}>
@@ -1066,6 +1142,7 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
               );
             })}
           </div>
+          </>
         )}
         <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
           Toutes les interventions en cours (médicales, sûreté, incendie, personne recherchée, technique),

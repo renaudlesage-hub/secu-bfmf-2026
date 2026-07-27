@@ -422,6 +422,20 @@ export default function AppVolante() {
             <div className="text-[11px] font-mono text-red-300/70 mt-1">
               Heure : {a.heure} · Auteur : {a.auteur} {a.groupe ? `· Unité : ${a.groupe}` : ""} {a.lieu ? `· Lieu : ${a.lieu}` : ""} {a.qui ? `· Concerne : ${a.qui}` : ""} {a.details ? `— ${a.details}` : ""}
             </div>
+            {a.surTrace && (
+              <div className="text-[11px] font-mono text-amber-300 mt-1">
+                📍 km {a.surTrace.km}{a.surTrace.segment ? ` · ${a.surTrace.segment}` : ""}
+                {a.surTrace.ecartMetres > 100 ? ` (${a.surTrace.ecartMetres} m hors trace)` : ""}
+              </div>
+            )}
+            {a.gps && (
+              <button
+                onClick={() => guiderVers(`Alerte ${a.source}`, a.gps.lat, a.gps.lon, a.motif)}
+                className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-mono font-bold px-3 py-2.5 rounded-xl ring-1 ring-red-500/40 bg-red-500/10 text-red-200 active:bg-red-500/30"
+              >
+                <MapPin className="w-4 h-4" /> Se rendre sur place
+              </button>
+            )}
           </div>
         ))}
 
@@ -576,7 +590,10 @@ export default function AppVolante() {
           <div className="space-y-2.5">
             {mesMissions.length === 0 && <div className="text-xs text-slate-500 text-center py-6 border border-dashed border-white/5 rounded-xl">Aucun fret logistique ni mission attribuée.</div>}
             {mesMissions.map((m) => {
-              const pt = POINTS[ZONE_VERS_POINT[m.zone] || ""] ? { nom: ZONE_VERS_POINT[m.zone], ...POINTS[ZONE_VERS_POINT[m.zone]] } : null;
+              // Priorite au GPS de la mission (demande urgente geolocalisee) ;
+              // a defaut, on retombe sur le mapping zone -> point de repere.
+              const ptZone = POINTS[ZONE_VERS_POINT[m.zone] || ""] ? { nom: ZONE_VERS_POINT[m.zone], ...POINTS[ZONE_VERS_POINT[m.zone]] } : null;
+              const cible = m.gps ? { nom: m.zone || "Position", lat: m.gps.lat, lon: m.gps.lon } : ptZone;
               return (
                 <div key={m.id || m.ref} className="rounded-xl p-3 bg-black/20 border border-white/5">
                   <div className="flex items-center gap-2 text-sm font-semibold">
@@ -589,9 +606,9 @@ export default function AppVolante() {
                     {m.delaiSouhaite ? ` · Échéance : ${m.delaiSouhaite}` : ""}
                   </div>
                   <div className="flex gap-2 mt-3 pl-4">
-                    {pt && (
+                    {cible && (
                       <button
-                        onClick={() => guiderVers(`Livraison: ${pt.nom}`, pt.lat, pt.lon, `Fret ${m.ref}`)}
+                        onClick={() => guiderVers(`Livraison: ${cible.nom}`, cible.lat, cible.lon, `Fret ${m.ref}`)}
                         className="text-xs font-mono font-bold px-3 py-2 rounded-xl ring-1 ring-white/10 bg-white/5 text-slate-300 flex items-center gap-1 active:bg-white/10"
                       >
                         <Compass className="w-3.5 h-3.5" /> Itinéraire

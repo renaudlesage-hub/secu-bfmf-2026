@@ -117,7 +117,10 @@ const inputCls =
 
 const MISSIONS_DEMO = [];
 
-import { ROLES, PRIORITES, PRIORITE_DEFAUT, STATUTS, STATUT_INITIAL, priorite, POINTS_GPS } from "./referentiels";
+import { ROLES, PRIORITES, PRIORITE_DEFAUT, STATUTS, STATUT_INITIAL, priorite, POINTS_GPS, localiser } from "./referentiels";
+
+// Cle P1 du referentiel : une demande urgente est prioritaire par definition.
+const PRIORITE_URGENTE = Object.keys(PRIORITES).find((k) => PRIORITES[k].court === "P1") || Object.keys(PRIORITES)[0];
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 
 const SB_HEADERS = {
@@ -232,11 +235,56 @@ export default function LogistiqueMissions() {
       lieu: data.lieu || "",
       qui: data.qui || "",
       details: data.details || "",
+      // Une "demande urgente" est P1 par nature (traitement immediat).
+      // Meme echelle de priorite que les missions -> coherence au PC-Ops.
+      priorite: PRIORITE_URGENTE,
+      // Position GPS du demandeur (sur place) : complement de la zone.
+      gps: data.gps || null,
+      surTrace: (() => {
+        if (!data.gps) return null;
+        try {
+          const p = localiser(data.gps.lat, data.gps.lon);
+          return {
+            km: Math.round(p.kmTrace * 100) / 100,
+            segment: p.avant && p.apres ? `${p.avant.nom} → ${p.apres.nom}` : "",
+            ecartMetres: Math.round(p.distTrace),
+          };
+        } catch (e) { return null; }
+      })(),
       acquittePar: "",
       heureAcquittement: "",
     };
     setAlerte(a);
     await kvSet(ALERT_KEY, a);
+
+    // --- Traçabilité dans le moniteur logistique -------------------------
+    // Le bandeau rouge alerte tout le monde immédiatement, mais il ne
+    // permet pas de SUIVRE la demande (prise en compte, résolution). On
+    // crée donc AUSSI une mission P1, exactement comme "Nouvelle demande",
+    // pour qu'elle apparaisse dans le moniteur et suive un cycle de statut.
+    const refMission = genRef(missions.length);
+    const mission = {
+      id: "urg-" + Date.now(),
+      refAlerte: a.heure + "|" + a.auteur,   // lien avec le bandeau (anti-doublon)
+      ref: refMission,
+      nature: `[DEMANDE URGENTE] ${a.motif}`,
+      details: a.details,
+      zone: a.lieu,
+      localisation: POINTS_GPS[a.lieu]?.segment || "",
+      gps: a.gps || null,
+      surTrace: a.surTrace || null,
+      priorite: PRIORITE_URGENTE,
+      bloquant: "Oui",
+      concerne: a.qui || "",
+      heureConstat: a.heure,
+      statut: "A traiter",
+      attribueA: "", responsableSuivi: "", heurePriseEnCompte: "",
+      heureEstimeeResolution: "", actionEffectuee: "", realiseePar: "",
+      regleTotalement: "", risqueResiduel: "", pointREX: "",
+      historique: [{ heure: a.heure, texte: `Demande urgente déclenchée par ${a.auteur}` }],
+    };
+    await persist([mission, ...missions]);
+
     setShowAlarme(false);
   }
 
@@ -330,9 +378,6 @@ export default function LogistiqueMissions() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <button onClick={() => setShowAlarme(true)} className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded ring-2 ring-red-400/60 bg-red-500/20 text-red-200 hover:bg-red-500/30 font-semibold">
-              <TriangleAlert className="w-4 h-4" /> SOS
-            </button>
             <button
               onClick={() => setVue(vue === "qr" ? "missions" : "qr")}
               className={`flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${
@@ -420,6 +465,13 @@ export default function LogistiqueMissions() {
           <div className="flex gap-2">
             <button onClick={exportCSV} className="text-xs font-mono px-3 py-1.5 rounded ring-1 ring-white/10 text-slate-400"><Download className="w-3.5 h-3.5 inline mr-1" /> Export CSV</button>
             <button onClick={() => setShowForm(true)} className="text-xs font-mono px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30"><Plus className="w-3.5 h-3.5 inline mr-1" /> Nouvelle demande</button>
+            {/* Demande URGENTE d'appui : alerte le QG et la volante via le
+                bandeau partagé. Ce n'est PAS le SOS sécurité (géolocalisé,
+                en haut à droite) : ici on demande un renfort / du matériel,
+                pas une urgence vitale. */}
+            <button onClick={() => setShowAlarme(true)} className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded ring-2 ring-amber-400/60 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 font-semibold">
+              <TriangleAlert className="w-3.5 h-3.5" /> Demande urgente
+            </button>
           </div>
         </div>
 
@@ -491,10 +543,34 @@ function AlarmeForm({ onClose, onDeclencher }) {
   const [qui, setQui] = useState("");
   const [details, setDetails] = useState("");
   const valide = details.trim().length >= 5;
+
+  // Position GPS : COMPLEMENT de la zone (qui reste obligatoire), jamais un
+  // prerequis. Une demande urgente est declenchee par quelqu'un SUR PLACE :
+  // sa position precise le lieu exact du probleme. Captee en tache de fond ;
+  // si elle echoue, la demande part quand meme avec la zone choisie.
+  const [gps, setGps] = useState(null);
+  const [etatGps, setEtatGps] = useState("recherche"); // recherche|ok|refus|indispo
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setEtatGps("indispo"); return; }
+    let annule = false;
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (annule) return;
+        setGps({ lat: pos.coords.latitude, lon: pos.coords.longitude, precision: Math.round(pos.coords.accuracy || 0) });
+        setEtatGps("ok");
+      },
+      () => { if (!annule) setEtatGps("refus"); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+    return () => { annule = true; navigator.geolocation.clearWatch(id); };
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50" onClick={onClose}>
       <div className="bg-[#1a212b] p-5 rounded-lg max-w-sm w-full space-y-3" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-red-300 font-display">Alerte Générale — SOS Équipe</h3>
+        <h3 className="text-amber-300 font-display">Demande urgente au QG</h3>
+        <p className="text-[11px] text-slate-400 leading-snug">Pour un besoin d'appui (renfort, matériel, panne), traité <span className="text-red-300 font-semibold">en priorité P1</span> au QG. Pour une <span className="text-red-300">urgence vitale</span>, utilisez le bouton SOS rouge en haut à droite, ou le 112.</p>
 
         <div>
           <div className="text-[11px] font-mono text-slate-300 uppercase mb-1">Nature de l'alerte *</div>
@@ -508,6 +584,20 @@ function AlarmeForm({ onClose, onDeclencher }) {
           <select className={inputCls} value={lieu} onChange={(e) => setLieu(e.target.value)}>
             {Object.keys(POINTS_GPS).map((z) => <option key={z} value={z}>{z}</option>)}
           </select>
+          {/* Etat de la position GPS : dire la verite, ne jamais laisser croire
+              qu'une position precise est partie si ce n'est pas le cas. */}
+          <div className={`mt-1.5 rounded px-2 py-1.5 text-[10px] leading-snug ring-1 flex items-start gap-1.5 ${
+            etatGps === "ok" ? "ring-emerald-400/30 bg-emerald-400/[0.07] text-emerald-100"
+              : etatGps === "recherche" ? "ring-white/10 bg-white/[0.03] text-slate-400"
+              : "ring-amber-400/30 bg-amber-400/[0.07] text-amber-100"
+          }`}>
+            <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
+            <span>
+              {etatGps === "ok" && <>Position GPS captée{gps && gps.precision ? ` (~${gps.precision} m)` : ""} — ajoutée à la zone pour préciser l'endroit exact.</>}
+              {etatGps === "recherche" && <>Recherche de la position GPS… l'envoi reste possible tout de suite.</>}
+              {(etatGps === "refus" || etatGps === "indispo") && <>Pas de position GPS — seule la zone sera transmise.</>}
+            </span>
+          </div>
         </div>
 
         <div>
@@ -524,10 +614,10 @@ function AlarmeForm({ onClose, onDeclencher }) {
 
         <button
           disabled={!valide}
-          onClick={() => onDeclencher({ motif, lieu, qui: qui.trim(), details: details.trim() })}
-          className={`w-full py-2.5 rounded font-mono font-semibold transition-colors ${valide ? "bg-red-600 text-white hover:bg-red-500" : "bg-white/5 text-slate-600 cursor-not-allowed"}`}
+          onClick={() => onDeclencher({ motif, lieu, qui: qui.trim(), details: details.trim(), gps })}
+          className={`w-full py-2.5 rounded font-mono font-semibold transition-colors ${valide ? "bg-amber-600 text-white hover:bg-amber-500" : "bg-white/5 text-slate-600 cursor-not-allowed"}`}
         >
-          LANCER L'ALERTE
+          ENVOYER LA DEMANDE
         </button>
         <div className="text-[10px] text-slate-500 text-center">Visible immédiatement au QG (dashboard) et sur l'app Volante. Doubler à la radio (PMR4.1, PMR333 si vital).</div>
       </div>
