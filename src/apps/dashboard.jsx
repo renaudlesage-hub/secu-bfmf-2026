@@ -912,6 +912,23 @@ export default function DashboardQG() {
                   <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
                 </div>
               ))}
+              {/* Missions logistiques géolocalisées (dont demandes urgentes) :
+                  marqueur ambre, pour les voir sur le parcours comme les SOS. */}
+              {logOuvertes.filter((m) => m && m.surTrace && m.surTrace.km != null).map((m) => (
+                <div key={m.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(m.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`${m.nature} · km ${m.surTrace.km}`}>
+                  <TriangleAlert className="w-3.5 h-3.5 text-amber-400 pulse-slow" />
+                </div>
+              ))}
+              {/* Alertes équipe géolocalisées, sauf celles déjà représentées
+                  par une mission (demande urgente = mission + alerte). */}
+              {alertesCrises
+                .filter((a) => a && a.surTrace && a.surTrace.km != null)
+                .filter((a) => !logOuvertes.some((m) => m.refAlerte === (a.heure + "|" + a.auteur)))
+                .map((a, i) => (
+                  <div key={"al" + i} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(a.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`Alerte ${a.source} : ${a.motif} · km ${a.surTrace.km}`}>
+                    <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
+                  </div>
+                ))}
             </div>
             <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1 mt-1">
               <span>Attente P0 : {persAttente}</span>

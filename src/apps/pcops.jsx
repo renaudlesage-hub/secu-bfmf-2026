@@ -328,15 +328,18 @@ export default function PcOps() {
 
   alertes.forEach((a, i) => {
     if (a.acquittePar) return;
+    // Anti-doublon : si cette alerte a deja genere une mission (demande
+    // urgente logistique), la mission la represente deja sur la frise.
+    if (missions.some((m) => m.refAlerte === (a.heure + "|" + a.auteur))) return;
     evenements.push({
       id: "al" + i,
       heure: a.heure,
       type: "Alerte " + a.source.toLowerCase(),
       libelle: a.motif,
       gravite: "critique",
-      localisation: a.groupe || a.details || "Voir QG",
-      km: null,
-      gps: null,
+      localisation: a.groupe || a.lieu || a.details || "Voir QG",
+      km: a.surTrace ? a.surTrace.km : null,
+      gps: a.gps || null,
       statut: "Non acquittee",
       details: a.details,
     });
@@ -709,11 +712,20 @@ export default function PcOps() {
                 </div>
               );
             })}
-            {evenements.filter((e) => e.type === "SOS participant" && e.km !== null).map((e) => (
-              <div key={e.id} className="absolute top-10" style={{ left: `calc(${(Math.min(e.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 6px)` }} title={e.libelle}>
-                <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
-              </div>
-            ))}
+            {evenements.filter((e) => e.km !== null && e.km !== undefined).map((e) => {
+              // Couleur du marqueur selon l'origine : SOS/secours en rouge,
+              // logistique en ambre, autres selon gravite. Tous les evenements
+              // geolocalises apparaissent, plus seulement les SOS participants.
+              const estLog = (e.type || "").startsWith("Logistique");
+              const couleur = e.gravite === "critique" ? "text-red-400"
+                : estLog ? "text-amber-400"
+                : "text-red-400";
+              return (
+                <div key={e.id} className="absolute top-10" style={{ left: `calc(${(Math.min(e.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 6px)` }} title={`${e.libelle}${e.km != null ? ` · km ${e.km}` : ""}`}>
+                  <TriangleAlert className={`w-3.5 h-3.5 ${couleur} pulse-slow`} />
+                </div>
+              );
+            })}
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-2">
