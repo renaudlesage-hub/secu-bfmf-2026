@@ -249,6 +249,10 @@ export default function PcOps() {
   const [consigne, setConsigne] = useState(null);
   const [meteoLive, setMeteoLive] = useState(null);
   const [sbError, setSbError] = useState(false);
+  // Tri de la LISTE des évènements en cours (indépendant du tri interne qui
+  // sert la frise et les compteurs). Par défaut : gravité d'abord — en cellule
+  // de crise, le plus grave prime sur le plus récent.
+  const [triEvt, setTriEvt] = useState("gravite"); // gravite | recent | ancien
   const [maj, setMaj] = useState(null);
   const [now, setNow] = useState(new Date());
   const [crise, setCrise] = useState(null);
@@ -366,6 +370,17 @@ export default function PcOps() {
     const ga = GRAV[a.gravite].rang, gb = GRAV[b.gravite].rang;
     if (ga !== gb) return gb - ga;
     return (b.heure || "").localeCompare(a.heure || "");
+  });
+
+  // Liste ré-ordonnée pour l'AFFICHAGE, selon le choix de l'utilisateur.
+  const evenementsAffiches = [...evenements].sort((a, b) => {
+    if (triEvt === "gravite") {
+      const ga = GRAV[a.gravite].rang, gb = GRAV[b.gravite].rang;
+      if (ga !== gb) return gb - ga;
+      return (b.heure || "").localeCompare(a.heure || "");
+    }
+    const cmp = (a.heure || "").localeCompare(b.heure || "");
+    return triEvt === "recent" ? -cmp : cmp;
   });
 
   /* --------------------------- Crowd management --------------------------- */
@@ -777,13 +792,31 @@ export default function PcOps() {
             <TriangleAlert className="w-4 h-4 text-slate-500" /> EVENEMENTS EN COURS
             <span className="text-[11px] font-mono text-slate-500 font-normal">{evenements.length}</span>
           </h2>
+          {evenements.length > 0 && (
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mr-1">Trier :</span>
+              {[["gravite", "Gravité"], ["recent", "Plus récent"], ["ancien", "Plus ancien"]].map(([id, lbl]) => (
+                <button
+                  key={id}
+                  onClick={() => setTriEvt(id)}
+                  className={`text-[10px] font-mono px-2 py-1 rounded ring-1 transition-colors ${
+                    triEvt === id
+                      ? "ring-sky-400/50 bg-sky-400/15 text-sky-200 font-semibold"
+                      : "ring-white/10 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="space-y-2">
             {evenements.length === 0 && (
               <div className="text-xs text-slate-500 text-center py-4 flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Aucun evenement en cours.
               </div>
             )}
-            {evenements.map((e) => {
+            {evenementsAffiches.map((e) => {
               const g = GRAV[e.gravite] || GRAV["modere"];
               return (
                 <div key={e.id} className={`rounded-md px-3 py-2.5 ring-1 ${g.ring} ${g.bg}`}>
