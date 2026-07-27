@@ -52,6 +52,8 @@ const T = [
   ['dashboard — frise alertes geolocalisees', lire('src/apps/dashboard.jsx').includes('alertesCrises')],
   ['dashboard — frise anti-doublon', lire('src/apps/dashboard.jsx').includes('m.refAlerte === (a.heure')],
   ['pcops — tri evenements situation', lire('src/apps/pcops.jsx').includes('evenementsAffiches')],
+  ['synchro — stocksbar indicateur', lire('src/apps/StocksBar.jsx').includes('syncError')],
+  ['synchro — balade indicateur lecture', lire('src/apps/balade.jsx').includes('setSyncError')],
   ['sos — blindage tableau', lire('src/apps/sos.jsx').includes('Array.isArray(brut)')],
   ['dashboard — acquittement SOS fusion', lire('src/apps/dashboard.jsx').includes('if (keyDb === KEY_SOS_PART)')],
   ['dashboard — operateur modifiable', lire('src/apps/dashboard.jsx').includes('OPERATEUR_KEY')],

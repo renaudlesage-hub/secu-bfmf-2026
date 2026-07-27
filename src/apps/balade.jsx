@@ -137,11 +137,9 @@ async function kvSet(key, value) {
 }
 
 async function loadGroupes() {
-  try {
-    return await kvGet(STORAGE_KEY);
-  } catch (e) {
-    return null;
-  }
+  // Laisse remonter l'exception : le refresh distingue ainsi une perte de
+  // synchronisation (reseau) d'une absence legitime de donnees.
+  return await kvGet(STORAGE_KEY);
 }
 async function saveGroupes(g) {
   try {
@@ -187,6 +185,8 @@ export default function SuiviBalade() {
   const [groupes, setGroupes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState(false);
+  // Perte de synchronisation en LECTURE (distincte de saveError = écriture).
+  const [syncError, setSyncError] = useState(false);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [now, setNow] = useState(new Date());
@@ -208,13 +208,19 @@ export default function SuiviBalade() {
   }, []);
 
   const refresh = useCallback(async (initial = false) => {
-    const [data, al] = await Promise.all([loadGroupes(), loadAlerte()]);
-    if (data) setGroupes(data);
-    else if (initial) {
-      setGroupes(GROUPES_DEMO);
-      await saveGroupes(GROUPES_DEMO);
+    try {
+      const [data, al] = await Promise.all([loadGroupes(), loadAlerte()]);
+      if (data) setGroupes(data);
+      else if (initial) {
+        setGroupes(GROUPES_DEMO);
+        await saveGroupes(GROUPES_DEMO);
+      }
+      setAlerte(al && al.active ? al : null);
+      setSyncError(false);
+    } catch (e) {
+      // Lecture Supabase impossible : les groupes affichés peuvent être périmés.
+      setSyncError(true);
     }
-    setAlerte(al && al.active ? al : null);
     setLoading(false);
   }, []);
 
@@ -524,6 +530,12 @@ export default function SuiviBalade() {
                     accuse reception ("Bien recu"), le QG cloture. */}
               </div>
             </div>
+          </div>
+        )}
+        {syncError && (
+          <div className="rounded-md bg-red-500/10 ring-1 ring-red-500/30 text-red-300 text-xs px-3 py-2 flex items-center gap-2">
+            <TriangleAlert className="w-4 h-4 shrink-0" />
+            Synchronisation interrompue — les positions affichées peuvent ne pas être à jour.
           </div>
         )}
         {saveError && (

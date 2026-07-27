@@ -38,6 +38,9 @@ export default function StocksBar() {
   const [vue, setVue] = useState("saisie"); // saisie | suivi
   const [tousStocks, setTousStocks] = useState(null); // { barId: items[] }
   const [loadingSuivi, setLoadingSuivi] = useState(false);
+  // Perte de synchronisation : vrai quand une lecture Supabase echoue.
+  // Sinon les stocks affiches pourraient etre perimes sans que le bar le sache.
+  const [syncError, setSyncError] = useState(false);
 
   // Charger les 4 bars d'un coup pour le suivi general
   async function loadTousStocks() {
@@ -55,9 +58,10 @@ export default function StocksBar() {
         })
       );
       setTousStocks(Object.fromEntries(resultats));
+      setSyncError(false);
     } catch (e) {
       console.error("Erreur chargement suivi general", e);
-      setTousStocks({});
+      setSyncError(true);
     } finally {
       setLoadingSuivi(false);
     }
@@ -83,6 +87,7 @@ export default function StocksBar() {
         );
         if (r.ok) {
           const j = await r.json();
+          setSyncError(false);
           if (j.length && Array.isArray(j[0].value)) {
             const savedData = j[0].value;
             const filledData = [...savedData];
@@ -96,10 +101,12 @@ export default function StocksBar() {
           }
         } else {
           setItems(INITIAL_ROWS);
+          setSyncError(true);
         }
       } catch (e) {
         console.error(`Erreur de chargement des stocks pour ${activeBar}`, e);
         setItems(INITIAL_ROWS);
+        setSyncError(true);
       } finally {
         setLoading(false);
       }
@@ -159,6 +166,14 @@ export default function StocksBar() {
     <div className="min-h-screen bg-[#0d1117] text-slate-100 font-sans p-4">
       <div className="max-w-5xl mx-auto space-y-4">
         
+        {/* Perte de synchronisation : les stocks affichés peuvent être périmés */}
+        {syncError && (
+          <div className="rounded-lg bg-red-500/10 ring-1 ring-red-500/30 text-red-300 text-xs font-mono px-3 py-2.5 flex items-center gap-2">
+            <TriangleAlert className="w-4 h-4 shrink-0" />
+            Synchronisation interrompue — les stocks affichés peuvent ne pas être à jour. Vos saisies sont conservées et repartiront au retour du réseau.
+          </div>
+        )}
+
         {/* En-tête de l'application */}
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#131a22] p-4 rounded-lg ring-1 ring-white/10">
           <div className="flex items-center gap-3">
