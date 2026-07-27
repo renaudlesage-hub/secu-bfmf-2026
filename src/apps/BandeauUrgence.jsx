@@ -124,6 +124,107 @@ export default function BandeauUrgence() {
   }
 
   return (
+    <>
+      {/* Bouton SOS flottant, en haut à droite — visible immédiatement,
+          comme le SOS du header de l'app balade. Absent sur la balade
+          (qui a son propre système d'alerte). top-16 laisse la place au
+          bandeau de crise quand il s'affiche en haut. */}
+      {sosTerrainActif && !sosOuvert && (
+        <button
+          onClick={() => setSosOuvert(true)}
+          className="fixed top-16 right-3 z-[55] flex items-center gap-1.5 text-xs font-mono font-semibold px-3 py-2 rounded-xl ring-2 ring-red-400/60 bg-red-500/25 text-red-100 shadow-2xl active:bg-red-500/40"
+          title="Prévenir le QG"
+        >
+          <TriangleAlert className="w-4 h-4" /> SOS
+        </button>
+      )}
+
+      {/* Panneau SOS en overlay centré (déclenché depuis le bouton flottant) */}
+      {sosTerrainActif && sosOuvert && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/60" onClick={() => { setSosOuvert(false); setEnvoi("idle"); }}>
+          <div className="w-full max-w-sm rounded-xl ring-1 ring-red-500/50 bg-[#141a22] shadow-2xl p-3 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Garde absolue : l'app ne remplace jamais le 112 */}
+            <a
+              href="tel:112"
+              className="flex items-center justify-center gap-2 rounded-lg py-3 mb-3 ring-2 ring-red-500/60 bg-red-500/20 active:bg-red-500/35 font-bold text-red-100"
+            >
+              <PhoneCall className="w-5 h-5" /> URGENCE VITALE → APPELER LE 112
+            </a>
+            <div className="text-[10px] text-slate-400 leading-snug mb-3 text-center">
+              Le bouton ci-dessous <span className="text-slate-200">prévient le QG</span> pour qu'il
+              coordonne et engage la volante. Il ne remplace pas le 112 : en cas de danger vital,
+              téléphonez d'abord.
+            </div>
+
+            {envoi === "ok" ? (
+              <div className="flex items-center justify-center gap-2 py-4 text-emerald-300 font-semibold">
+                <Check className="w-5 h-5" /> Le QG est prévenu.
+              </div>
+            ) : (
+              <>
+                {/* Etat de la position GPS : dire la verite, ne jamais laisser
+                    croire qu'une position est partie si ce n'est pas le cas. */}
+                <div className={`rounded px-2 py-1.5 mb-2.5 text-[10px] leading-snug ring-1 ${
+                  etatGps === "ok" ? "ring-emerald-400/30 bg-emerald-400/[0.07] text-emerald-100"
+                    : etatGps === "recherche" ? "ring-white/10 bg-white/[0.03] text-slate-400"
+                    : "ring-amber-400/30 bg-amber-400/[0.07] text-amber-100"
+                }`}>
+                  {etatGps === "ok" && <>Position GPS captée — elle sera transmise au QG{gps && gps.precision ? ` (précision ~${gps.precision} m)` : ""}.</>}
+                  {etatGps === "recherche" && <>Recherche de la position GPS… l'envoi reste possible tout de suite.</>}
+                  {(etatGps === "refus" || etatGps === "indispo") && <>Pas de position GPS — précisez bien le lieu ci-dessous.</>}
+                </div>
+
+                <div className="text-[10px] font-mono uppercase tracking-wider text-red-300/80 mb-1.5">
+                  Prévenir le QG — motif
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 mb-2.5">
+                  {MOTIFS_TERRAIN.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setMotif(m)}
+                      className={`text-[11px] rounded px-2 py-2 ring-1 text-left transition-colors ${
+                        motif === m
+                          ? "ring-red-400/60 bg-red-500/20 text-red-100 font-semibold"
+                          : "ring-white/10 bg-white/[0.02] text-slate-300 active:bg-white/[0.06]"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  value={precision}
+                  onChange={(e) => setPrecision(e.target.value)}
+                  placeholder="Où exactement, combien de personnes…"
+                  className="w-full bg-black/40 border border-white/10 rounded px-2.5 py-2 text-xs text-white mb-2.5 placeholder:text-slate-600"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setSosOuvert(false); setEnvoi("idle"); }}
+                    className="px-3 py-2.5 rounded ring-1 ring-white/15 text-slate-400 text-xs active:bg-white/5"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={envoyerSos}
+                    disabled={envoi === "envoi"}
+                    className="flex-1 flex items-center justify-center gap-2 rounded py-2.5 ring-2 ring-red-400/70 bg-red-500/25 text-red-100 font-mono text-xs font-bold active:bg-red-500/40 disabled:opacity-50"
+                  >
+                    {envoi === "envoi" ? "ENVOI…" : <><Send className="w-4 h-4" /> PRÉVENIR LE QG</>}
+                  </button>
+                </div>
+                {envoi === "erreur" && (
+                  <div className="text-[10px] text-amber-300 mt-2 text-center leading-snug">
+                    Réseau indisponible — le message est en file d'attente et partira au retour du réseau.
+                    Pour une urgence vitale, appelez le 112.
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
     <div className="sticky bottom-0 left-0 right-0 z-40 pointer-events-none">
       {/* pl-16 sur mobile : laisse la place au bouton menu (bas a gauche) */}
       <div className="max-w-3xl mx-auto pl-16 pr-2 md:px-2 pb-2 pointer-events-auto">
@@ -225,100 +326,6 @@ export default function BandeauUrgence() {
           </div>
         )}
 
-        {/* ================= SOS TERRAIN ================= */}
-        {sosTerrainActif && sosOuvert && (
-          <div className="rounded-t-xl ring-1 ring-red-500/50 bg-[#141a22] shadow-2xl p-3 mb-0.5">
-            {/* Garde absolue : l'app ne remplace jamais le 112 */}
-            <a
-              href="tel:112"
-              className="flex items-center justify-center gap-2 rounded-lg py-3 mb-3 ring-2 ring-red-500/60 bg-red-500/20 active:bg-red-500/35 font-bold text-red-100"
-            >
-              <PhoneCall className="w-5 h-5" /> URGENCE VITALE → APPELER LE 112
-            </a>
-            <div className="text-[10px] text-slate-400 leading-snug mb-3 text-center">
-              Le bouton ci-dessous <span className="text-slate-200">prévient le QG</span> pour qu'il
-              coordonne et engage la volante. Il ne remplace pas le 112 : en cas de danger vital,
-              téléphonez d'abord.
-            </div>
-
-            {envoi === "ok" ? (
-              <div className="flex items-center justify-center gap-2 py-4 text-emerald-300 font-semibold">
-                <Check className="w-5 h-5" /> Le QG est prévenu.
-              </div>
-            ) : (
-              <>
-                {/* Etat de la position GPS : dire la verite, ne jamais laisser
-                    croire qu'une position est partie si ce n'est pas le cas. */}
-                <div className={`rounded px-2 py-1.5 mb-2.5 text-[10px] leading-snug ring-1 ${
-                  etatGps === "ok" ? "ring-emerald-400/30 bg-emerald-400/[0.07] text-emerald-100"
-                    : etatGps === "recherche" ? "ring-white/10 bg-white/[0.03] text-slate-400"
-                    : "ring-amber-400/30 bg-amber-400/[0.07] text-amber-100"
-                }`}>
-                  {etatGps === "ok" && <>Position GPS captée — elle sera transmise au QG{gps && gps.precision ? ` (précision ~${gps.precision} m)` : ""}.</>}
-                  {etatGps === "recherche" && <>Recherche de la position GPS… l'envoi reste possible tout de suite.</>}
-                  {(etatGps === "refus" || etatGps === "indispo") && <>Pas de position GPS — précisez bien le lieu ci-dessous.</>}
-                </div>
-
-                <div className="text-[10px] font-mono uppercase tracking-wider text-red-300/80 mb-1.5">
-                  Prévenir le QG — motif
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 mb-2.5">
-                  {MOTIFS_TERRAIN.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setMotif(m)}
-                      className={`text-[11px] rounded px-2 py-2 ring-1 text-left transition-colors ${
-                        motif === m
-                          ? "ring-red-400/60 bg-red-500/20 text-red-100 font-semibold"
-                          : "ring-white/10 bg-white/[0.02] text-slate-300 active:bg-white/[0.06]"
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  value={precision}
-                  onChange={(e) => setPrecision(e.target.value)}
-                  placeholder="Où exactement, combien de personnes…"
-                  className="w-full bg-black/40 border border-white/10 rounded px-2.5 py-2 text-xs text-white mb-2.5 placeholder:text-slate-600"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setSosOuvert(false); setEnvoi("idle"); }}
-                    className="px-3 py-2.5 rounded ring-1 ring-white/15 text-slate-400 text-xs active:bg-white/5"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={envoyerSos}
-                    disabled={envoi === "envoi"}
-                    className="flex-1 flex items-center justify-center gap-2 rounded py-2.5 ring-2 ring-red-400/70 bg-red-500/25 text-red-100 font-mono text-xs font-bold active:bg-red-500/40 disabled:opacity-50"
-                  >
-                    {envoi === "envoi" ? "ENVOI…" : <><Send className="w-4 h-4" /> PRÉVENIR LE QG</>}
-                  </button>
-                </div>
-                {envoi === "erreur" && (
-                  <div className="text-[10px] text-amber-300 mt-2 text-center leading-snug">
-                    Réseau indisponible — le message est en file d'attente et partira au retour du réseau.
-                    Pour une urgence vitale, appelez le 112.
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Bouton d'ouverture du SOS terrain (absent sur l'app balade) */}
-        {sosTerrainActif && !sosOuvert && (
-          <button
-            onClick={() => setSosOuvert(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 mb-0.5 rounded-xl ring-2 ring-red-500/60 bg-red-500/20 text-red-100 font-mono text-xs font-bold tracking-wider shadow-2xl active:bg-red-500/35"
-          >
-            <TriangleAlert className="w-4 h-4" /> SOS — PRÉVENIR LE QG
-          </button>
-        )}
-
         <button
           onClick={() => setOuvert((v) => !v)}
           className={`w-full flex items-center justify-center gap-2 py-2.5 font-mono text-xs font-bold tracking-wider shadow-2xl transition-colors ${
@@ -333,5 +340,6 @@ export default function BandeauUrgence() {
         </button>
       </div>
     </div>
+    </>
   );
 }
