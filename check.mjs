@@ -26,6 +26,12 @@ const T = [
   ['balade — lien anti-doublon', lire('src/apps/balade.jsx').includes('refAlerte: a.id')],
   ['pcops — pas de double comptage', lire('src/apps/pcops.jsx').includes('s.refAlerte === a.id')],
   ['volante — origine balade visible', lire('src/apps/volante.jsx').includes('Alerte balade')],
+  ['bandeau — SOS terrain present', lire('src/apps/BandeauUrgence.jsx').includes('SOS terrain')],
+  ['bandeau — garde 112 (jamais remplacer)', lire('src/apps/BandeauUrgence.jsx').includes('112')],
+  ['bandeau — SOS via file attente', lire('src/apps/BandeauUrgence.jsx').includes('envoyerAvecFile')],
+  ['bandeau — config partagee (pas de cle en dur)', lire('src/apps/BandeauUrgence.jsx').includes('from "../config"')],
+  ['bandeau — SOS terrain GPS', lire('src/apps/BandeauUrgence.jsx').includes('watchPosition')],
+  ['bandeau — SOS terrain absent sur balade', lire('src/apps/BandeauUrgence.jsx').includes('surBalade')],
   ['sos — blindage tableau', lire('src/apps/sos.jsx').includes('Array.isArray(brut)')],
   ['dashboard — acquittement SOS fusion', lire('src/apps/dashboard.jsx').includes('if (keyDb === KEY_SOS_PART)')],
   ['dashboard — operateur modifiable', lire('src/apps/dashboard.jsx').includes('OPERATEUR_KEY')],
@@ -92,9 +98,13 @@ for (const f of readdirSync('src/apps').filter((x) => x.endsWith('.jsx')).concat
     avant = s;
     s = s.replace(/<[A-Za-z][\w.]*(?:[^<>]|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*?\/>/g, '');
   }
-  const ouv = (s.match(/<div(?:[^<>]|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*?>/g) || []).length;
-  const fer = (s.match(/<\/div>/g) || []).length;
-  if (ouv !== fer) jsxPb.push(`${p} (${ouv} <div> / ${fer} </div>)`);
+  for (const tag of ['div', 'button']) {
+    const reOuv = new RegExp('<' + tag + '(?:[^<>]|\\{[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\})*?>', 'g');
+    const reFer = new RegExp('</' + tag + '>', 'g');
+    const ouv = (s.match(reOuv) || []).length;
+    const fer = (s.match(reFer) || []).length;
+    if (ouv !== fer) jsxPb.push(`${p} (${ouv} <${tag}> / ${fer} </${tag}>)`);
+  }
 }
 console.log(jsxPb.length === 0 ? 'Equilibre JSX (div) : OK' : `!!! JSX DESEQUILIBRE : ${jsxPb.join(', ')}`);
 

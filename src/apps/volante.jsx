@@ -494,7 +494,7 @@ export default function AppVolante() {
                         "Se rendre sur place";
                       return (
                         <button
-                          onClick={() => guiderVers(`SOS: ${s.motif || "Secours"}`, s.gps.lat, s.gps.lon, `Festivalier: ${s.nom}`)}
+                          onClick={() => guiderVers(`SOS: ${s.motif || "Secours"}`, s.gps.lat, s.gps.lon, s.source ? `${s.source}: ${s.nom}` : `Festivalier: ${s.nom}`)}
                           className="text-xs font-mono font-bold px-2.5 py-3 rounded-xl ring-1 ring-red-500/40 bg-red-500/10 text-red-200 flex items-center justify-center gap-1.5 active:bg-red-500/30"
                         >
                           <Compass className="w-4 h-4" /> {cible}
