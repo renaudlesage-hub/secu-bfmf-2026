@@ -16,11 +16,8 @@ export const ROLES = [
   // --- Parcours / balade ---
   "Accompagnateur Balade",
   "Responsable Étape 1",
-  "Adjoint Étape 1",
   "Responsable Étape 2",
-  "Adjoint Étape 2",
   "Responsable Étape 3",
-  "Adjoint Étape 3",
  
   // --- Site / plaine ---
   "Responsable grande scène",
