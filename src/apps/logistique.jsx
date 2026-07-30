@@ -378,6 +378,8 @@ export default function LogistiqueMissions() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* FANTOME 2027 — bouton "Étiquettes QR" masqué (non utilisé en 2026).
+                Décommenter pour réactiver la génération d'étiquettes QR équipements.
             <button
               onClick={() => setVue(vue === "qr" ? "missions" : "qr")}
               className={`flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${
@@ -386,6 +388,21 @@ export default function LogistiqueMissions() {
               title="Générer les étiquettes QR à coller sur les équipements"
             >
               <QrCode className="w-4 h-4" /> <span className="hidden sm:inline">Étiquettes QR</span>
+            </button>
+            */}
+            <button
+              onClick={() => { window.location.hash = "stocks"; }}
+              className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-sky-400/30 bg-sky-400/10 text-sky-300 hover:bg-sky-400/20 transition-colors"
+              title="Ouvrir les stocks bar (plaine + étapes)"
+            >
+              <Package className="w-4 h-4" /> <span className="hidden sm:inline">Stocks bars</span>
+            </button>
+            <button
+              onClick={() => { window.location.hash = "equipe-benevoles"; }}
+              className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-teal-400/30 bg-teal-400/10 text-teal-300 hover:bg-teal-400/20 transition-colors"
+              title="Ouvrir les bénévoles (planning / contacts)"
+            >
+              <Users className="w-4 h-4" /> <span className="hidden sm:inline">Bénévoles</span>
             </button>
             <button onClick={() => refresh(false)} className="text-slate-500 hover:text-slate-200"><RefreshCw className="w-4 h-4" /></button>
             <button
@@ -462,15 +479,15 @@ export default function LogistiqueMissions() {
               </button>
             ))}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <button onClick={exportCSV} className="text-xs font-mono px-3 py-1.5 rounded ring-1 ring-white/10 text-slate-400"><Download className="w-3.5 h-3.5 inline mr-1" /> Export CSV</button>
-            <button onClick={() => setShowForm(true)} className="text-xs font-mono px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30"><Plus className="w-3.5 h-3.5 inline mr-1" /> Nouvelle demande</button>
+            <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 text-sm font-mono font-semibold px-4 py-2.5 rounded-lg bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/40 hover:bg-emerald-500/30 transition-colors"><Plus className="w-4 h-4" /> Nouvelle demande</button>
             {/* Demande URGENTE d'appui : alerte le QG et la volante via le
                 bandeau partagé. Ce n'est PAS le SOS sécurité (géolocalisé,
                 en haut à droite) : ici on demande un renfort / du matériel,
                 pas une urgence vitale. */}
-            <button onClick={() => setShowAlarme(true)} className="flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded ring-2 ring-amber-400/60 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 font-semibold">
-              <TriangleAlert className="w-3.5 h-3.5" /> Demande urgente
+            <button onClick={() => setShowAlarme(true)} className="flex items-center gap-1.5 text-sm font-mono font-semibold px-4 py-2.5 rounded-lg ring-2 ring-amber-400/60 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 transition-colors">
+              <TriangleAlert className="w-4 h-4" /> Demande urgente
             </button>
           </div>
         </div>
@@ -668,12 +685,15 @@ function FormNouvelle({ onClose, onSubmit, signature }) {
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
 
+        {/* FANTOME 2027 — scanner QR masqué (non utilisé en 2026).
+            Décommenter pour réactiver le pré-remplissage par scan d'étiquette.
         <ScannerLogistique
           onScanSuccess={(infos) => {
             if (infos.nature) setNature(infos.nature);
             if (infos.lieu && POINTS_GPS[infos.lieu]) setZone(infos.lieu);
           }}
         />
+        */}
 
         <Field label="Nature de l'incident / Besoin matériel *">
           <input className={inputCls} value={nature} onChange={(e) => setNature(e.target.value)} placeholder="Ex: Panne éclairage, manque gobelets..." required />

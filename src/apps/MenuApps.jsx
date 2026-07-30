@@ -28,7 +28,6 @@ const APPS_LIST = [
   { id: "radios", name: "Parc & attributions radio", cat: "qg" },
 
   // Pole Logistique & Regulation
-  { id: "logistique", name: "Missions logistiques", cat: "logistique" },
   { id: "stocks", name: "Stocks bar (plaine + etapes)", cat: "logistique" },
   { id: "jauge", name: "Jauge plaine / acces", cat: "logistique" },
 
@@ -41,6 +40,7 @@ const APPS_LIST = [
 
   // Benevoles : ouvertes par lien direct, sans menu (bandeaux conserves).
   // Depuis le QG, le bouton RETOUR du navigateur ramene au menu.
+  { id: "logistique", name: "Missions logistiques", cat: "benevoles" },
   { id: "balade", name: "Suivi balade & parcours", cat: "benevoles" },
   { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "benevoles" },
 
