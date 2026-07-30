@@ -361,24 +361,6 @@ export default function DashboardQG() {
     return () => clearInterval(t);
   }, []);
 
-  async function acquitterAlerteQg(keyDb, objetAlerte) {
-    const tempsFige = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    // Les SOS participants sont un TABLEAU : ne jamais ecrire un objet unique
-    // dessus (cela ecraserait toute la liste). On fusionne dans la liste.
-    if (keyDb === KEY_SOS_PART) {
-      const fusion = await kvMerge(KEY_SOS_PART, (liste) =>
-        liste.map((s) => s.id === objetAlerte.idOriginal
-          ? { ...s, statut: "pris en compte", heurePriseEnCompte: tempsFige,
-              acquittePar: `${SESS_USER.nom} (${SESS_USER.role})` }
-          : s));
-      if (fusion) setSosParticipants(fusion); else setSbError(true);
-      pullAllData();
-      return;
-    }
-    const alerteMiseAJour = { ...objetAlerte, acquittePar: `${SESS_USER.nom} (${SESS_USER.role})`, heureAcquittement: tempsFige };
-    await kvSet(keyDb, alerteMiseAJour); pullAllData();
-  }
-
   async function leverAlerteQg(keyDb, alerteInfo) {
     if (keyDb === KEY_SOS_PART) {
       const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -618,7 +600,6 @@ export default function DashboardQG() {
                 </span>
               </div>
               <div className="flex gap-1.5 justify-end shrink-0">
-                {!al.acquittePar && <button onClick={() => acquitterAlerteQg(al.keyDb, al)} className="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">Acquitter</button>}
                 <button onClick={() => leverAlerteQg(al.keyDb, al)} className="text-[10px] font-mono bg-white/5 text-slate-300 px-2 py-0.5 rounded border border-white/10">Prendre en compte / Lever</button>
               </div>
             </div>
