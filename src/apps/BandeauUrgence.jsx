@@ -127,10 +127,10 @@ export default function BandeauUrgence() {
 
   return (
     <>
-      {/* Bouton SOS flottant, en haut à droite — visible immédiatement,
-          comme le SOS du header de l'app balade. Absent sur la balade
-          (qui a son propre système d'alerte). top-16 laisse la place au
-          bandeau de crise quand il s'affiche en haut. */}
+      {/* Bouton SOS flottant, en haut à droite — visible immédiatement.
+          Affiché sur toutes les apps terrain SAUF la balade complète (qui a
+          son propre SOS dans son header). La balade LIGHT, elle, s'appuie sur
+          ce bouton. top-16 laisse la place au bandeau de crise en haut. */}
       {sosTerrainActif && !sosOuvert && (
         <button
           onClick={() => setSosOuvert(true)}
