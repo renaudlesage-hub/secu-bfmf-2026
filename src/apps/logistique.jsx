@@ -713,13 +713,7 @@ function FormNouvelle({ onClose, onSubmit, signature }) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Catégorie Métier">
-            <select className={inputCls} value={formCategorie} onChange={(e) => setFormCategorie(e.target.value)}>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </Field>
-
+        <div className="grid grid-cols-1 gap-3">
           <Field label="Incident Bloquant ?">
             <select className={inputCls} value={formBloquant} onChange={(e) => setFormBloquant(e.target.value)}>
               <option value="Non">Non</option>

@@ -24,11 +24,9 @@ export const ROLES = [
   "Responsable petite scène",
   "Responsable bar site",
   "Responsable backstage",
-  "Trésorier",
   "Team parking",
   "Team sanitaires",
-  "Technique",
-  "Logistique",
+
 
  // --- Secours & sûreté ---
  "Volante",
@@ -62,11 +60,6 @@ export const PRIORITES = {
    rang: 3, court: "P3", libelle: "P3 — Important non bloquant",
    dot: "bg-sky-400", text: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10",
    badge: "bg-sky-500/20 text-sky-400 border border-sky-500/20",
- },
- "P4 - amelioration / des que possible": {
-   rang: 4, court: "P4", libelle: "P4 — Amélioration / dès que possible",
-   dot: "bg-emerald-400", text: "text-emerald-300", ring: "ring-emerald-400/30", bg: "bg-emerald-400/10",
-   badge: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/20",
  },
 };
 

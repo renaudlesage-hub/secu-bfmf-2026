@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ClipboardList, Save, RefreshCw, Layers, CheckCircle2, BarChart3, Download, TriangleAlert, ChevronRight } from "lucide-react";
+import { ClipboardList, Save, RefreshCw, Layers, CheckCircle2, BarChart3, Download, TriangleAlert, ChevronRight, Package, Users } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 
 /* ---------------------------------------------------------------------
@@ -211,6 +211,25 @@ export default function StocksBar() {
             </button>
           </div>
         </header>
+
+        {/* Navigation rapide vers les autres apps du pôle logistique/RH */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mr-1">Aller à :</span>
+          <button
+            onClick={() => { window.location.hash = "logistique"; }}
+            className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-colors"
+            title="Ouvrir les missions logistiques"
+          >
+            <Package className="w-4 h-4" /> Logistique
+          </button>
+          <button
+            onClick={() => { window.location.hash = "equipe-benevoles"; }}
+            className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-teal-400/30 bg-teal-400/10 text-teal-300 hover:bg-teal-400/20 transition-colors"
+            title="Ouvrir les bénévoles (planning / contacts)"
+          >
+            <Users className="w-4 h-4" /> Bénévoles
+          </button>
+        </div>
 
         {/* Selecteur de vue : Saisie / Suivi general */}
         <div className="flex gap-1.5">
