@@ -41,7 +41,8 @@ const APPS_LIST = [
   // Benevoles : ouvertes par lien direct, sans menu (bandeaux conserves).
   // Depuis le QG, le bouton RETOUR du navigateur ramene au menu.
   { id: "logistique", name: "Missions logistiques", cat: "benevoles" },
-  { id: "balade", name: "Suivi balade & parcours", cat: "benevoles" },
+  { id: "balade", name: "Suivi balade & parcours (QG)", cat: "benevoles" },
+  { id: "balade-light", name: "Balade — accompagnateur", cat: "benevoles" },
   { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "benevoles" },
 
   // Acces publics — a diffuser aux festivaliers uniquement

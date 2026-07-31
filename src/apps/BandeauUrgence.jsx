@@ -55,10 +55,12 @@ export default function BandeauUrgence() {
   const [ouvert, setOuvert] = useState(false);
   const [situation, setSituation] = useState(null); // id de la conduite depliee
 
-  // L'app balade a son PROPRE systeme d'alerte (geolocalise, position
-  // declaree obligatoire). On n'affiche donc PAS le SOS terrain chez elle,
-  // pour ne pas offrir deux mecanismes concurrents aux accompagnateurs.
-  const surBalade = (window.location.hash || "").slice(1).startsWith("balade");
+  // L'app balade COMPLETE a son PROPRE systeme d'alerte (dans son header) :
+  // on masque le SOS du bandeau chez elle pour ne pas le doubler. En revanche
+  // la version LIGHT (accompagnateur) n'a pas son propre SOS : elle s'appuie
+  // sur celui du bandeau. On distingue donc "balade" de "balade-light".
+  const hashCourant = (window.location.hash || "").slice(1);
+  const surBalade = hashCourant === "balade" || hashCourant.startsWith("balade/");
   const sosTerrainActif = !surBalade;
 
   // --- SOS terrain -------------------------------------------------------
