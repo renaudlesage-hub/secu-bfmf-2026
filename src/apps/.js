@@ -1,1482 +1,777 @@
-import React, { useState, useEffect } from "react";
-import {
-  Landmark,
-  TriangleAlert,
-  Clock,
-  Footprints,
-  MapPin,
-  CircleDot,
-  CheckCircle2,
-  Users,
-  PhoneCall,
-  ExternalLink,
-  AlertTriangle,
-  Sun,
-  Sunset,
-  FileText,
-  Radio,
-  Megaphone,
-  UserSearch,
-  LifeBuoy,
-  Map as MapIcon,
-  ShieldAlert,
-  Zap,
-  Droplets,
-  HeartPulse,
-  Navigation,
-  Flag,
-  Truck,
-} from "lucide-react";
-import {
-  STATUT_RESOLU, estUrgente, priorite, ANNUAIRE, PRV as PRV_LIST, RADIO_PLAN,
-  RESSOURCES_EAU as EAU_CARTE, DEA, ZONES_HELICO, VOIES_ACCES, BORNES_KM,
-  SEGMENTS_PARCOURS, HORAIRES, FREQUENTATION, PROGRAMMATION_RADIO, RADIO_EXCEPTION, POSTES_RADIO,
-} from "./referentiels";
-import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
-
 /* ---------------------------------------------------------------------
-   PC-OPS / AUTORITE -- BFMF 2026
-   Vue de situation EN LECTURE SEULE destinée aux autorités (commune,
-   discipline coordination) : événements en cours consolidés (SOS
-   participants filtrés, alertes équipes, urgences logistiques), statut,
-   localisation, gravité, et situation crowd management du parcours.
-   Aucune action possible depuis cette vue : l'engagement reste au QG.
+   REFERENTIELS PARTAGES -- BFMF 2026
+   Source de verite unique, importee par les apps. Le profil utilisateur
+   (cle localStorage bfmf2026-profil) est COMMUN a toutes les apps :
+   la liste des roles doit donc l'etre aussi, sinon un role choisi dans
+   une app n'existe pas dans une autre.
+   >>> Pour ajouter un role : ici, et nulle part ailleurs.
 --------------------------------------------------------------------- */
 
-const SB_HEADERS = {
-  apikey: SUPABASE_ANON_KEY,
-  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-  "Content-Type": "application/json",
+export const ROLES = [
+  // --- Direction & QG ---
+  "Directeur d'événement",
+  "Coordinateur sécurité",
+  "Opérateur QG",
+ 
+  // --- Parcours / balade ---
+  "Accompagnateur Balade",
+  "Responsable Étape 1",
+  "Responsable Étape 2",
+  "Responsable Étape 3",
+ 
+ 
+  // --- Site / plaine ---
+  "Responsable grande scène",
+  "Responsable petite scène",
+  "Responsable bar site",
+  "Responsable backstage",
+  "Team parking",
+  "Team sanitaires",
+
+ // --- Secours & sûreté ---
+ "Volante",
+ "Sécurité privée",
+ "Médical / secouriste",
+
+ "Autre",
+];
+
+
+/* --------------------------- MISSIONS LOGISTIQUES ---------------------------
+  Priorites et statuts partages entre l'app Logistique (saisie et traitement),
+  le Dashboard QG (injection de mission) et le PC-Ops (consolidation).
+  Chaque valeur est une CHAINE EXACTE stockee en base : ne la modifier ici
+  qu'en connaissance de cause (les missions deja enregistrees gardent
+  l'ancienne valeur). "libelle" sert a l'affichage, "court" au badge.
+--------------------------------------------------------------------------- */
+
+export const PRIORITES = {
+ "P1 - immediat / critique": {
+   rang: 1, court: "P1", libelle: "Au plus vite",
+   dot: "bg-red-400", text: "text-red-300", ring: "ring-red-400/30", bg: "bg-red-400/10",
+   badge: "bg-red-500/20 text-red-400 border border-red-500/20",
+ },
+ "P2 - urgent": {
+   rang: 2, court: "P2", libelle: "Dans la demi-heure",
+   dot: "bg-amber-400", text: "text-amber-300", ring: "ring-amber-400/30", bg: "bg-amber-400/10",
+   badge: "bg-amber-500/20 text-amber-400 border border-amber-500/20",
+ },
+ "P3 - important non bloquant": {
+   rang: 3, court: "P3", libelle: "Dans l'heure",
+   dot: "bg-sky-400", text: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10",
+   badge: "bg-sky-500/20 text-sky-400 border border-sky-500/20",
+ },
 };
 
-async function kvGet(key) {
-  const r = await fetch(
-    `${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
-    { headers: SB_HEADERS, credentials: "omit" }
-  );
-  if (!r.ok) throw new Error("GET " + r.status);
-  const j = await r.json();
-  return j.length ? j[0].value : null;
+export const PRIORITE_DEFAUT = "P3 - important non bloquant";
+
+export const STATUTS = ["A traiter", "Attribuee", "En cours", "Resolue"];
+export const STATUT_INITIAL = "A traiter";     // toute mission creee, quelle que soit l'app
+export const STATUT_ATTRIBUEE = "Attribuee";
+export const STATUT_EN_COURS = "En cours";
+export const STATUT_RESOLU = "Resolue";
+
+// Retourne toujours un objet exploitable, meme pour une valeur inconnue
+// (mission ancienne ou saisie hors app) -> jamais de plantage ni de style vide.
+export function priorite(p) {
+ return PRIORITES[p] || PRIORITES[PRIORITE_DEFAUT];
+}
+// P1/P2 = a traiter tout de suite (utilise par le PC-Ops et le dashboard)
+export function estUrgente(p) {
+ return priorite(p).rang <= 2;
 }
 
-const KEY_MISSIONS = "bfmf2026-missions-logistique";
-const KEY_GROUPES = "bfmf2026-suivi-balade";
-const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
-const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
-const KEY_SOS_PART = "bfmf2026-sos-participants";
-const KEY_CONSIGNE = "bfmf2026-volante-consigne";
-const KEY_METEO = "bfmf2026-meteo";
-const KEY_CRISE = "bfmf2026-crise";
-const KEY_RECH = "bfmf2026-recherche";
-const KEY_JAUGE = "bfmf2026-jauge";
 
-const CAPACITE_SITE = 1500; // a ajuster selon le dossier de securite
+/* ------------------------- LOCALISATIONS DU SITE -------------------------
+  Points de reference partages : formulaire de demande logistique, injection
+  de SOS terrain depuis le QG, etiquettes QR, pre-remplissage au scan.
+  Chaque cle est une CHAINE EXACTE stockee en base (champ "zone" des
+  missions). lat/lon servent au lien Maps ; km/segment situent le point sur
+  le parcours de 6,5 km.
+  >>> Pour ajouter ou renommer un lieu : ici, et nulle part ailleurs.
+------------------------------------------------------------------------- */
 
-/* =====================================================================
-   ONGLET DOSSIER -- contenu de reference pour les autorites.
-   >>> C'EST ICI QUE L'ON MET A JOUR : liens Drive, numeros, PC.
-   Partage Drive requis : "Tous les utilisateurs disposant du lien -> Lecteur",
-   sinon les destinataires tombent sur une demande d'acces.
-===================================================================== */
-
-const DOCUMENTS = [
-  {
-    titre: "Dossier de sécurité BFMF 2026",
-    desc: "Dispositif complet : implantation, effectifs, procédures, analyse de risques.",
-    url: "https://docs.google.com/document/d/1AKBVDT6yO-ubdPxrYnfMJjLFnw2l6p-B/preview",
-  },
-  {
-    titre: "PPUI — Plan Particulier d'Urgence et d'Intervention",
-    desc: "Plan d'urgence de l'événement : scénarios, alerte, montée en puissance, disciplines.",
-    url: "https://docs.google.com/document/d/1MzOi61IGcpgcFyxcCFJUWxyhi78mxZBP/preview",
-  },
-  {
-    titre: "Plan d'implantation / plan de site",
-    desc: "À COMPLÉTER : coller ici le lien de partage Drive.",
-    url: "",
-  },
-  {
-    titre: "Carte opérationnelle « Buco 2026 »",
-    desc: "Parcours 6,5 km, étapes, PRV, points GPS (Google My Maps).",
-    url: `https://www.google.com/maps/d/viewer?mid=${MYMAPS_MID}`,
-  },
-];
-
-
-
-
-/* =====================================================================
-   ONGLET INTERVENTION -- ce que demande un Dir-PC-Ops en arrivant de nuit.
-   TOUT EST STATIQUE : reste affiche meme si la liaison Supabase tombe.
-   >>> A RENSEIGNER DEPUIS LE DOSSIER DE SECURITE ET LE PPUI. Tant que les
-   champs portent "A COMPLETER", ils s'affichent en ambre : mieux vaut un
-   trou visible qu'une information fausse.
-===================================================================== */
-
-const ACCES_SECOURS = [
-  {
-    nom: "Accès principal — À COMPLÉTER",
-    gps: "50.3835, 5.6215",
-    detail: "À COMPLÉTER : rue exacte, largeur utile, portail/barrière, revêtement, pente.",
-    vehicules: "À COMPLÉTER : autopompe ? ambulance ? grue ?",
-    cle: "À COMPLÉTER : cadenas ? qui détient la clé ? joignable comment ?",
-  },
-  {
-    nom: "Accès parcours — voies secours balisées (carte officielle)",
-    gps: "50.38219, 5.63600",
-    detail: "3 voies d'accès depuis les PRV vers les scènes : Scène 1 par PRV#4 (721 m), "
-      + "Scène 2 par PRV#5 ressortant au PRV#6 (752 m), Scène 3 par PRV#7 (131 m). "
-      + "À COMPLÉTER : praticabilité 4x4, largeur utile, état par temps de pluie.",
-    vehicules: "À COMPLÉTER : ces voies sont-elles carrossables autopompe / ambulance ?",
-    cle: "À COMPLÉTER : barrière ou cadenas sur ces voies ?",
-  },
-];
-
-const POINT_RENCONTRE = {
-  lieu: "PRV#1 — Entrée site / Départ (Croisement Le Raumont – Chemin de l'Épine)",
-  gps: "50.38242, 5.61624",
-  qui: "Renaud — Coordinateur sécurité",
-  tel: "0494 22 29 33",
-  suppleant: "Jérôme — Directeur d'événement · 0477 99 48 42",
+export const POINTS_GPS = {
+ "Site grande scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Grande Scène" },
+ "Site petite scène": { lat: 50.3832, lon: 5.6219, km: 0, segment: "Plaine centrale — Petite Scène" },
+ "Site plaine": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Zone Public / Pelouse" },
+ "Site bar": { lat: 50.3836, lon: 5.6222, km: 0, segment: "Zone Débit de Boissons" },
+ "Site foodtrucks": { lat: 50.3831, lon: 5.6208, km: 0, segment: "Allée Restauration" },
+ "Site sanitaires": { lat: 50.3841, lon: 5.6211, km: 0, segment: "Blocs WC Publics" },
+ "Site backstage": { lat: 50.3842, lon: 5.6201, km: 0, segment: "Coulisses / Loges" },
+ "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie" },
+ "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public" },
+ "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes" },
+ "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
+ "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt" },
+ "PRV#4": { lat: 50.38219, lon: 5.63600, km: 0.9, segment: "Accès Étape 1 / Scène 1" },
+ "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
+ "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé Sud - Vers Étape 2" },
+ "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.3, segment: "Balisage Secours #5" },
+ "Etape 2": { lat: 50.37828, lon: 5.64549, km: 2.53, segment: "Ravitaillement 2" },
+ "Parcours Balade secteur C": { lat: 50.3823, lon: 5.6457, km: 3.5, segment: "Tracé Est Crête" },
+ "PRV#6": { lat: 50.38239, lon: 5.64584, km: 3.0, segment: "Balisage Secours #6" },
+ "Etape 3": { lat: 50.38817, lon: 5.62891, km: 5.06, segment: "Ravitaillement 3" },
+ "Parcours Balade secteur D": { lat: 50.3886, lon: 5.6269, km: 5.8, segment: "Secteur Nord Retour P0" },
+ "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.2, segment: "Balisage Secours #7" }
 };
 
-const RISQUES_SITE = [
-  { titre: "Foodtrucks — bonbonnes de gaz", detail: "À COMPLÉTER : nombre, emplacement, vanne de coupure, distance aux scènes." },
-  { titre: "Alimentation électrique / groupes électrogènes", detail: "Les scènes de la balade sont alimentées par GROUPES ÉLECTROGÈNES (dossier § 11) — pas de raccordement réseau, donc pas de réception électrique SECT sur ces points. Site principal : réception électrique par SECT agréé. À COMPLÉTER : emplacement exact, puissance, organe de coupure générale (qui, où)." },
-  { titre: "Structures scéniques", detail: "Balade : installations < 250 m² au sol, aucun risque de chute ≥ 2 m (pas de réception mécanique). Site principal : réception mécanique par SECT agréé. À COMPLÉTER : hauteur, PV de montage, seuil de vent d'arrêt (km/h)." },
-  { titre: "Pyrotechnie / effets", detail: "À COMPLÉTER : prévu ou non. Si oui : opérateur, horaires, périmètre." },
-  { titre: "Public — jauge et évacuation", detail: "À COMPLÉTER : capacité plaine, largeur des sorties, points de rassemblement." },
-  { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. AUCUN éclairage de secours sur les lieux de concert de la balade (milieux ouverts, dossier § 11) : prévoir l'éclairage individuel pour tout retour après le coucher du soleil. Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
+/* ------------------------- ANNUAIRE DE CRISE -------------------------
+  Source unique des contacts d'urgence. Importe par la fiche reflexe, le
+  PC-Ops et l'onglet Intervention. Ordre = ordre d'appel : le vital en tete.
+  >>> Mettre a jour ICI uniquement. Verifie / complete le 18/07.
+--------------------------------------------------------------------- */
+export const ANNUAIRE = [
+ { nom: "URGENCE VITALE", num: "112", note: "médical / incendie — TOUJOURS en premier", urgent: true },
+ { nom: "Police", num: "101", note: "" },
+ { nom: "Directeur d'événement", num: "0477 99 48 42", note: "Jérôme Grosjean", mail: "jerome.grosjean@bucolique.be" },
+ { nom: "Coordinateur sécurité", num: "0494 22 29 33", note: "Renaud Lesage", mail: "renaud.lesage@bucolique.be" },
+ { nom: "Bourgmestre", num: "0477 63 81 88", note: "Ch. Verdin" },
+ { nom: "Coordinatrice PlanU Ferrières", num: "086 400 90 51", note: "C. Seynaeve" },
+ { nom: "Dispatching IILE/Hemeco (en intervention)", num: "04 279 13 52", note: "Hemeco" },
+ { nom: "Back-up 112 (en cas de panne)", num: "0471 51 31 56", note: "" },
+ { nom: "Centre antipoison", num: "070 245 245", note: "" },
 ];
 
-// Ressources en eau : liste issue de la carte officielle (calque Pompiers).
-// Le debit de chaque hydrant reste a documenter aupres de la zone de secours.
-const RESSOURCES_EAU = [
-  {
-    titre: "Bouches incendie et pompes — relevé carte officielle",
-    detail: `${EAU_CARTE.filter((e) => e.type.startsWith("Bouche")).length} bouches incendie, `
-      + `${EAU_CARTE.filter((e) => e.type.startsWith("Pompe")).length} pompes à eau, 1 tridivision. `
-      + `La plus proche de l'entrée : tridivision à 96 m. Détail et GPS ci-dessous.`,
-  },
-  { titre: "Débit des hydrants", detail: "À COMPLÉTER : débit (m³/h) à obtenir auprès de la zone de secours." },
-  { titre: "Point d'eau naturel", detail: "À COMPLÉTER : cours d'eau, accès engin, aspiration possible ?" },
+/* ------------------- POINTS DE RENDEZ-VOUS SECOURS -------------------
+  PRV verifies le 18/07. Coordonnees cliquables (Google Maps) pour guider
+  les disciplines. Importe par la fiche reflexe et le PC-Ops.
+--------------------------------------------------------------------- */
+export const PRV = [
+ { nom: "PRV#1 — Entrée site / Départ", gps: "50.38242, 5.61624", adresse: "Croisement rue Le Raumont – Chemin de l'Épine, 4190 Ferrières" },
+ { nom: "PRV#2 — Entrée arrière site", gps: "50.38304, 5.61816", adresse: "Mon Legrand, 4190 Ferrières — entrée secondaire, contrôle d'accès" },
+ { nom: "PRV#3 — Parking public", gps: "50.38212, 5.61673", adresse: "Rue Le Raumont, 4190 Ferrières" },
+ { nom: "PRV#4 — Accès Étape 1 / Scène 1", gps: "50.38219, 5.63600", adresse: "Carrefour La Picherotte – Fosse du Loup – Rue de la Chapelle – Mon Lecomte" },
+ { nom: "PRV#5 — Accès Étape 2 / Scène 2", gps: "50.37568, 5.64412", adresse: "Rue de Jehonhé 6, 4190 Burnontige" },
+ { nom: "PRV#6 — Accès Étape 2 / Scène 2", gps: "50.38239, 5.64584", adresse: "Lesfanges, 4190 Burnontige" },
+ { nom: "PRV#7 — Accès Étape 3 / Scène 3", gps: "50.38865, 5.62692", adresse: "Rue de la Chapelle 23, 4190 Le Trou" },
+ { nom: "Étape 1 / Scène 1 (km 0,9)", gps: "50.37858, 5.62790", adresse: "Rue Sainte-Barbe, 4190 Burnontige" },
+ { nom: "Étape 2 / Scène 2 (km 2,5)", gps: "50.37828, 5.64549", adresse: "Rue de Jehonhé 7, 4190 Burnontige" },
+ { nom: "Étape 3 / Scène 3 (km 5,1)", gps: "50.38817, 5.62891", adresse: "Rue de la Chapelle, 4190 Ferrières" },
 ];
 
-const MOYENS_ORGA = [
-  {
-    titre: "Défibrillateurs (DEA) — carte officielle",
-    detail: `DEA de l'organisation sur site (50.38244, 5.61735), à 80 m de l'entrée. `
-      + `${DEA.length - 1} autres DEA dans un rayon de 4,5 km. Emplacements ci-dessous.`,
-  },
-  { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières. À COMPLÉTER : organisme, emplacement du poste, brancard, VPSP ?" },
-  { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
-  { titre: "Équipe volante organisateur", detail: "À COMPLÉTER : nombre, moyen de déplacement, canal PMR4.1." },
-  { titre: "Accompagnateurs balade", detail: "4 personnes de l'organisation par groupe (dossier § 4.2), briefées sécurité. 3 groupes par jour d'environ 300 personnes." },
+/* --------------------------- PLAN RADIO ----------------------------- */
+export const RADIO_PLAN = [
+ { canal: "PMR4.1", num: 9,  freq: "446.04375", ctcss: "67.0 Hz (Tx/Rx)",
+   usage: "Coordination générale (QG, scènes, volante)",
+   postes: "standard" },
+ { canal: "PMR5",   num: 10, numSimple: 5, freq: "446.05625", ctcss: "Aucun",
+   usage: "Bénévoles parking et sanitaires",
+   postes: "les deux" },
+ { canal: "PMR15",  num: 25, numSimple: 15, freq: "446.18125", ctcss: "114.8 Hz",
+   usage: "Sécurité privée",
+   postes: "les deux" },
+ { canal: "PMR333", num: 6,  freq: "446.09375", ctcss: "67.0 Hz",
+   usage: "URGENCE — exclusivement réservé",
+   postes: "standard", urgent: true },
 ];
 
-const DOCTRINE = [
-  "112 d'abord pour toute urgence vitale, puis information du QG par PMR333.",
-  "Les applications complètent la radio : elles ne la remplacent jamais.",
-  "L'engagement des moyens reste au QG festival — cette vue est en lecture seule.",
-  "Point de regroupement enfant perdu / personne recherchée : ACCUEIL POINT 0.",
-];
-
-const CAPACITE_ETAPE = 300;
-const LONGUEUR_KM = 6.5;
-
-const POS_KM = { p0: 0, t1: 0.45, e1: 0.9, t2: 1.7, e2: 2.53, t3: 3.8, e3: 5.06, tr: 5.8, ret: 6.5 };
-const POS_LABEL = {
-  p0: "Point 0 (attente depart)", t1: "Transit vers Etape 1", e1: "Etape 1",
-  t2: "Transit vers Etape 2", e2: "Etape 2", t3: "Transit vers Etape 3",
-  e3: "Etape 3", tr: "Transit retour", ret: "Rentre au Point 0",
+/* --- Materiel radio -------------------------------------------------
+  La procedure de reinitialisation n'est volontairement PAS documentee :
+  les postes sont preprogrammes avant l'evenement et aucune
+  reprogrammation n'est possible sur site. Un poste reinitialise est
+  inutilisable pour l'evenement.
+-------------------------------------------------------------------- */
+export const RADIO_MATERIEL = {
+ modele: "Baofeng UV5R & Baofeng BF888",
+ avertissement: "Postes préprogrammés — aucune reprogrammation possible sur site.",
 };
 
-const REPERES = [
-  { nom: "P0", km: 0 },
-  { nom: "E1", km: 0.9 },
-  { nom: "E2", km: 2.53 },
-  { nom: "E3", km: 5.06 },
-  { nom: "P0", km: 6.5 },
+/* --- Programmation des POSTES STANDARD (25 canaux) -------------------
+  Table complete des postes du QG, de la volante, des scenes et des
+  accompagnateurs balade. Le numero de canal ne correspond PAS au numero PMR.
+  Les postes SIMPLES (parking/sanitaire/securite privee) ont une
+  programmation differente et reduite -- voir POSTES_RADIO ci-dessous.
+-------------------------------------------------------------------- */
+export const PROGRAMMATION_RADIO = [
+ { num: 1,  pmr: "PMR 1" },    { num: 2,  pmr: "PMR 1.1" },
+ { num: 3,  pmr: "PMR 2" },    { num: 4,  pmr: "PMR 2.1" },
+ { num: 5,  pmr: "PMR 3" },    { num: 6,  pmr: "PMR 333" },
+ { num: 7,  pmr: "PMR 3.1" },  { num: 8,  pmr: "PMR 4" },
+ { num: 9,  pmr: "PMR 4.1" },  { num: 10, pmr: "PMR 5" },
+ { num: 11, pmr: "PMR 5.1" },  { num: 12, pmr: "PMR 6" },
+ { num: 13, pmr: "PMR 6.1" },  { num: 14, pmr: "PMR 7" },
+ { num: 15, pmr: "PMR 7.1" },  { num: 16, pmr: "PMR 7.7" },
+ { num: 17, pmr: "PMR 8" },    { num: 18, pmr: "PMR 8.1" },
+ { num: 19, pmr: "PMR 09" },   { num: 20, pmr: "PMR 10" },
+ { num: 21, pmr: "PMR 11" },   { num: 22, pmr: "PMR 12" },
+ { num: 23, pmr: "PMR 13" },   { num: 24, pmr: "PMR 14" },
+ { num: 25, pmr: "PMR 15" },
 ];
 
-const GRAV = {
-  critique: { rang: 3, cls: "text-red-300", ring: "ring-red-400/40", bg: "bg-red-400/10", dot: "bg-red-400" },
-  grave: { rang: 2, cls: "text-amber-300", ring: "ring-amber-400/40", bg: "bg-amber-400/10", dot: "bg-amber-400" },
-  modere: { rang: 1, cls: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10", dot: "bg-sky-400" },
+/* ===================== DEUX PROGRAMMATIONS DISTINCTES =================
+  ATTENTION -- point de securite majeur.
+
+  Il existe DEUX types de postes, programmes differemment :
+
+  1. POSTES STANDARD (QG, volante, scenes, accompagnateurs balade)
+     -> programmation complete 25 canaux (voir PROGRAMMATION_RADIO)
+     -> PMR333 (urgence) accessible sur le CANAL 6
+
+  2. POSTES SIMPLES (parking, sanitaires, securite privee)
+     -> frequences specifiques, programmation reduite
+     -> PMR333 N'EST PAS DISPONIBLE sur ces postes
+
+  CONSEQUENCE OPERATIONNELLE : les equipes parking, sanitaire et
+  securite privee NE PEUVENT PAS joindre le canal d'urgence par radio.
+  Leur circuit d'alerte est :
+    urgence vitale  -> 112 par telephone, directement
+    alerte au QG    -> leur propre canal (PMR5 ou PMR15)
+                       le QG ecoute PMR5 et emet sur PMR15 (radio n2)
+                       c'est le QG qui relaie vers PMR333 si necessaire
+
+  Ne JAMAIS demander a ces equipes de "passer sur PMR333" : elles ne
+  l'ont pas. Leur dire "restez sur votre canal, le QG relaie".
+====================================================================== */
+export const POSTES_RADIO = {
+ standard: {
+   nom: "Postes standard (double fréquence)",
+   qui: "QG, équipe volante, responsables de scène",
+   urgence: "PMR333 sur le canal 6",
+   aUrgence: true,
+   doubleVeille: true,
+   note: "Double fréquence : émission/réception sur son canal de travail (PMR4.1) "
+     + "TOUT EN gardant l'écoute de PMR333. C'est ce qui permet au QG, à la volante et "
+     + "aux scènes d'entendre une urgence sans quitter la coordination.",
+ },
+ simple: {
+   nom: "Postes simples (mono-canal)",
+   qui: "Bénévoles parking, équipe sanitaire, sécurité privée",
+   urgence: "PMR333 NON DISPONIBLE — 112 par téléphone, et alerte au QG sur son propre canal",
+   aUrgence: false,
+   doubleVeille: false,
+   note: "Un seul canal à la fois, et PMR333 n'y est pas programmé. Sur ces postes, "
+     + "le numéro de canal correspond au numéro PMR (PMR5 = canal 5, PMR15 = canal 15).",
+ },
 };
 
-// Habillage couleur du panneau meteo selon le niveau de vigilance IRM
-// (vert / jaune / orange / rouge). Evite l'incoherence "vigilance verte
-// mais panneau jaune" : tout le bloc prend la couleur du niveau reel.
-const VIGILANCE_STYLE = {
-  vert:   { border: "border-emerald-400", ring: "ring-emerald-400/30", ringHover: "hover:ring-emerald-400/50", titre: "text-emerald-300", icone: "text-emerald-400", dot: "bg-emerald-400", badge: "bg-emerald-400/10 text-emerald-300 border-emerald-400/20", label: "VERT" },
-  jaune:  { border: "border-amber-400", ring: "ring-amber-400/30", ringHover: "hover:ring-amber-400/50", titre: "text-amber-300", icone: "text-amber-400", dot: "bg-amber-400", badge: "bg-amber-400/10 text-amber-300 border-amber-400/20", label: "JAUNE" },
-  orange: { border: "border-orange-400", ring: "ring-orange-400/40", ringHover: "hover:ring-orange-400/60", titre: "text-orange-300", icone: "text-orange-400", dot: "bg-orange-400", badge: "bg-orange-400/10 text-orange-300 border-orange-400/30", label: "ORANGE" },
-  rouge:  { border: "border-red-500", ring: "ring-red-500/40", ringHover: "hover:ring-red-500/60", titre: "text-red-300", icone: "text-red-400", dot: "bg-red-500", badge: "bg-red-500/15 text-red-300 border-red-500/30", label: "ROUGE" },
+// Rappel court, affichable partout ou le plan radio apparait.
+export const RADIO_EXCEPTION =
+ "Postes parking / sanitaire / sécurité privée : PMR333 n'y est pas programmé. " +
+ "Urgence vitale = 112 par téléphone, puis alerte au QG sur son propre canal (le QG relaie).";
+
+
+/* --------------------------- QUE FAIRE SI... ---------------------------
+  Conduites a tenir, reprises de la fiche reflexe. Source unique : lues
+  par la fiche reflexe ET le bandeau urgence des apps terrain.
+  >>> A ajuster selon le dossier de securite / PPUI. Icone = nom lucide.
+----------------------------------------------------------------------- */
+export const QUE_FAIRE = [
+ {
+   id: "malaise", titre: "Malaise / blessure", icone: "HeartPulse",
+   etapes: [
+     "Proteger : ecarter le public, securiser la zone.",
+     "Alerter : gravite ? -> 112 D'ABORD si doute vital. Puis PMR333 : qui, quoi, ou (PRV le plus proche), combien.",
+     "Ne pas deplacer la victime sauf danger immediat.",
+     "Envoyer quelqu'un au PRV pour guider les secours.",
+     "Rester aupres, couvrir, parler, surveiller la conscience.",
+   ],
+ },
+ {
+   id: "enfant", titre: "Enfant perdu / trouve", icone: "UserSearch",
+   etapes: [
+     "Enfant TROUVE : rester avec lui, NE PAS le promener seul -> accompagner a deux vers l'ACCUEIL POINT 0. Annoncer sur PMR4.1.",
+     "Enfant PERDU (parent) : conduire le parent a l'accueil, lancer la recherche dans l'app (#recherche) + PMR4.1.",
+     "Description precise : age, vetements, cheveux, dernier lieu vu.",
+     "Non retrouve apres 15 min ou circonstance inquietante : 112/101.",
+     "Jamais de nom d'enfant diffuse en sono publique (attire les mal intentionnes) : description uniquement.",
+   ],
+ },
+ {
+   id: "feu", titre: "Debut d'incendie", icone: "Flame",
+   etapes: [
+     "Alerter IMMEDIATEMENT : 112 puis PMR333 (lieu exact, ampleur, vent).",
+     "Eloigner le public (perimetre large), couper la sono locale si scene.",
+     "Attaquer UNIQUEMENT si feu naissant + extincteur + sans risque.",
+     "Liberer les acces secours (vehicules, PRV).",
+     "Ne jamais rester dans la fumee.",
+   ],
+ },
+ {
+   id: "meteo", titre: "Orage / mise a l'abri", icone: "CloudLightning",
+   etapes: [
+     "Sur consigne QG (ou eclair < 10 s du tonnerre) : suspension des activites exposees.",
+     "Plaine : diriger le public vers les batiments/chapiteaux durs designes.",
+     "Parcours : groupes a l'abri (eviter arbres isoles, clotures) au point dur le plus proche, accompagnateurs comptent leur groupe.",
+     "Attendre la levee de consigne QG avant reprise.",
+   ],
+ },
+ {
+   id: "balade", titre: "Incident sur le parcours", icone: "Footprints",
+   etapes: [
+     "Accompagnateur de tête : stopper le groupe en lieu sur, le serre-file compte.",
+     "Alerter : PMR4.1 (ou 112 si vital) avec le km / segment / PRV.",
+     "Un accompagnateur reste avec la personne, le groupe continue avec les autres si consigne QG.",
+     "Utiliser l'app Suivi balade pour ajuster effectif/position.",
+   ],
+ },
+ {
+   id: "evac", titre: "Evacuation (consigne QG uniquement)", icone: "TriangleAlert",
+   etapes: [
+     "Ne JAMAIS lancer une evacuation de sa propre initiative (sauf peril immediat local).",
+     "Relayer calmement la consigne exacte du QG, sans crier 'evacuation'.",
+     "Diriger vers les sorties/PRV designes, prioriser PMR et enfants.",
+     "Benevoles aux points de passage, comptage si demande.",
+     "Rendre compte au QG : zone videe / personnes restantes.",
+   ],
+ },
+];
+
+export const REGLE_OR = "PROTEGER -> ALERTER (112 puis PMR333 si vital) -> SECOURIR. L'app complete la radio, elle ne la remplace pas.";
+
+
+/* ============ DONNEES ISSUES DE LA CARTE OFFICIELLE MyMaps ============
+  Extraites du KML "Buco 2026" (calques Disciplines 1/2/3 et
+  Multidisciplinaire). Ces informations sont celles que partagent les
+  services de secours : ne les modifier QUE si la carte change.
+  >>> Verifie et aligne sur la carte officielle le 23/07/2026.
+======================================================================= */
+
+/* --- Ressources en eau (Discipline 1 - Pompiers) --------------------
+  Champ "eau" du dossier d'intervention. Distance indicative au repere
+  le plus proche, pour guider une reconnaissance rapide.
+-------------------------------------------------------------------- */
+export const RESSOURCES_EAU = [
+ { type: "Tridivision",     gps: "50.38257, 5.61757", repere: "Site — 96 m de l'entrée" },
+ { type: "Bouche incendie", gps: "50.38281, 5.61920", repere: "Site — 214 m" },
+ { type: "Bouche incendie", gps: "50.38385, 5.61412", repere: "Site — 219 m" },
+ { type: "Bouche incendie", gps: "50.38391, 5.61419", repere: "Site — 220 m" },
+ { type: "Bouche incendie", gps: "50.38388, 5.61408", repere: "Site — 223 m" },
+ { type: "Bouche incendie", gps: "50.38205, 5.62006", repere: "Site — 274 m" },
+ { type: "Bouche incendie", gps: "50.38214, 5.62095", repere: "Site — 336 m" },
+ { type: "Bouche incendie", gps: "50.38203, 5.62149", repere: "Site — 375 m" },
+ { type: "Bouche incendie", gps: "50.38093, 5.62632", repere: "Scène 1 — 283 m" },
+ { type: "Bouche incendie", gps: "50.38136, 5.63157", repere: "Scène 1 — 403 m" },
+ { type: "Bouche incendie", gps: "50.38161, 5.63509", repere: "Scène 1 — 610 m" },
+ { type: "Bouche incendie", gps: "50.38219, 5.63582", repere: "Près du PRV#4" },
+ { type: "Bouche incendie", gps: "50.37529, 5.64392", repere: "Scène 2 — 352 m" },
+ { type: "Bouche incendie", gps: "50.38240, 5.64572", repere: "Scène 2 — 457 m" },
+ { type: "Bouche incendie", gps: "50.38932, 5.62584", repere: "Scène 3 — 253 m" },
+ { type: "Bouche incendie", gps: "50.38454, 5.62371", repere: "Scène 3 — 548 m" },
+ { type: "Pompe à eau",     gps: "50.38118, 5.64877", repere: "Scène 2 — 397 m" },
+ { type: "Pompe à eau",     gps: "50.38182, 5.59513", repere: "Site — 1,5 km" },
+ { type: "Pompe à eau",     gps: "50.39887, 5.61386", repere: "Nord — 1,6 km" },
+];
+
+/* --- Defibrillateurs (Discipline 2 - Aide medicale urgente) ---------- */
+export const DEA = [
+ { nom: "DEA organisation (sur site)", gps: "50.38244, 5.61735", note: "80 m de l'entrée — le plus proche" },
+ { nom: "DEA", gps: "50.37334, 5.64180", note: "2,1 km du site" },
+ { nom: "DEA", gps: "50.40015, 5.60618", note: "2,1 km du site" },
+ { nom: "DEA", gps: "50.36520, 5.64429", note: "2,8 km du site" },
+ { nom: "DEA", gps: "50.38262, 5.67998", note: "4,5 km du site" },
+];
+
+/* --- Zones d'atterrissage helicoptere medical (CMH) ------------------
+  Une zone suggeree par scene : information vitale pour une evacuation
+  heliportee. Les zones "nocturnes" sont les seules utilisables de nuit.
+-------------------------------------------------------------------- */
+export const ZONES_HELICO = [
+ { nom: "Zone suggérée — Site / entrée",  gps: "50.38348, 5.61791", nuit: false },
+ { nom: "Zone suggérée — Scène 1",        gps: "50.37874, 5.62980", nuit: false },
+ { nom: "Zone suggérée — Scène 2",        gps: "50.37764, 5.64536", nuit: false },
+ { nom: "Zone suggérée — Scène 3",        gps: "50.38812, 5.62980", nuit: false },
+ { nom: "Zone NOCTURNE — Ferrières",      gps: "50.39922, 5.60764", nuit: true },
+ { nom: "Zone NOCTURNE — Izier",          gps: "50.38038, 5.58456", nuit: true },
+];
+
+/* --- Bornes kilometriques du parcours (balisage terrain) -------------
+  Reperes physiques poses sur le parcours. Un participant ou un
+  accompagnateur peut dire "je suis a la BK3" : c'est plus fiable qu'un GPS.
+  Positions verifiees sur la trace : ecart max 22 m.
+-------------------------------------------------------------------- */
+export const BORNES_KM = [
+ { nom: "BK1", km: 1.0, gps: "50.37768, 5.62877" },
+ { nom: "BK2", km: 2.0, gps: "50.37670, 5.64154" },
+ { nom: "BK3", km: 3.0, gps: "50.38233, 5.64580" },
+ { nom: "BK4", km: 4.0, gps: "50.38631, 5.64100" },
+ { nom: "BK5", km: 5.0, gps: "50.38827, 5.63010" },
+ { nom: "BK6", km: 6.0, gps: "50.38451, 5.62366" },
+];
+
+/* --- Decoupage du parcours en secteurs (carte officielle) ------------ */
+export const SECTEURS_PARCOURS = [
+ { nom: "Secteur A", debutKm: 0.0, finKm: 0.83, note: "Départ → avant Scène 1" },
+ { nom: "Secteur B", debutKm: 0.83, finKm: 2.47, note: "Scène 1 → Scène 2" },
+ { nom: "Secteur C", debutKm: 2.47, finKm: 5.03, note: "Scène 2 → Scène 3" },
+ { nom: "Secteur D", debutKm: 5.03, finKm: 6.50, note: "Scène 3 → retour Point 0" },
+];
+
+// Autre ressource medicale a proximite
+export const CABINET_MEDICAL = {
+ nom: "Cabinet médical Sneessens Nicolas",
+ gps: "50.39875, 5.60932",
+ note: "≈ 2 km du site — hors urgence vitale (112 en priorité)",
 };
 
-const METEO_FALLBACK = {
-  // FALLBACK DE SECURITE : plus aucune donnee inventee (l'ancien fallback
-  // affichait un faux "Avertissement Chaleur" et "Temps ensoleillé — 22°C"
-  // meme la nuit). Une vue autorite ne doit montrer que du reel ou
-  // l'indisponibilite explicite.
-  live: false,
-  province: "Liege",
-  codeActuel: "vert",
-  maj: "—",
-  timeline: [{ creneau: "FLUX METEO NON RECU — verifier Edge Function meteo-irm + cron", code: "jaune", phenomene: "indisponible" }],
-  station: "Ferrières (Province de Liège)",
-  statutAlerte: "INDISPONIBLE",
-  titre: "Données météo indisponibles",
-  validite: "—",
-  description: "Aucune donnée reçue du flux météo. Se référer à meteo.be et au briefing météo du QG festival.",
-  source: "—",
-  obsHeure: "—",
-  obsResume: "OBSERVATION INDISPONIBLE — consulter meteo.be",
-  obsLever: "—",
-  obsCoucher: "—",
-  obsUV: "—",
-  urlFerrieres: "https://www.meteo.be/fr/ferrieres"
+/* --- Voies d'acces secours (Multidisciplinaire) ----------------------
+  Itineraire que doivent emprunter les vehicules de secours depuis le
+  PRV jusqu'a la scene. La longueur explique pourquoi un PRV peut
+  sembler eloigne de la scene qu'il dessert.
+-------------------------------------------------------------------- */
+export const VOIES_ACCES = [
+ {
+   nom: "Voie d'accès secours — Scène 1",
+   depuis: "PRV#4", vers: "Scène 1 / Étape 1",
+   longueurM: 721,
+   depart: "50.38219, 5.63605", arrivee: "50.37892, 5.62807",
+ },
+ {
+   nom: "Voie d'accès secours — Scène 2",
+   depuis: "PRV#5", vers: "Scène 2 / Étape 2 (ressort au PRV#6)",
+   longueurM: 752,
+   depart: "50.37575, 5.64411", arrivee: "50.38240, 5.64578",
+ },
+ {
+   nom: "Voie d'accès secours — Scène 3",
+   depuis: "PRV#7", vers: "Scène 3 / Étape 3",
+   longueurM: 131,
+   depart: "50.38860, 5.62698", arrivee: "50.38834, 5.62851",
+ },
+];
+
+
+/* ============ DONNEES DU DOSSIER DE SECURITE 2026 ====================
+  Extraites du dossier de securite annuel (Bucolique ASBL), § 9 et 10.
+  Ce sont les informations que la zone de secours demande en premier.
+  >>> Toute modification du dossier doit etre reportee ICI.
+======================================================================= */
+
+/* --- Decoupage operationnel : acces, brancardage, nature des voies ----
+  ATTENTION A LA LECTURE : les longueurs par type de voie sont des
+  CUMULS sur l'ensemble du troncon, PAS des portions continues. Un
+  troncon annonce "1250 m non carrossables" comporte plusieurs sections
+  entrecoupees de chemins accessibles aux vehicules.
+  -> Le seul indicateur fiable de difficulte d'acces est la DISTANCE
+     MAXIMALE DE BRANCARDAGE : elle donne l'eloignement reel entre un
+     point du parcours et un vehicule.
+-------------------------------------------------------------------- */
+export const SEGMENTS_PARCOURS = [
+ {
+   nom: "Départ → Étape 1",
+   distanceM: 900,
+   brancardageMaxM: 420,
+   voies: "Chemin forestier carrossable tout-terrain (850 m)",
+   arriveeNom: "Étape 1 / Scène 1",
+   arriveeAdresse: "Rue Sainte-Barbe, 4190 Burnontige",
+   arriveeGps: "50.37858, 5.62790",
+   prv: ["PRV#4"],
+ },
+ {
+   nom: "Étape 1 → Étape 2",
+   distanceM: 1700,
+   brancardageMaxM: 300,
+   voies: "Forestier tout-terrain 500 m · non carrossable 600 m · carrossable 300 m · voirie 300 m",
+   arriveeNom: "Étape 2 / Scène 2",
+   arriveeAdresse: "Rue de Jehonhé 7, 4190 Burnontige",
+   arriveeGps: "50.37828, 5.64549",
+   prv: ["PRV#5", "PRV#6"],
+ },
+ {
+   nom: "Étape 2 → Étape 3",
+   distanceM: 2500,
+   brancardageMaxM: 300,
+   voies: "Forestier tout-terrain 250 m · non carrossable 1250 m · carrossable 1000 m",
+   arriveeNom: "Étape 3 / Scène 3",
+   arriveeAdresse: "Rue de la Chapelle, 4190 Ferrières",
+   arriveeGps: "50.38817, 5.62891",
+   prv: ["PRV#7"],
+ },
+ {
+   nom: "Étape 3 → site principal",
+   distanceM: 1600,
+   brancardageMaxM: 50,
+   voies: "Carrossable 200 m · voirie 1400 m",
+   arriveeNom: "Site principal (entrée secondaire Mon Legrand)",
+   arriveeAdresse: "Mon Legrand, 4190 Ferrières — contrôle d'accès",
+   arriveeGps: "50.38304, 5.61816",
+   prv: ["PRV#2"],
+ },
+];
+
+/* --- Horaires de l'edition 2026 (dossier § 3) ------------------------ */
+export const HORAIRES = [
+ { jour: "Samedi 15/08", departs: ["13h00", "14h30", "16h00"], concerts: "17h30 → 02h00" },
+ { jour: "Dimanche 16/08", departs: ["11h00", "13h00", "14h30"], concerts: "16h00 → 00h30" },
+];
+
+/* --- Fréquentation de reference (dossier § 4.1) ---------------------- */
+export const FREQUENTATION = {
+ groupesParJour: 3,
+ personnesParGroupe: 300,
+ etapeParVague: 300,
+ soireeAttendue: "750 à 1200 personnes",
+ capaciteMax: "1200",
+ encadrantsParGroupe: 4,
 };
 
-/* ------------------------------ App ------------------------------ */
 
-export default function PcOps() {
-  const [missions, setMissions] = useState([]);
-  const [groupes, setGroupes] = useState([]);
-  const [alertes, setAlertes] = useState([]);
-  const [sosPart, setSosPart] = useState([]);
-  const [consigne, setConsigne] = useState(null);
-  const [meteoLive, setMeteoLive] = useState(null);
-  const [sbError, setSbError] = useState(false);
-  // Tri de la LISTE des évènements en cours (indépendant du tri interne qui
-  // sert la frise et les compteurs). Par défaut : gravité d'abord — en cellule
-  // de crise, le plus grave prime sur le plus récent.
-  const [triEvt, setTriEvt] = useState("gravite"); // gravite | recent | ancien
-  const [maj, setMaj] = useState(null);
-  const [now, setNow] = useState(new Date());
-  const [crise, setCrise] = useState(null);
-  const [recherches, setRecherches] = useState([]);
-  const [jauge, setJauge] = useState(null);
-  const [vue, setVue] = useState("situation"); // situation | dossier
+/* ================== TRACE DU PARCOURS ET LOCALISATION =================
+   Trace GPX officielle de la balade (6,5 km), format [lat, lon, metres
+   cumules depuis le depart]. Verifiee contre les bornes kilometriques
+   posees sur le terrain : BK1 a BK6 tombent a 0,99 / 1,99 / 3,00 / 3,97
+   / 4,99 / 6,00 km. Ecart lateral maximal 22 m.
 
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+   SOURCE UNIQUE : utilisee par le SOS participants ET l'alerte balade.
+   Ne jamais la recopier dans une app -- deux traces divergentes
+   donneraient deux kilometrages differents pour un meme incident.
+====================================================================== */
+export const TRACE = [
+[50.38212,5.61679,0],
+[50.38205,5.61689,10],
+[50.38191,5.61716,35],
+[50.38159,5.61791,99],
+[50.38123,5.61882,175],
+[50.38117,5.61913,198],
+[50.38117,5.61961,232],
+[50.38109,5.61998,259],
+[50.38101,5.62083,320],
+[50.38079,5.62146,371],
+[50.38066,5.62192,407],
+[50.38051,5.62226,436],
+[50.38032,5.62253,465],
+[50.38022,5.62277,485],
+[50.38011,5.62314,514],
+[50.37999,5.62340,537],
+[50.37982,5.62396,581],
+[50.37947,5.62467,644],
+[50.37905,5.62567,729],
+[50.37863,5.62667,814],
+[50.37821,5.62767,899],
+[50.37806,5.62798,927],
+[50.37787,5.62831,958],
+[50.37772,5.62866,988],
+[50.37755,5.62915,1028],
+[50.37749,5.62956,1057],
+[50.37747,5.62986,1079],
+[50.37757,5.63081,1147],
+[50.37772,5.63158,1204],
+[50.37776,5.63190,1227],
+[50.37772,5.63248,1269],
+[50.37774,5.63331,1328],
+[50.37770,5.63350,1342],
+[50.37759,5.63374,1363],
+[50.37755,5.63402,1383],
+[50.37754,5.63457,1422],
+[50.37748,5.63483,1442],
+[50.37729,5.63526,1479],
+[50.37708,5.63562,1513],
+[50.37694,5.63579,1533],
+[50.37691,5.63591,1542],
+[50.37689,5.63612,1557],
+[50.37690,5.63632,1572],
+[50.37699,5.63718,1633],
+[50.37699,5.63745,1652],
+[50.37697,5.63767,1668],
+[50.37693,5.63782,1680],
+[50.37688,5.63790,1688],
+[50.37672,5.63807,1709],
+[50.37662,5.63827,1727],
+[50.37670,5.63826,1736],
+[50.37661,5.63838,1749],
+[50.37656,5.63849,1759],
+[50.37652,5.63864,1770],
+[50.37648,5.63901,1797],
+[50.37648,5.64009,1874],
+[50.37651,5.64026,1886],
+[50.37678,5.64080,1935],
+[50.37685,5.64103,1953],
+[50.37683,5.64120,1965],
+[50.37675,5.64131,1977],
+[50.37670,5.64151,1992],
+[50.37669,5.64169,2005],
+[50.37673,5.64192,2022],
+[50.37671,5.64266,2074],
+[50.37686,5.64357,2141],
+[50.37690,5.64368,2150],
+[50.37690,5.64376,2156],
+[50.37689,5.64377,2157],
+[50.37688,5.64382,2161],
+[50.37685,5.64383,2164],
+[50.37641,5.64380,2213],
+[50.37628,5.64382,2228],
+[50.37600,5.64395,2260],
+[50.37597,5.64407,2269],
+[50.37599,5.64418,2277],
+[50.37601,5.64419,2280],
+[50.37632,5.64431,2315],
+[50.37709,5.64457,2403],
+[50.37749,5.64477,2449],
+[50.37820,5.64496,2530],
+[50.37873,5.64513,2590],
+[50.37927,5.64524,2650],
+[50.37987,5.64534,2717],
+[50.38041,5.64541,2777],
+[50.38094,5.64548,2837],
+[50.38120,5.64549,2866],
+[50.38159,5.64558,2910],
+[50.38237,5.64581,2998],
+[50.38233,5.64592,3007],
+[50.38278,5.64633,3065],
+[50.38356,5.64690,3160],
+[50.38391,5.64727,3207],
+[50.38397,5.64708,3222],
+[50.38383,5.64683,3246],
+[50.38373,5.64661,3265],
+[50.38367,5.64627,3290],
+[50.38369,5.64595,3313],
+[50.38377,5.64572,3331],
+[50.38403,5.64555,3363],
+[50.38413,5.64551,3374],
+[50.38424,5.64551,3386],
+[50.38443,5.64563,3409],
+[50.38457,5.64574,3427],
+[50.38509,5.64637,3500],
+[50.38537,5.64630,3531],
+[50.38564,5.64632,3561],
+[50.38579,5.64625,3579],
+[50.38592,5.64613,3595],
+[50.38601,5.64602,3608],
+[50.38622,5.64566,3643],
+[50.38623,5.64564,3645],
+[50.38638,5.64534,3672],
+[50.38650,5.64497,3701],
+[50.38664,5.64433,3749],
+[50.38671,5.64383,3785],
+[50.38672,5.64363,3799],
+[50.38656,5.64291,3854],
+[50.38651,5.64254,3880],
+[50.38635,5.64130,3970],
+[50.38618,5.64006,4060],
+[50.38617,5.64011,4064],
+[50.38639,5.63938,4121],
+[50.38660,5.63865,4178],
+[50.38674,5.63824,4211],
+[50.38707,5.63783,4257],
+[50.38763,5.63709,4339],
+[50.38820,5.63636,4421],
+[50.38876,5.63562,4502],
+[50.38860,5.63558,4520],
+[50.38828,5.63536,4559],
+[50.38815,5.63507,4584],
+[50.38824,5.63486,4602],
+[50.38820,5.63472,4613],
+[50.38827,5.63466,4622],
+[50.38835,5.63461,4631],
+[50.38853,5.63438,4657],
+[50.38875,5.63399,4694],
+[50.38880,5.63382,4707],
+[50.38878,5.63365,4720],
+[50.38872,5.63341,4738],
+[50.38861,5.63316,4759],
+[50.38864,5.63307,4767],
+[50.38864,5.63297,4774],
+[50.38859,5.63269,4794],
+[50.38858,5.63246,4811],
+[50.38861,5.63226,4825],
+[50.38861,5.63205,4840],
+[50.38856,5.63187,4854],
+[50.38848,5.63167,4871],
+[50.38831,5.63137,4899],
+[50.38831,5.63083,4938],
+[50.38826,5.63027,4978],
+[50.38827,5.63005,4993],
+[50.38833,5.62969,5020],
+[50.38844,5.62922,5055],
+[50.38858,5.62836,5118],
+[50.38861,5.62831,5123],
+[50.38854,5.62745,5184],
+[50.38854,5.62728,5196],
+[50.38857,5.62712,5208],
+[50.38864,5.62699,5220],
+[50.38864,5.62685,5230],
+[50.38926,5.62591,5326],
+[50.38938,5.62561,5351],
+[50.38925,5.62554,5367],
+[50.38861,5.62542,5438],
+[50.38822,5.62543,5482],
+[50.38805,5.62537,5501],
+[50.38791,5.62536,5517],
+[50.38775,5.62539,5535],
+[50.38760,5.62547,5552],
+[50.38722,5.62577,5599],
+[50.38706,5.62583,5618],
+[50.38689,5.62583,5637],
+[50.38681,5.62578,5646],
+[50.38675,5.62571,5655],
+[50.38667,5.62552,5671],
+[50.38660,5.62519,5695],
+[50.38655,5.62513,5702],
+[50.38648,5.62517,5711],
+[50.38641,5.62531,5723],
+[50.38636,5.62537,5730],
+[50.38624,5.62540,5744],
+[50.38590,5.62530,5782],
+[50.38553,5.62526,5823],
+[50.38528,5.62513,5853],
+[50.38513,5.62491,5876],
+[50.38470,5.62396,5958],
+[50.38441,5.62351,6004],
+[50.38434,5.62335,6017],
+[50.38427,5.62289,6051],
+[50.38427,5.62290,6052],
+[50.38421,5.62273,6065],
+[50.38395,5.62238,6103],
+[50.38365,5.62177,6158],
+[50.38349,5.62156,6181],
+[50.38343,5.62141,6194],
+[50.38339,5.62121,6209],
+[50.38325,5.62009,6290],
+[50.38315,5.61934,6344],
+[50.38295,5.61868,6396],
+[50.38294,5.61854,6406],
+[50.38297,5.61831,6422],
+[50.38303,5.61806,6441],
+[50.38312,5.61787,6458],
+[50.38337,5.61742,6500]
+];
 
-  useEffect(() => {
-    let stop = false;
-    async function pull() {
-      try {
-        const [mi, gr, aLog, aBal, sp, co, mto, cri, rch, jg] = await Promise.all([
-          kvGet(KEY_MISSIONS), kvGet(KEY_GROUPES), kvGet(KEY_ALERTE_LOG),
-          kvGet(KEY_ALERTE_BAL), kvGet(KEY_SOS_PART), kvGet(KEY_CONSIGNE),
-          kvGet(KEY_METEO), kvGet(KEY_CRISE), kvGet(KEY_RECH), kvGet(KEY_JAUGE),
-        ]);
-        if (stop) return;
-        setMissions(Array.isArray(mi) ? mi : []);
-        setGroupes(Array.isArray(gr) ? gr : []);
-        setSosPart(Array.isArray(sp) ? sp : []);
-        setConsigne(co && co.active ? co : null);
-        setMeteoLive(mto && mto.live ? mto : null);
-        setCrise(cri && cri.active ? cri : null);
-        setRecherches(Array.isArray(rch) ? rch.filter((x) => x.statut === "active") : []);
-        setJauge(jg && jg.compteurs ? jg : null);
-        setAlertes(
-          [
-            aLog && aLog.active ? { ...aLog, source: "Equipe logistique" } : null,
-            aBal && aBal.active ? { ...aBal, source: "Equipe balade" } : null,
-          ].filter(Boolean)
-        );
-        setMaj(new Date());
-        setSbError(false);
-      } catch (e) {
-        if (!stop) setSbError(true);
-      }
-    }
-    pull();
-    const t = setInterval(pull, 10000);
-    return () => { stop = true; clearInterval(t); };
-  }, []);
+// Reperes du parcours, pour situer un point entre deux etapes.
+export const REPERES = [
+  { nom: "Point 0 / Depart", km: 0 },
+  { nom: "Etape 1 - Rue Sainte-Barbe (PRV#4)", km: 0.90 },
+  { nom: "Etape 2 - Rue de Jehonhe (PRV#5)", km: 2.53 },
+  { nom: "Etape 3 - Rue de la Chapelle (PRV#7)", km: 5.06 },
+  { nom: "Retour Point 0", km: 6.50 },
+];
 
-  /* ------------------- Consolidation des evenements ------------------- */
-  const evenements = [];
+// Distance en metres entre deux points (formule de haversine).
+export function hav(la1, lo1, la2, lo2) {
+  const R = 6371000, r = Math.PI / 180;
+  const a =
+    Math.sin(((la2 - la1) * r) / 2) ** 2 +
+    Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(((lo2 - lo1) * r) / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 
-  const sosVisibles = sosPart.filter((s) => {
-    const st = (s.statut || "").toLowerCase();
-    return st !== "cloture" && st !== "clôture" && st !== "cloturé" && st !== "clos" && st !== "retour a la normale";
-  });
-
-  sosVisibles.forEach((s) => {
-    const st = (s.statut || "").toLowerCase();
-    let texteStatut = "Nouveau — non pris en compte";
-    if (st === "en route") texteStatut = `Volante en route (${s.heureEnRoute || ""})`;
-    else if (st === "sur place") texteStatut = `Volante sur place (${s.heureArrivee || ""})`;
-    else if (st === "prise en charge") texteStatut = `Victime prise en charge / Soins (${s.heurePriseEnCharge || ""})`;
-    else if (st === "pris en compte") texteStatut = `Pris en compte par le QG (${s.heurePriseEnCompte || ""})`;
-
-    evenements.push({
-      id: s.id,
-      heure: s.heure,
-      type: "SOS participant",
-      libelle: s.motif + (s.nom && s.nom !== "Anonyme" ? ` — ${s.nom}` : ""),
-      gravite: "critique",
-      localisation: s.surTrace ? `Parcours km ${s.surTrace.km} · ${s.surTrace.segment}` : "Position non geolocalisee (voir description)",
-      km: s.surTrace ? s.surTrace.km : null,
-      gps: s.gps || null,
-      statut: texteStatut,
-      details: s.details,
-    });
-  });
-
-  alertes.forEach((a, i) => {
-    if (a.acquittePar) return;
-    // Anti-doublon : si cette alerte a deja genere une mission (demande
-    // urgente logistique), la mission la represente deja sur la frise.
-    if (missions.some((m) => m.refAlerte === (a.heure + "|" + a.auteur))) return;
-    evenements.push({
-      id: "al" + i,
-      heure: a.heure,
-      type: "Alerte " + a.source.toLowerCase(),
-      libelle: a.motif,
-      gravite: "critique",
-      localisation: a.groupe || a.lieu || a.details || "Voir QG",
-      km: a.surTrace ? a.surTrace.km : null,
-      gps: a.gps || null,
-      statut: "Non acquittee",
-      details: a.details,
-    });
-  });
-
-  missions
-    // Seules les DEMANDES URGENTES (bouton dédié, marquées refAlerte) remontent
-    // au PC-Ops. Les "Nouvelles demandes" ordinaires restent dans le moniteur
-    // logistique, meme bloquantes/P2 : elles ne sont pas des interventions de secours.
-    .filter((m) => m.refAlerte && m.statut !== STATUT_RESOLU)
-    .forEach((m) => {
-      evenements.push({
-        id: m.id || m.ref,
-        heure: m.heureConstat,
-        type: "Logistique " + (m.priorite || "").slice(0, 2),
-        libelle: m.nature,
-        gravite: m.bloquant === "Oui" || priorite(m.priorite).rang === 1 ? "grave" : "modere",
-        localisation: `${m.zone}${m.localisation ? " · " + m.localisation : ""}`,
-        km: m.surTrace ? m.surTrace.km : null,
-        gps: m.gps || null,
-        statut: m.statut + (m.attribueA ? ` — ${m.attribueA}` : " — non attribuee"),
-        details: "",
-      });
-    });
-
-  evenements.sort((a, b) => {
-    const ga = GRAV[a.gravite].rang, gb = GRAV[b.gravite].rang;
-    if (ga !== gb) return gb - ga;
-    return (b.heure || "").localeCompare(a.heure || "");
-  });
-
-  // Liste ré-ordonnée pour l'AFFICHAGE, selon le choix de l'utilisateur.
-  const evenementsAffiches = [...evenements].sort((a, b) => {
-    if (triEvt === "gravite") {
-      const ga = GRAV[a.gravite].rang, gb = GRAV[b.gravite].rang;
-      if (ga !== gb) return gb - ga;
-      return (b.heure || "").localeCompare(a.heure || "");
-    }
-    const cmp = (a.heure || "").localeCompare(b.heure || "");
-    return triEvt === "recent" ? -cmp : cmp;
-  });
-
-  /* --------------------------- Crowd management --------------------------- */
-  const grpDehors = groupes.filter((g) => g.position !== "p0" && g.position !== "ret");
-  const persDehors = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
-  const persAttente = groupes.filter((g) => g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
-  const persRentres = groupes.filter((g) => g.position === "ret").reduce((s, g) => s + (Number(g.participants) || 0), 0);
-  const parEtape = { e1: 0, e2: 0, e3: 0 };
-  groupes.forEach((g) => {
-    if (parEtape[g.position] !== undefined) parEtape[g.position] += Number(g.participants) || 0;
-  });
-
-  const etapesSaturees = ["e1", "e2", "e3"]
-    .map((eid, i) => {
-      const n = parEtape[eid];
-      const pct = n / CAPACITE_ETAPE;
-      return { nom: `Etape ${i + 1}`, n, pct, label: pct >= 1.0 ? "COMPLET" : "DENSITE ELEVEE" };
-    })
-    .filter((e) => e.pct >= 0.72);
-
-  const surSite = jauge
-    ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
-    : null;
-
-  /* --------------------- BILAN DES INTERVENTIONS ---------------------
-     Vue GLOBALE pour le Dir-PC-Ops : TOUTES les interventions en cours
-     (medicales ET non medicales : securite, feu, personne perdue...),
-     ventilees par TYPE et par STATUT de prise en charge. On ne discrimine
-     plus le medical -- un depart de feu ou une bagarre compte autant.
-  ------------------------------------------------------------------- */
-  // Categorisation par type a partir du motif du SOS / de l'alerte.
-  function typeIntervention(motif) {
-    const m = (motif || "").toLowerCase();
-    if (/m[ée]dical|malaise|bless|chute|soin|inconsc|douleur|crise/.test(m)) return "Médical";
-    if (/feu|fum[ée]e|incendie|flamme/.test(m)) return "Incendie / fumée";
-    if (/bagarre|agress|vol|s[ûu]ret[ée]|alterc|violence|intrus/.test(m)) return "Sûreté";
-    if (/perdu|recherche|disparu|[ée]gar[ée]|enfant/.test(m)) return "Personne recherchée";
-    if (/[ée]lec|technique|structure|barri[èe]re|panne/.test(m)) return "Technique / matériel";
-    return "Autre";
+/* Projette une position GPS sur la trace.
+   Retourne { kmTrace, distTrace, avant, apres, plusProche, lat, lon }
+   - kmTrace   : kilometre du parcours le plus proche
+   - distTrace : ecart lateral en metres (grand = hors parcours)
+   - avant/apres : reperes encadrants
+*/
+export function localiser(lat, lon) {
+  let best = { d: Infinity, i: 0 };
+  for (let i = 0; i < TRACE.length; i++) {
+    const d = hav(lat, lon, TRACE[i][0], TRACE[i][1]);
+    if (d < best.d) best = { d, i };
   }
-  // Statuts reels : nouveau -> pris en compte -> en route -> prise en charge.
-  // "pris en compte" = QG a acquitte sans forcement engager de moyen.
-  function statutIntervention(s) {
-    const st = (s.statut || "").toLowerCase();
-    if (st === "nouveau" || st === "pris en compte") return "en_attente";
-    if (st === "en route" || st === "sur place") return "moyen_engage";
-    if (st === "prise en charge") return "prise_en_charge";
-    return "en_attente";
-  }
+  const kmTrace = TRACE[best.i][2] / 1000;
+  const distTrace = Math.round(best.d);
 
-  // Interventions = SOS participants + alertes equipes non acquittees.
-  // (Les missions logistiques P3/P4 restent hors bilan : ce ne sont pas
-  //  des interventions de secours mais de la maintenance.)
-  const interventions = [
-    ...sosVisibles.map((s) => ({
-      id: s.id, heure: s.heure, motif: s.motif, nom: s.nom, details: s.details,
-      surTrace: s.surTrace, gps: s.gps,
-      type: typeIntervention(s.motif),
-      etat: statutIntervention(s),
-      statutBrut: s.statut,
-    })),
-    // Missions logistiques URGENTES (nées d'une demande urgente : elles
-    // portent un refAlerte). Elles doivent figurer dans le bilan comme les
-    // SOS, avec un cycle de statut suivable. Les missions logistiques
-    // ordinaires (P3/P4, sans refAlerte) restent hors bilan : maintenance,
-    // pas intervention de secours.
-    ...missions
-      .filter((m) => m.refAlerte && m.statut !== STATUT_RESOLU)
-      .map((m) => ({
-        id: m.id, heure: m.heureConstat, motif: m.nature, nom: m.attribueA || "",
-        details: m.details, gps: m.gps || null, surTrace: m.surTrace || null,
-        localisation: `${m.zone || ""}${m.localisation ? " · " + m.localisation : ""}`,
-        type: "Logistique",
-        etat: m.statut === "En cours" ? "prise_en_charge"
-            : m.statut === "Attribuee" ? "moyen_engage"
-            : "en_attente",
-        priorite: m.priorite || null,
-        statutBrut: `${priorite(m.priorite).court} · ${m.statut}`,
-      })),
-    // Alertes équipes NON acquittées, et qui n'ont pas déjà généré une
-    // intervention suivie. Depuis que l'alerte balade crée sa propre
-    // intervention (avec statut évolutif), la compter ici en plus la
-    // ferait apparaître DEUX FOIS dans le bilan.
-    ...alertes
-      .filter((a) => !a.acquittePar)
-      .filter((a) => !a.id || !sosVisibles.some((s) => s.refAlerte === a.id))
-      // L'alerte logistique urgente cree deja une mission P1 (ci-dessus) :
-      // ne pas la compter une 2e fois comme alerte en attente.
-      .filter((a) => !missions.some((m) => m.refAlerte === (a.heure + "|" + a.auteur)))
-      .map((a, i) => ({
-        id: "al" + i, heure: a.heure, motif: a.motif, details: a.details,
-        localisation: a.groupe || a.lieu || a.details,
-        type: typeIntervention(a.motif),
-        etat: "en_attente",
-        // Une demande urgente logistique porte une priorite P1 : on la
-        // remonte pour qu'elle soit classee comme les missions urgentes.
-        priorite: a.priorite || null,
-        gps: a.gps || null,
-        surTrace: a.surTrace || null,
-        statutBrut: a.priorite ? `${priorite(a.priorite).court} — non acquittée` : "alerte non acquittée",
-      })),
-  ];
-
-  const intEnAttente = interventions.filter((i) => i.etat === "en_attente");
-  const intEngage = interventions.filter((i) => i.etat === "moyen_engage");
-  const intPriseEnCharge = interventions.filter((i) => i.etat === "prise_en_charge");
-
-  // Repartition par type (pour le tableau de synthese)
-  const parType = {};
-  interventions.forEach((i) => { parType[i.type] = (parType[i.type] || 0) + 1; });
-  const typesTries = Object.entries(parType).sort((a, b) => b[1] - a[1]);
-
-  const critiques = evenements.filter((e) => e.gravite === "critique").length + (crise ? 1 : 0);
-  const niveau = critiques > 0 ? "critique" : evenements.length > 0 || Object.values(parEtape).some((n) => n / CAPACITE_ETAPE >= 0.9) ? "modere" : "mineur";
-  const niveauLabel = { mineur: "NORMAL", modere: "VIGILANCE", critique: "ALERTE" }[niveau];
-
-  const METEO = meteoLive || METEO_FALLBACK;
-  // Couleur du panneau meteo = niveau de vigilance courant (defaut vert)
-  const vig = VIGILANCE_STYLE[(METEO.codeActuel || "vert").toLowerCase()] || VIGILANCE_STYLE.vert;
-  const pad = (n) => String(n).padStart(2, "0");
-
-  return (
-    <div className="min-h-screen bg-[#0d1117] text-slate-100 font-sans">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght=500;600;700&family=Inter:wght=400;500;600;700&family=JetBrains+Mono:wght=400;500;600&display=swap');
-        .font-display { font-family: 'Oswald', sans-serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
-        .pulse-slow { animation: pulseSlow 1.8s ease-in-out infinite; }
-      `}</style>
-
-      <header className="border-b border-white/10 bg-[#131a22]/95 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-md bg-sky-400/10 ring-1 ring-sky-400/30 flex items-center justify-center shrink-0">
-              <Landmark className="w-5 h-5 text-sky-300" />
-            </div>
-            <div className="min-w-0">
-              <div className="font-display tracking-wide text-[15px] leading-none truncate">PC-OPS · AUTORITE</div>
-              <div className="text-[10px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · FERRIERES · VUE DE SITUATION</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ring-1 font-mono text-xs tracking-wider ${
-              niveau === "critique" ? "bg-red-400/10 ring-red-400/40 text-red-300"
-              : niveau === "modere" ? "bg-amber-400/10 ring-amber-400/40 text-amber-300"
-              : "bg-emerald-400/10 ring-emerald-400/30 text-emerald-300"}`}>
-              <CircleDot className={`w-3 h-3 ${niveau === "critique" ? "pulse-slow" : ""}`} />
-              {niveauLabel}
-            </div>
-            <div className="hidden sm:flex items-center gap-1.5 text-slate-300 font-mono text-sm">
-              <Clock className="w-4 h-4 text-slate-500" />
-              {pad(now.getHours())}:{pad(now.getMinutes())}
-            </div>
-          </div>
-        </div>
-        {/* Onglets : SITUATION (temps reel) / DOSSIER (references) */}
-        <div className="max-w-3xl mx-auto px-4 pb-2 flex gap-1.5">
-          {[["situation", "Situation", CircleDot], ["intervention", "Intervention", ShieldAlert], ["dossier", "Dossier", FileText]].map(([k, lab, Ic]) => (
-            <button
-              key={k}
-              onClick={() => setVue(k)}
-              className={`flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-full ring-1 transition-colors ${
-                vue === k ? "ring-sky-400/50 bg-sky-400/10 text-sky-300" : "ring-white/10 text-slate-500 hover:text-slate-300"
-              }`}
-            >
-              <Ic className="w-3.5 h-3.5" /> {lab}
-            </button>
-          ))}
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-4 py-4 space-y-4">
-        {sbError && (
-          <div className="rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 text-amber-300 text-xs px-3 py-2">
-            Liaison donnees indisponible — la situation affichee peut etre obsolete.
-          </div>
-        )}
-
-        {/* ------------------------------------------------------------------
-            BANDEAUX PERMANENTS — hors onglets.
-            Une autorite consultant le Dossier doit voir passer une mise a
-            l'abri : ces blocs restent donc affiches quel que soit l'onglet.
-            LECTURE SEULE, volontairement sans bouton "BIEN RECU" : les
-            accuses de reception comptabilisent les EQUIPES du festival. Un
-            clic d'autorite fausserait le decompte du QG ("qui a lu ma
-            consigne ?") et partirait sans nom (pas de profil cote autorite).
-        ------------------------------------------------------------------ */}
-        {crise && (
-          <section className="rounded-lg ring-2 ring-red-500/70 bg-red-500/15 p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Megaphone className="w-4 h-4 text-red-300 pulse-slow" />
-              <h2 className="font-display tracking-wide text-sm text-red-200 uppercase">Consigne générale diffusée par le QG</h2>
-            </div>
-            <div className="text-sm text-red-100 font-semibold">{crise.motif}</div>
-            {crise.message && <div className="text-xs text-red-100/90 mt-0.5">{crise.message}</div>}
-            <div className="text-[11px] font-mono text-red-200/70 mt-1">
-              Émise à {crise.heure} · {(crise.accuses || []).length} équipe(s) ont accusé réception
-            </div>
-          </section>
-        )}
-
-        {recherches.map((r) => (
-          <div key={r.id} className="rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100 flex items-start gap-2">
-            <UserSearch className="w-4 h-4 shrink-0 mt-0.5 text-amber-300" />
-            <div>
-              <span className="font-semibold uppercase">Recherche {r.categorie} en cours</span> — depuis {r.heure}
-              <div className="opacity-80 mt-0.5">
-                Dernier lieu connu : {r.dernierLieu}{r.heureDerniereVue ? ` (vers ${r.heureDerniereVue})` : ""} · regroupement : accueil Point 0 · gestion QG festival
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {vue === "dossier" ? (
-          <Dossier />
-        ) : vue === "intervention" ? (
-          <Intervention
-            interventions={interventions}
-            enAttente={intEnAttente}
-            engage={intEngage}
-            priseEnCharge={intPriseEnCharge}
-            typesTries={typesTries}
-            surSite={surSite}
-            persDehors={persDehors}
-          />
-        ) : (
-        <>
-        {/* PANEL IRM BELGIQUE — SURVEILLANCE DIRECTE ET CLIQUABLE (LECTURE SEULE AUTORITÉS) */}
-        <a 
-          href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`block bg-[#131a22] rounded-lg p-4 ring-1 ${vig.ring} border-t-4 ${vig.border} shadow-xl hover:bg-[#1a232e] ${vig.ringHover} transition-all cursor-pointer group`}
-        >
-          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className={`w-4 h-4 ${vig.icone} pulse-slow`} />
-              <h2 className={`font-display tracking-wide text-sm ${vig.titre} uppercase flex items-center gap-1.5`}>
-                {meteoLive ? "IRM LIVE — AVERTISSEMENTS OFFICIELS" : "MÉTÉO HORS LIGNE — DONNÉES NON REÇUES"} ({METEO.station})
-                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition-colors inline" />
-              </h2>
-            </div>
-            <div className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider ${vig.badge}`}>
-              Vigilance : {vig.label}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-            <div className="md:col-span-2 bg-white/[0.02] border border-white/5 rounded p-2.5">
-              <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${vig.dot}`} />
-                {METEO.titre || METEO_FALLBACK.titre}
-              </div>
-              <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                {METEO.description || METEO_FALLBACK.description}
-              </p>
-              <div className="text-[10px] font-mono text-slate-400 mt-2">
-                Période de validité : {METEO.validite || METEO_FALLBACK.validite}
-              </div>
-            </div>
-            
-            <div className="bg-white/[0.02] border border-white/5 rounded p-2.5 flex flex-col justify-between">
-              <div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Météo & Données Clés</div>
-                <div className="text-xs font-medium text-slate-200">{METEO.obsResume || METEO_FALLBACK.obsResume}</div>
-                
-                <div className="mt-2 pt-2 border-t border-white/5 space-y-1 text-[11px]">
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="flex items-center gap-1 text-slate-400"><Sun className="w-3 h-3 text-amber-400" /> Lever :</span>
-                    <span className="font-mono font-medium">{METEO.obsLever || METEO_FALLBACK.obsLever}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="flex items-center gap-1 text-slate-400"><Sunset className="w-3 h-3 text-orange-400" /> Coucher :</span>
-                    <span className="font-mono font-medium">{METEO.obsCoucher || METEO_FALLBACK.obsCoucher}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-300 pt-0.5">
-                    <span className="text-slate-400">Indice UV max :</span>
-                    <span className="font-mono font-bold text-amber-400">{METEO.obsUV || METEO_FALLBACK.obsUV}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="text-[9px] font-mono text-slate-500 pt-1.5 border-t border-white/5 mt-3">
-                Source : {METEO.source || METEO_FALLBACK.source} <br/>
-                Observation : {METEO.maj}
-              </div>
-            </div>
-          </div>
-        </a>
-
-        {/* Synthese chiffree */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Kpi label="Evenements actifs" value={evenements.length} accent={critiques > 0 ? "text-red-300" : "text-amber-300"} />
-          <Kpi label="Dont critiques" value={critiques} accent={critiques > 0 ? "text-red-300" : "text-emerald-300"} />
-          <Kpi label="Public sur parcours" value={persDehors} accent="text-amber-300" />
-          <Kpi label="Groupes dehors" value={grpDehors.length} accent="text-slate-200" />
-        </section>
-
-        {/* Jauge plaine (comptage des acces au site) */}
-        {surSite !== null && (
-          <div className="rounded-lg ring-1 ring-white/10 bg-[#131a22] px-4 py-2.5 flex items-center gap-3">
-            <Users className="w-4 h-4 text-slate-500 shrink-0" />
-            <span className="text-xs text-slate-300 shrink-0">Jauge plaine</span>
-            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <div className={`h-full ${surSite / CAPACITE_SITE >= 0.9 ? "bg-red-400" : surSite / CAPACITE_SITE >= 0.72 ? "bg-amber-400" : "bg-emerald-400"}`}
-                style={{ width: `${Math.min(100, Math.round((surSite / CAPACITE_SITE) * 100))}%` }} />
-            </div>
-            <span className={`font-mono text-sm ${surSite / CAPACITE_SITE >= 0.9 ? "text-red-300" : "text-slate-200"}`}>{surSite}</span>
-            <span className="font-mono text-[10px] text-slate-500 shrink-0">/ {CAPACITE_SITE}</span>
-          </div>
-        )}
-
-        {consigne && (
-          <div className="rounded-md ring-1 ring-amber-400/30 bg-amber-400/5 px-3 py-2 text-xs text-amber-200">
-            Moyens engages : equipe volante vers <span className="font-semibold">{consigne.prv}</span>
-            {consigne.message ? ` — ${consigne.message}` : ""} (emis {consigne.heure}
-            {consigne.accusePar ? `, accuse ${consigne.heureAccuse}` : ", en attente d'accuse"})
-          </div>
-        )}
-
-        {/* Crowd management */}
-        <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-            <Footprints className="w-4 h-4 text-slate-500" /> PARCOURS 6,5 KM — SITUATION
-          </h2>
-
-          <div className="relative h-16 mb-2">
-            <div className="absolute top-8 left-0 right-0 h-1 bg-white/15 rounded-full" />
-            {REPERES.map((r, i) => (
-              <div key={i} className="absolute top-5" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
-                <div className="w-2 h-2 rounded-full bg-slate-500 mx-auto mt-2" />
-                <div className="text-[9px] font-mono text-slate-500 text-center mt-1">{r.nom}</div>
-              </div>
-            ))}
-            {grpDehors.map((g) => {
-              const km = POS_KM[g.position] ?? 0;
-              return (
-                <div key={g.id} className="absolute top-1" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} · ${g.participants} pers.`}>
-                  <div className="flex items-center gap-0.5 bg-amber-400/20 ring-1 ring-amber-400/50 rounded px-1 py-0.5">
-                    <Users className="w-2.5 h-2.5 text-amber-300" />
-                    <span className="text-[9px] font-mono text-amber-200">{g.participants}</span>
-                  </div>
-                </div>
-              );
-            })}
-            {evenements.filter((e) => e.km !== null && e.km !== undefined).map((e) => {
-              // Couleur du marqueur selon l'origine : SOS/secours en rouge,
-              // logistique en ambre, autres selon gravite. Tous les evenements
-              // geolocalises apparaissent, plus seulement les SOS participants.
-              const estLog = (e.type || "").startsWith("Logistique");
-              const couleur = e.gravite === "critique" ? "text-red-400"
-                : estLog ? "text-amber-400"
-                : "text-red-400";
-              return (
-                <div key={e.id} className="absolute top-10" style={{ left: `calc(${(Math.min(e.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 6px)` }} title={`${e.libelle}${e.km != null ? ` · km ${e.km}` : ""}`}>
-                  <TriangleAlert className={`w-3.5 h-3.5 ${couleur} pulse-slow`} />
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mb-2">
-            {["e1", "e2", "e3"].map((eid, idx) => {
-              const n = parEtape[eid];
-              const pct = Math.min(100, Math.round((n / CAPACITE_ETAPE) * 100));
-              const cls = pct >= 100 ? "bg-red-500" : pct >= 72 ? "bg-amber-400" : "bg-emerald-400";
-              return (
-                <div key={eid} className="rounded bg-white/[0.03] ring-1 ring-white/10 p-2">
-                  <div className="text-[10px] font-mono text-slate-500 flex justify-between items-center">
-                    <span>ETAPE {idx + 1}</span>
-                    {pct >= 100 && <span className="text-[8px] font-bold text-red-400 uppercase tracking-wide">COMPLET</span>}
-                  </div>
-                  <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden my-1">
-                    <div className={`h-full ${cls} ${pct >= 100 ? "pulse-slow" : ""}`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="text-[10px] font-mono text-slate-400">{n}/{CAPACITE_ETAPE}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="text-[11px] font-mono text-slate-500">
-            {persAttente} en attente au Point 0 · {persDehors} sur le parcours · {persRentres} rentres
-          </div>
-        </section>
-
-        {etapesSaturees.length > 0 && (
-          <section className="rounded-lg ring-1 ring-amber-400/40 bg-amber-400/5 p-3.5">
-            <div className="font-display text-amber-200 text-sm tracking-wide flex items-center gap-2 mb-1.5">
-              <Footprints className="w-4 h-4" /> 
-              {etapesSaturees.some(e => e.pct >= 1) ? "CROWD — CAPACITE MAXIMALE ATTEINTE" : "CROWD — DENSITE ELEVEE"}
-            </div>
-            <div className="space-y-1">
-              {etapesSaturees.map((e) => (
-                <div key={e.nom} className="flex items-center justify-between text-xs text-slate-200 py-0.5">
-                  <div className="flex items-center gap-2">
-                    <span>{e.nom} : {e.n}/{CAPACITE_ETAPE} ({Math.round(e.pct * 100)}%)</span>
-                    {e.pct >= 1 && <span className="text-[9px] font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded ring-1 ring-red-500/40 font-mono">COMPLET</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Evenements en cours nettoyés sans doublon */}
-        <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-          <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-            <TriangleAlert className="w-4 h-4 text-slate-500" /> EVENEMENTS EN COURS
-            <span className="text-[11px] font-mono text-slate-500 font-normal">{evenements.length}</span>
-          </h2>
-          {evenements.length > 0 && (
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mr-1">Trier :</span>
-              {[["gravite", "Gravité"], ["recent", "Plus récent"], ["ancien", "Plus ancien"]].map(([id, lbl]) => (
-                <button
-                  key={id}
-                  onClick={() => setTriEvt(id)}
-                  className={`text-[10px] font-mono px-2 py-1 rounded ring-1 transition-colors ${
-                    triEvt === id
-                      ? "ring-sky-400/50 bg-sky-400/15 text-sky-200 font-semibold"
-                      : "ring-white/10 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  {lbl}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="space-y-2">
-            {evenements.length === 0 && (
-              <div className="text-xs text-slate-500 text-center py-4 flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Aucun evenement en cours.
-              </div>
-            )}
-            {evenementsAffiches.map((e) => {
-              const g = GRAV[e.gravite] || GRAV["modere"];
-              return (
-                <div key={e.id} className={`rounded-md px-3 py-2.5 ring-1 ${g.ring} ${g.bg}`}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`w-1.5 h-1.5 rounded-full ${g.dot} shrink-0 bg-red-400`} />
-                    <span className="font-mono text-[11px] text-slate-400">{e.heure}</span>
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ring-1 ${g.ring} ${g.cls}`}>{e.gravite.toUpperCase()}</span>
-                    <span className="text-[10px] font-mono text-slate-500">{e.type}</span>
-                  </div>
-                  <div className="text-sm text-slate-100 mt-1">{e.libelle}</div>
-                  <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 shrink-0" /> {e.localisation}
-                    {e.gps && (
-                      <>
-                        <a href={`https://maps.google.com/?q=${e.gps.lat},${e.gps.lon}`} target="_blank" rel="noreferrer" className="text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5 ml-1">
-                          Maps <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                        <a href={myMapsUrl(e.gps.lat, e.gps.lon)} target="_blank" rel="noreferrer" className="text-amber-300 hover:text-amber-200 inline-flex items-center gap-0.5 ml-1">
-                          carte Buco <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      </>
-                    )}
-                  </div>
-                  {e.details && <div className="text-[11px] text-slate-500 italic mt-0.5">"{e.details}"</div>}
-                  <div className="text-[11px] font-mono mt-1 text-amber-300">Statut : {e.statut}</div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        </>
-        )}
-
-        <div className="text-[10px] text-slate-600 font-mono text-center pb-2">
-          {maj ? `Derniere synchronisation : ${pad(maj.getHours())}:${pad(maj.getMinutes())}:${pad(maj.getSeconds())}` : "Synchronisation..."} · rafraichissement 10 s
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function Kpi({ label, value, accent }) {
-  return (
-    <div className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-3">
-      <div className="text-[10px] font-mono text-slate-500 tracking-wide uppercase">{label}</div>
-      <div className={`font-display text-2xl mt-0.5 ${accent}`}>{value}</div>
-    </div>
-  );
-}
-/* =====================================================================
-   ONGLET DOSSIER — documents de reference, annuaire, points fixes.
-   Contenu statique : reste consultable meme si la liaison Supabase tombe.
-===================================================================== */
-
-function Dossier() {
-  return (
-    <div className="space-y-4">
-      {/* Documents */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
-          <FileText className="w-4 h-4 text-sky-300" /> DOCUMENTS DE RÉFÉRENCE
-        </h2>
-        <div className="text-[10px] font-mono text-slate-500 mb-3">
-          Consultation réservée aux autorités et disciplines — ne pas rediffuser.
-        </div>
-        <div className="space-y-2">
-          {DOCUMENTS.map((d) => {
-            const dispo = Boolean(d.url);
-            const Contenu = (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm ${dispo ? "text-slate-100" : "text-slate-400"}`}>{d.titre}</span>
-                  {dispo ? (
-                    <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-sky-300 transition-colors" />
-                  ) : (
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded ring-1 ring-amber-400/30 text-amber-300/80">à venir</span>
-                  )}
-                </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">{d.desc}</div>
-              </>
-            );
-            return dispo ? (
-              <a key={d.titre} href={d.url} target="_blank" rel="noopener noreferrer"
-                className="group block rounded-md px-3 py-2.5 ring-1 ring-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:ring-sky-400/30 transition-all">
-                {Contenu}
-              </a>
-            ) : (
-              <div key={d.titre} className="rounded-md px-3 py-2.5 ring-1 ring-white/5 bg-white/[0.01]">
-                {Contenu}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Annuaire de crise */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <PhoneCall className="w-4 h-4 text-slate-500" /> ANNUAIRE DE CRISE
-        </h2>
-        <div className="space-y-1">
-          {ANNUAIRE.map((n) => (
-            <a key={n.nom} href={`tel:${n.num.replace(/\s/g, "")}`}
-              className={`flex items-center gap-2 rounded px-2.5 py-2 ring-1 ${n.urgent ? "ring-red-400/40 bg-red-400/10" : "ring-white/10 bg-white/[0.02]"}`}>
-              <span className={`text-xs flex-1 leading-tight ${n.urgent ? "text-red-200 font-semibold" : "text-slate-300"}`}>
-                {n.nom}
-                {n.mail && <span className="block text-[9px] font-mono text-slate-500">{n.mail}</span>}
-              </span>
-              {n.note && <span className="text-[9px] font-mono text-amber-300/70 shrink-0">{n.note}</span>}
-              <span className={`font-mono text-sm ${n.urgent ? "text-red-200 font-bold" : "text-slate-200"}`}>{n.num}</span>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      {/* Plan radio */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO
-        </h2>
-        <div className="space-y-1">
-          {RADIO_PLAN.map((c) => (
-            <div key={c.canal} className={`flex items-start gap-2 text-[11px] rounded px-2 py-1.5 ${c.urgent ? "bg-red-400/5 ring-1 ring-red-400/20" : "bg-white/[0.02]"}`}>
-              <span className={`font-mono shrink-0 w-14 ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
-              <span className={`font-mono shrink-0 px-1.5 rounded text-[10px] ${c.urgent ? "bg-red-500/25 text-red-100" : "bg-sky-500/15 text-sky-200"}`}>
-                ch.{c.num}
-                {c.postes === "les deux" && <span className="text-amber-200"> / {c.numSimple}</span>}
-              </span>
-              <span className="text-slate-400 leading-tight">
-                {c.usage}
-                {c.postes === "standard" && (
-                  <span className="block text-[9px] text-amber-300/70">Postes standard uniquement</span>
-                )}
-                {c.postes === "les deux" && (
-                  <span className="block text-[9px] text-slate-500">
-                    canal {c.num} sur poste standard · canal {c.numSimple} sur poste simple
-                  </span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-2.5 rounded px-2.5 py-2 ring-1 ring-amber-400/40 bg-amber-400/[0.08] text-[10px] text-amber-100 leading-relaxed">
-          <span className="font-semibold">Deux programmations coexistent.</span>
-          {" "}Postes <span className="text-sky-200">standard</span> ({POSTES_RADIO.standard.qui}) : 25 canaux,
-          <span className="font-semibold"> double fréquence</span> — ils tiennent PMR4.1 tout en écoutant PMR333
-          (canal <span className="font-semibold">6</span>).
-          {" "}Postes <span className="text-amber-200">simples</span> ({POSTES_RADIO.simple.qui}) :
-          mono-canal, <span className="font-semibold">PMR333 n'y est pas programmé</span>
-          (sur ces postes, n° de canal = n° PMR).
-          <span className="block mt-1 text-amber-200/80">
-            Ne jamais demander à ces équipes de passer sur PMR333. Leur circuit : 112 par téléphone
-            pour une urgence vitale, puis alerte au QG sur leur propre canal — le QG écoute PMR5,
-            émet sur PMR15 (radio n°2) et relaie vers PMR333.
-          </span>
-        </div>
-
-        {/* Table complete de programmation des postes */}
-        <details className="mt-2">
-          <summary className="text-[10px] font-mono uppercase tracking-wider text-slate-500 cursor-pointer hover:text-slate-300">
-            Programmation complète des postes ({PROGRAMMATION_RADIO.length} canaux)
-          </summary>
-          <div className="grid grid-cols-3 gap-1 mt-2">
-            {PROGRAMMATION_RADIO.map((c) => {
-              const utilise = RADIO_PLAN.some((r) => r.num === c.num);
-              const urg = c.pmr.includes("333");
-              return (
-                <div
-                  key={c.num}
-                  className={`flex items-center gap-1.5 rounded px-1.5 py-1 text-[10px] font-mono ring-1 ${
-                    urg ? "ring-red-400/40 bg-red-400/10 text-red-200"
-                      : utilise ? "ring-amber-400/25 bg-amber-400/[0.06] text-amber-200"
-                      : "ring-white/5 bg-white/[0.02] text-slate-500"
-                  }`}
-                >
-                  <span className="font-bold w-5 text-right">{c.num}</span>
-                  <span>{c.pmr}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="text-[9px] font-mono text-slate-600 mt-1.5">
-            En ambre : canaux utilisés par le dispositif. En rouge : canal d'urgence.
-          </div>
-        </details>
-      </section>
-
-      {/* Points de rendez-vous secours */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
-          <MapIcon className="w-4 h-4 text-slate-500" /> POINTS DE RENDEZ-VOUS SECOURS (PRV)
-        </h2>
-        <div className="text-[10px] font-mono text-slate-500 mb-2">Coordonnées cliquables — ouvre Google Maps / navigation.</div>
-        <div className="space-y-1">
-          {PRV_LIST.map((r) => (
-            <a key={r.nom} href={`https://www.google.com/maps?q=${r.gps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
-              className="flex items-center gap-2 text-[11px] rounded px-2 py-1.5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
-              <MapPin className="w-3 h-3 text-slate-600 shrink-0" />
-              <span className="flex-1 leading-tight">
-                <span className="text-slate-300">{r.nom}</span>
-                {r.adresse && <span className="block text-[10px] text-slate-500">{r.adresse}</span>}
-              </span>
-              <span className="font-mono text-slate-500 shrink-0">{r.gps}</span>
-              <ExternalLink className="w-2.5 h-2.5 text-slate-600 shrink-0" />
-            </a>
-          ))}
-        </div>
-      </section>
-
-      {/* Doctrine */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <LifeBuoy className="w-4 h-4 text-emerald-300" /> DOCTRINE D'ALERTE
-        </h2>
-        <ul className="space-y-1.5">
-          {DOCTRINE.map((d, i) => (
-            <li key={i} className="flex gap-2 text-xs text-slate-300 leading-relaxed">
-              <span className="font-mono text-emerald-300/70 shrink-0">{i + 1}.</span> {d}
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
-  );
-}
-
-/* =====================================================================
-   ONGLET INTERVENTION — ce dont un Dir-PC-Ops a besoin en arrivant.
-   Ordre volontaire : d'abord le bilan humain, puis comment entrer, qui
-   commander, ce qui peut aggraver, avec quels moyens.
-   Les blocs statiques restent lisibles meme si Supabase est injoignable.
-===================================================================== */
-
-function AC({ texte }) {
-  // Affiche un champ non renseigne en ambre : un trou visible vaut mieux
-  // qu'une information fausse dans une vue de crise.
-  const vide = /À COMPLÉTER|À CONFIRMER|À PRÉCISER/i.test(texte || "") || /04XX/.test(texte || "");
-  return <span className={vide ? "text-amber-300/80" : "text-slate-300"}>{texte}</span>;
-}
-
-// Ligne compacte : libelle + coordonnees cliquables (ouvre la carte).
-function LigneGps({ label, gps, note, accent }) {
-  return (
-    <a
-      href={`https://www.google.com/maps?q=${gps.replace(/\s/g, "")}`}
-      target="_blank" rel="noreferrer"
-      className="flex items-center gap-2 rounded px-2 py-1 ring-1 ring-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
-    >
-      <MapPin className={`w-3 h-3 shrink-0 ${accent || "text-slate-500"}`} />
-      <span className="flex-1 text-[11px] text-slate-200 leading-tight">
-        {label}
-        {note && <span className="text-slate-500"> · {note}</span>}
-      </span>
-      <span className="font-mono text-[10px] text-sky-300 flex items-center gap-0.5 shrink-0">
-        {gps} <ExternalLink className="w-2.5 h-2.5" />
-      </span>
-    </a>
-  );
-}
-
-const ETAT_STYLE = {
-  en_attente:      { label: "EN ATTENTE",       cls: "ring-red-400/40 bg-red-400/10",     badge: "bg-red-500/25 text-red-200" },
-  moyen_engage:    { label: "MOYEN ENGAGÉ",     cls: "ring-amber-400/30 bg-amber-400/5",  badge: "bg-amber-500/25 text-amber-200" },
-  prise_en_charge: { label: "PRISE EN CHARGE",  cls: "ring-emerald-400/30 bg-emerald-400/5", badge: "bg-emerald-500/25 text-emerald-200" },
-};
-
-function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTries, surSite, persDehors }) {
-  // Tri de la liste. Par defaut : le plus RECENT en haut — en situation, on
-  // veut voir la derniere intervention immediatement, sans faire defiler.
-  const [tri, setTri] = useState("recent"); // recent | ancien | priorite
-
-  const rangEtat = { en_attente: 0, moyen_engage: 1, prise_en_charge: 2 };
-  const interventionsTriees = [...interventions].sort((a, b) => {
-    if (tri === "priorite") {
-      // P1 avant P2… ; a priorite egale, non pris en charge d'abord, puis recent
-      const pa = a.priorite ? priorite(a.priorite).rang : 99;
-      const pb = b.priorite ? priorite(b.priorite).rang : 99;
-      if (pa !== pb) return pa - pb;
-      const ea = rangEtat[a.etat] ?? 9, eb = rangEtat[b.etat] ?? 9;
-      if (ea !== eb) return ea - eb;
-      return (b.heure || "").localeCompare(a.heure || "");
+  // Segment : entre quels reperes ?
+  let avant = REPERES[0], apres = REPERES[REPERES.length - 1];
+  for (let i = 0; i < REPERES.length - 1; i++) {
+    if (kmTrace >= REPERES[i].km && kmTrace <= REPERES[i + 1].km) {
+      avant = REPERES[i];
+      apres = REPERES[i + 1];
+      break;
     }
-    // Tri chronologique par heure "HH:MM" (comparaison lexicographique OK)
-    const cmp = (a.heure || "").localeCompare(b.heure || "");
-    return tri === "recent" ? -cmp : cmp;
-  });
-
-  const BoutonTri = ({ id, children }) => (
-    <button
-      onClick={() => setTri(id)}
-      className={`text-[10px] font-mono px-2 py-1 rounded ring-1 transition-colors ${
-        tri === id
-          ? "ring-sky-400/50 bg-sky-400/15 text-sky-200 font-semibold"
-          : "ring-white/10 text-slate-400 hover:text-slate-200"
-      }`}
-    >
-      {children}
-    </button>
+  }
+  // Repere le plus proche en distance le long de la trace
+  const plusProche = REPERES.reduce((a, b) =>
+    Math.abs(b.km - kmTrace) < Math.abs(a.km - kmTrace) ? b : a
   );
 
-  return (
-    <div className="space-y-4">
-      {/* 1. BILAN DES INTERVENTIONS (toutes natures) */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <LifeBuoy className="w-4 h-4 text-red-300" /> BILAN DES INTERVENTIONS
-          <span className="text-[11px] font-mono text-slate-500 font-normal">{interventions.length} en cours</span>
-        </h2>
-
-        {/* Statut de prise en charge */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <Kpi label="En attente" value={enAttente.length} accent={enAttente.length ? "text-red-300" : "text-emerald-300"} />
-          <Kpi label="Moyen engagé" value={engage.length} accent="text-amber-300" />
-          <Kpi label="Prises en charge" value={priseEnCharge.length} accent="text-emerald-300" />
-        </div>
-
-        {/* Repartition par type */}
-        {typesTries.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {typesTries.map(([type, n]) => (
-              <span key={type} className="text-[11px] font-mono px-2 py-1 rounded ring-1 ring-white/10 bg-white/[0.02] text-slate-300">
-                {type} <span className="text-slate-100 font-semibold">{n}</span>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Liste detaillee */}
-        {interventions.length === 0 ? (
-          <div className="text-xs text-slate-500 flex items-center gap-2 py-1">
-            <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Aucune intervention en cours.
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mr-1">Trier :</span>
-              <BoutonTri id="recent">Plus récent</BoutonTri>
-              <BoutonTri id="ancien">Plus ancien</BoutonTri>
-              <BoutonTri id="priorite">Priorité</BoutonTri>
-            </div>
-            <div className="space-y-1.5">
-            {interventionsTriees.map((it) => {
-              const es = ETAT_STYLE[it.etat] || ETAT_STYLE.en_attente;
-              return (
-                <div key={it.id} className={`rounded px-2.5 py-2 ring-1 ${es.cls} text-xs`}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-[11px] text-slate-400">{it.heure}</span>
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded ring-1 ring-white/15 text-slate-300">{it.type}</span>
-                    <span className="text-slate-100 font-semibold">{it.motif}{it.nom && it.nom !== "Anonyme" ? ` — ${it.nom}` : ""}</span>
-                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${es.badge}`}>{es.label}</span>
-                  </div>
-                  <div className="text-slate-400 mt-0.5 flex items-center gap-1 flex-wrap">
-                    <MapPin className="w-3 h-3 shrink-0" />
-                    {it.surTrace ? `km ${it.surTrace.km} · ${it.surTrace.segment}` : (it.localisation || "position non géolocalisée")}
-                    {it.gps && (
-                      <a href={`https://www.google.com/maps?q=${it.gps.lat},${it.gps.lon}`} target="_blank" rel="noreferrer"
-                        className="text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5 ml-1">
-                        Carte <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    )}
-                  </div>
-                  {it.details && (
-                    <div className="text-slate-300 mt-1 italic">"{it.details}"</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          </>
-        )}
-        <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
-          Toutes les interventions en cours (médicales, sûreté, incendie, personne recherchée, technique),
-          ventilées par type et par statut de prise en charge. Source : SOS participants + alertes équipes.
-          Ce bilan complète le point de situation verbal du coordinateur, il ne le remplace pas.
-        </div>
-      </section>
-
-      {/* 2. ACCES SECOURS */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Truck className="w-4 h-4 text-sky-300" /> ACCÈS SECOURS
-        </h2>
-        <div className="space-y-2">
-          {ACCES_SECOURS.map((a) => (
-            <div key={a.nom} className="rounded-md ring-1 ring-white/10 bg-white/[0.02] px-3 py-2.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-slate-100"><AC texte={a.nom} /></span>
-                {a.gps && (
-                  <a href={`https://www.google.com/maps?q=${a.gps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
-                    className="text-[11px] font-mono text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5">
-                    {a.gps} <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
-                )}
-              </div>
-              <div className="text-[11px] mt-1 space-y-0.5">
-                <div><span className="text-slate-500">Voirie : </span><AC texte={a.detail} /></div>
-                <div><span className="text-slate-500">Engins : </span><AC texte={a.vehicules} /></div>
-                <div><span className="text-slate-500">Verrouillage : </span><AC texte={a.cle} /></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 2 bis. ACCES AUX ETAPES — BRANCARDAGE ET NATURE DES VOIES */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
-          <Footprints className="w-4 h-4 text-amber-300" /> ACCÈS AUX ÉTAPES — BRANCARDAGE
-        </h2>
-        <div className="text-[10px] font-mono text-slate-500 mb-3 leading-relaxed">
-          Dossier de sécurité § 9. La <span className="text-amber-200">distance de brancardage</span> est
-          l'éloignement maximal entre un point du tronçon et un véhicule : c'est elle qui dimensionne
-          l'équipe de portage, pas le cumul de voies non carrossables.
-        </div>
-
-        <div className="space-y-2">
-          {SEGMENTS_PARCOURS.map((s) => {
-            const dur = s.brancardageMaxM >= 400 ? "ring-red-400/40 bg-red-400/[0.07]"
-              : s.brancardageMaxM >= 250 ? "ring-amber-400/30 bg-amber-400/[0.05]"
-              : "ring-white/10 bg-white/[0.02]";
-            const txt = s.brancardageMaxM >= 400 ? "text-red-200"
-              : s.brancardageMaxM >= 250 ? "text-amber-200" : "text-emerald-200";
-            return (
-              <div key={s.nom} className={`rounded px-2.5 py-2 ring-1 ${dur}`}>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-100 font-semibold">{s.nom}</span>
-                  <span className="font-mono text-[10px] text-slate-500">{s.distanceM} m</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/30 ${txt}`}>
-                    brancardage max {s.brancardageMaxM} m
-                  </span>
-                </div>
-                <div className="text-[10px] text-slate-400 mt-1 leading-snug">{s.voies}</div>
-                <div className="mt-1 flex items-center gap-2 flex-wrap text-[10px]">
-                  <span className="text-slate-500">Arrivée :</span>
-                  <span className="text-slate-300">{s.arriveeNom}</span>
-                  <a
-                    href={`https://www.google.com/maps?q=${s.arriveeGps.replace(/\s/g, "")}`}
-                    target="_blank" rel="noreferrer"
-                    className="text-sky-300 inline-flex items-center gap-0.5"
-                  >
-                    {s.arriveeGps} <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
-                  <span className="text-slate-500">·</span>
-                  <span className="text-slate-400">{s.arriveeAdresse}</span>
-                  <span className="text-slate-500">· PRV :</span>
-                  <span className="text-amber-200/80 font-mono">{s.prv.join(" / ")}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
-          Lecture : les longueurs par type de voie sont des <span className="text-slate-400">cumuls sur le tronçon</span>,
-          pas des portions continues. Un tronçon « 1250 m non carrossables » comporte plusieurs sections
-          entrecoupées de chemins accessibles aux véhicules.
-        </div>
-      </section>
-
-      {/* 2 ter. HORAIRES ET FREQUENTATION */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Clock className="w-4 h-4 text-sky-300" /> HORAIRES &amp; FRÉQUENTATION
-        </h2>
-        <div className="space-y-1.5">
-          {HORAIRES.map((h) => (
-            <div key={h.jour} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
-              <div className="text-xs text-slate-100">{h.jour}</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
-                Départs balade : <span className="font-mono text-slate-200">{h.departs.join(" · ")}</span>
-                {" — "}Concerts : <span className="font-mono text-slate-200">{h.concerts}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-2.5 pt-2 border-t border-white/5 text-[11px] text-slate-400 leading-relaxed">
-          {FREQUENTATION.groupesParJour} groupes/jour d'environ {FREQUENTATION.personnesParGroupe} personnes ·
-          {" "}{FREQUENTATION.etapeParVague} personnes par vague à chaque étape ·
-          {" "}{FREQUENTATION.encadrantsParGroupe} accompagnateurs par groupe.
-          <br />
-          Soirée : <span className="text-slate-200">{FREQUENTATION.soireeAttendue}</span> attendues.
-          {" "}Capacité maximale : <AC texte={FREQUENTATION.capaciteMax} />
-        </div>
-      </section>
-
-      {/* 3. POINT DE RENCONTRE / COMMANDEMENT ORGANISATEUR */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Flag className="w-4 h-4 text-emerald-300" /> POINT DE RENCONTRE & COMMANDEMENT
-        </h2>
-        <div className="text-xs space-y-1.5">
-          <div><span className="text-slate-500">Lieu : </span><AC texte={POINT_RENCONTRE.lieu} /></div>
-          <div className="flex items-center gap-2">
-            <span className="text-slate-500">GPS :</span>
-            <a href={`https://www.google.com/maps?q=${POINT_RENCONTRE.gps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
-              className="font-mono text-sky-300 hover:text-sky-200 inline-flex items-center gap-0.5">
-              {POINT_RENCONTRE.gps} <ExternalLink className="w-2.5 h-2.5" />
-            </a>
-          </div>
-          <div><span className="text-slate-500">Interlocuteur : </span><span className="text-slate-200">{POINT_RENCONTRE.qui}</span></div>
-          <a href={`tel:${POINT_RENCONTRE.tel.replace(/\s/g, "")}`}
-            className="flex items-center gap-2 rounded px-2.5 py-2 ring-1 ring-emerald-400/30 bg-emerald-400/10 mt-1">
-            <PhoneCall className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-            <span className="flex-1 text-slate-300">Coordinateur sécurité</span>
-            <span className="font-mono text-sm text-emerald-200"><AC texte={POINT_RENCONTRE.tel} /></span>
-          </a>
-          <div><span className="text-slate-500">Suppléant : </span><AC texte={POINT_RENCONTRE.suppleant} /></div>
-        </div>
-        <div className="text-[10px] font-mono text-slate-600 mt-2.5">
-          L'organisateur conserve la direction de son dispositif jusqu'à la prise en charge par les disciplines.
-        </div>
-      </section>
-
-      {/* 4. RISQUES PARTICULIERS */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-amber-400/30 p-4">
-        <h2 className="font-display tracking-wide text-sm text-amber-200 flex items-center gap-2 mb-1">
-          <Zap className="w-4 h-4 text-amber-300" /> RISQUES PARTICULIERS DU SITE
-        </h2>
-        <div className="text-[10px] font-mono text-slate-500 mb-2.5">Synthèse du dossier de sécurité et du PPUI — le détail reste dans les documents (onglet Dossier).</div>
-        <div className="space-y-1.5">
-          {RISQUES_SITE.map((r) => (
-            <div key={r.titre} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
-              <div className="text-xs text-slate-100">{r.titre}</div>
-              <div className="text-[11px] mt-0.5"><AC texte={r.detail} /></div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 5. RESSOURCES EAU */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Droplets className="w-4 h-4 text-sky-300" /> RESSOURCES EN EAU
-        </h2>
-        <div className="space-y-1.5">
-          {RESSOURCES_EAU.map((r) => (
-            <div key={r.titre} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
-              <div className="text-xs text-slate-100">{r.titre}</div>
-              <div className="text-[11px] mt-0.5"><AC texte={r.detail} /></div>
-            </div>
-          ))}
-        </div>
-
-        {/* Liste detaillee issue de la carte officielle */}
-        <div className="mt-3 pt-2.5 border-t border-white/5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-sky-300/70 mb-1.5">
-            Emplacements — carte officielle ({EAU_CARTE.length})
-          </div>
-          <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
-            {EAU_CARTE.map((e, i) => (
-              <LigneGps
-                key={i}
-                label={e.type}
-                note={e.repere}
-                gps={e.gps}
-                accent={e.type.startsWith("Bouche") ? "text-sky-400" : "text-cyan-300"}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 5 bis. EVACUATION HELIPORTEE + VOIES D'ACCES */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Navigation className="w-4 h-4 text-violet-300" /> ÉVACUATION HÉLIPORTÉE &amp; VOIES D'ACCÈS
-        </h2>
-
-        <div className="text-[10px] font-mono uppercase tracking-wider text-violet-300/70 mb-1.5">
-          Zones d'atterrissage CMH ({ZONES_HELICO.length})
-        </div>
-        <div className="space-y-1">
-          {ZONES_HELICO.map((z) => (
-            <LigneGps
-              key={z.nom}
-              label={z.nom}
-              note={z.nuit ? "utilisable de NUIT" : null}
-              gps={z.gps}
-              accent={z.nuit ? "text-amber-300" : "text-violet-300"}
-            />
-          ))}
-        </div>
-
-        <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-300/70 mt-3 mb-1.5">
-          Voies d'accès secours ({VOIES_ACCES.length})
-        </div>
-        <div className="space-y-1">
-          {VOIES_ACCES.map((v) => (
-            <div key={v.nom} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
-              <div className="text-[11px] text-slate-100">{v.nom}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">
-                Depuis <span className="text-slate-200">{v.depuis}</span> vers {v.vers} · {v.longueurM} m
-              </div>
-              <a
-                href={`https://www.google.com/maps?q=${v.depart.replace(/\s/g, "")}`}
-                target="_blank" rel="noreferrer"
-                className="font-mono text-[10px] text-sky-300 inline-flex items-center gap-0.5 mt-0.5"
-              >
-                entrée : {v.depart} <ExternalLink className="w-2.5 h-2.5" />
-              </a>
-            </div>
-          ))}
-        </div>
-
-        <div className="text-[10px] font-mono uppercase tracking-wider text-sky-300/70 mt-3 mb-1.5">
-          Balisage kilométrique du parcours ({BORNES_KM.length} bornes)
-        </div>
-        <div className="grid grid-cols-2 gap-1">
-          {BORNES_KM.map((b) => (
-            <LigneGps key={b.nom} label={b.nom} note={`km ${b.km.toFixed(1)}`} gps={b.gps} accent="text-sky-400" />
-          ))}
-        </div>
-        <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
-          Une intervention annoncée « au km 3,2 » se situe entre BK3 et BK4. Ces bornes sont
-          physiquement posées sur le parcours : elles restent lisibles sans réseau ni batterie.
-          Zones et voies relevées sur la carte opérationnelle partagée avec les disciplines.
-          Seules les zones marquées NUIT sont utilisables après le coucher du soleil.
-        </div>
-      </section>
-
-      {/* 6. MOYENS DE L'ORGANISATEUR */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-slate-500" /> MOYENS DE L'ORGANISATEUR
-        </h2>
-        <div className="space-y-1.5">
-          {MOYENS_ORGA.map((m) => (
-            <div key={m.titre} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
-              <div className="text-xs text-slate-100">{m.titre}</div>
-              <div className="text-[11px] mt-0.5"><AC texte={m.detail} /></div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 pt-2.5 border-t border-white/5">
-          <div className="text-[10px] font-mono uppercase tracking-wider text-red-300/70 mb-1.5 flex items-center gap-1.5">
-            <HeartPulse className="w-3 h-3" /> Défibrillateurs (DEA) — carte officielle
-          </div>
-          <div className="space-y-1">
-            {DEA.map((d) => (
-              <LigneGps
-                key={d.gps}
-                label={d.nom}
-                note={d.note}
-                gps={d.gps}
-                accent={d.nom.includes("organisation") ? "text-red-300" : "text-slate-500"}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-3 pt-2.5 border-t border-white/5 text-[11px] text-slate-400">
-          Public présent à l'instant : <span className="font-mono text-slate-200">{surSite !== null ? surSite : "—"}</span> sur la plaine ·
-          <span className="font-mono text-slate-200"> {persDehors}</span> sur le parcours de 6,5 km.
-        </div>
-      </section>
-    </div>
-  );
+  return { kmTrace, distTrace, avant, apres, plusProche, lat, lon };
 }

@@ -367,7 +367,7 @@ export default function LogistiqueMissions() {
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans">
       <header className="border-b border-white/10 bg-[#151b23]/90 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 flex items-center justify-center shrink-0">
               <Truck className="w-5 h-5 text-amber-300" />
@@ -377,7 +377,7 @@ export default function LogistiqueMissions() {
               <div className="text-[11px] text-slate-400 font-mono tracking-wider mt-1">BFMF 2026 · QG BUCO</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
             {/* FANTOME 2027 — bouton "Étiquettes QR" masqué (non utilisé en 2026).
                 Décommenter pour réactiver la génération d'étiquettes QR équipements.
             <button
@@ -387,7 +387,7 @@ export default function LogistiqueMissions() {
               }`}
               title="Générer les étiquettes QR à coller sur les équipements"
             >
-              <QrCode className="w-4 h-4" /> <span className="hidden sm:inline">Étiquettes QR</span>
+              <QrCode className="w-4 h-4" /> <span>Étiquettes QR</span>
             </button>
             */}
             <button
@@ -395,14 +395,14 @@ export default function LogistiqueMissions() {
               className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-sky-400/30 bg-sky-400/10 text-sky-300 hover:bg-sky-400/20 transition-colors"
               title="Ouvrir les stocks bar (plaine + étapes)"
             >
-              <Package className="w-4 h-4" /> <span className="hidden sm:inline">Stocks bars</span>
+              <Package className="w-4 h-4 shrink-0" /> <span>Stocks</span>
             </button>
             <button
               onClick={() => { window.location.hash = "equipe-benevoles"; }}
               className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-teal-400/30 bg-teal-400/10 text-teal-300 hover:bg-teal-400/20 transition-colors"
               title="Ouvrir les bénévoles (planning / contacts)"
             >
-              <Users className="w-4 h-4" /> <span className="hidden sm:inline">Bénévoles</span>
+              <Users className="w-4 h-4 shrink-0" /> <span>Bénévoles</span>
             </button>
             <button onClick={() => refresh(false)} className="text-slate-500 hover:text-slate-200"><RefreshCw className="w-4 h-4" /></button>
             <button
@@ -453,12 +453,10 @@ export default function LogistiqueMissions() {
           <p className="text-[11px] text-slate-400 mb-2 font-mono">Status : {METEO.maj}</p>
           <div className="space-y-2">
             {METEO.timeline?.map((t, i) => (
-              <div key={i} className="flex items-center justify-between text-xs rounded bg-white/[0.02] border border-white/5 p-2.5">
-                <div className="flex items-center gap-2 truncate">
-                  <span className={`w-2 h-2 rounded-full ${CODE_METEO[t.code]?.dot || "bg-emerald-400"}`} />
-                  <span className="text-slate-100 font-medium truncate">{t.phenomene}</span>
-                </div>
-                <span className="text-slate-500 font-mono text-[10px] ml-2 shrink-0">{t.creneau}</span>
+              <div key={i} className="flex items-center gap-2 text-xs rounded bg-white/[0.02] border border-white/5 p-2.5 min-w-0">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${CODE_METEO[t.code]?.dot || "bg-emerald-400"}`} />
+                <span className="text-slate-100 font-medium shrink-0">{t.phenomene}</span>
+                <span className="text-slate-500 font-mono text-[10px] ml-auto truncate min-w-0">{t.creneau?.split("·").pop()?.trim() || t.creneau}</span>
               </div>
             ))}
           </div>
@@ -706,9 +704,9 @@ function FormNouvelle({ onClose, onSubmit, signature }) {
             </select>
           </Field>
 
-          <Field label="Degré de Priorité">
+          <Field label="Délai souhaité">
             <select className={inputCls} value={formPriorite} onChange={(e) => setFormPriorite(e.target.value)}>
-              {Object.keys(PRIORITES).map((p) => <option key={p} value={p}>{p}</option>)}
+              {Object.keys(PRIORITES).map((p) => <option key={p} value={p}>{PRIORITES[p].libelle}</option>)}
             </select>
           </Field>
         </div>

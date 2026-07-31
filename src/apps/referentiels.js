@@ -10,7 +10,7 @@
 export const ROLES = [
   // --- Direction & QG ---
   "Directeur d'événement",
-  "Coordination sécurité",
+  "Coordinateur sécurité",
   "Opérateur QG",
  
   // --- Parcours / balade ---
@@ -19,6 +19,7 @@ export const ROLES = [
   "Responsable Étape 2",
   "Responsable Étape 3",
  
+ 
   // --- Site / plaine ---
   "Responsable grande scène",
   "Responsable petite scène",
@@ -26,7 +27,6 @@ export const ROLES = [
   "Responsable backstage",
   "Team parking",
   "Team sanitaires",
-
 
  // --- Secours & sûreté ---
  "Volante",
@@ -47,17 +47,17 @@ export const ROLES = [
 
 export const PRIORITES = {
  "P1 - immediat / critique": {
-   rang: 1, court: "P1", libelle: "P1 — Immédiat / critique",
+   rang: 1, court: "P1", libelle: "Au plus vite",
    dot: "bg-red-400", text: "text-red-300", ring: "ring-red-400/30", bg: "bg-red-400/10",
    badge: "bg-red-500/20 text-red-400 border border-red-500/20",
  },
  "P2 - urgent": {
-   rang: 2, court: "P2", libelle: "P2 — Urgent",
+   rang: 2, court: "P2", libelle: "Dans la demi-heure",
    dot: "bg-amber-400", text: "text-amber-300", ring: "ring-amber-400/30", bg: "bg-amber-400/10",
    badge: "bg-amber-500/20 text-amber-400 border border-amber-500/20",
  },
  "P3 - important non bloquant": {
-   rang: 3, court: "P3", libelle: "P3 — Important non bloquant",
+   rang: 3, court: "P3", libelle: "Dans l'heure",
    dot: "bg-sky-400", text: "text-sky-300", ring: "ring-sky-400/30", bg: "bg-sky-400/10",
    badge: "bg-sky-500/20 text-sky-400 border border-sky-500/20",
  },
@@ -153,7 +153,7 @@ export const PRV = [
 /* --------------------------- PLAN RADIO ----------------------------- */
 export const RADIO_PLAN = [
  { canal: "PMR4.1", num: 9,  freq: "446.04375", ctcss: "67.0 Hz (Tx/Rx)",
-   usage: "Coordination générale (QG, scènes, volante, accompagnateurs)",
+   usage: "Coordination générale (QG, scènes, volante)",
    postes: "standard" },
  { canal: "PMR5",   num: 10, numSimple: 5, freq: "446.05625", ctcss: "Aucun",
    usage: "Bénévoles parking et sanitaires",
@@ -173,7 +173,7 @@ export const RADIO_PLAN = [
   inutilisable pour l'evenement.
 -------------------------------------------------------------------- */
 export const RADIO_MATERIEL = {
- modele: "Baofeng UV-16 Pro",
+ modele: "Baofeng UV5R & Baofeng BF888",
  avertissement: "Postes préprogrammés — aucune reprogrammation possible sur site.",
 };
 
@@ -226,7 +226,7 @@ export const PROGRAMMATION_RADIO = [
 export const POSTES_RADIO = {
  standard: {
    nom: "Postes standard (double fréquence)",
-   qui: "QG, équipe volante, responsables de scène, accompagnateurs balade",
+   qui: "QG, équipe volante, responsables de scène",
    urgence: "PMR333 sur le canal 6",
    aUrgence: true,
    doubleVeille: true,
@@ -501,7 +501,7 @@ export const FREQUENTATION = {
  personnesParGroupe: 300,
  etapeParVague: 300,
  soireeAttendue: "750 à 1200 personnes",
- capaciteMax: "À CONFIRMER par les plans, prescriptions et contrôles",
+ capaciteMax: "1200",
  encadrantsParGroupe: 4,
 };
 

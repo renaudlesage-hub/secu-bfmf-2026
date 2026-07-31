@@ -38,7 +38,7 @@ import {
    Bucolique Ferrières Musique Festival 2026
 --------------------------------------------------------------------- */
 
-import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_EN_COURS, STATUT_RESOLU, priorite, POINTS_GPS,
+import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU, priorite, POINTS_GPS,
   RADIO_PLAN as CANAUX_RADIO } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
@@ -475,8 +475,10 @@ export default function DashboardQG() {
 
   async function attribuerMissionLog(id, equipe) {
     const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    // Le QG ATTRIBUE la mission (equipe designee) : statut "Attribuée".
+    // C'est la volante qui la passera ensuite "En cours" quand elle demarre.
     const fusion = await kvMerge(KEY_MISSIONS, (liste) =>
-      liste.map((m) => m.id === id ? { ...m, statut: STATUT_EN_COURS, attribueA: equipe, heurePriseEnCharge: h } : m));
+      liste.map((m) => m.id === id ? { ...m, statut: STATUT_ATTRIBUEE, attribueA: equipe, heureAttribution: h } : m));
     if (fusion) { setMissionsLog(fusion); setSbError(false); } else setSbError(true);
   }
 
@@ -1047,7 +1049,7 @@ export default function DashboardQG() {
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono flex justify-between items-center">
                         <span>📍 {m.zone}</span>
-                        <span className="text-xxs text-slate-500">Statut: <strong className="text-amber-400 font-normal">{m.attribueA ? `En cours (${m.attribueA})` : "En attente"}</strong></span>
+                        <span className="text-xxs text-slate-500">Statut: <strong className="text-amber-400 font-normal">{m.attribueA ? `${m.statut} (${m.attribueA})` : m.statut || "À traiter"}</strong></span>
                       </div>
                       <div className="flex justify-end gap-1 pt-1.5 border-t border-white/5">
                         {!m.attribueA && (

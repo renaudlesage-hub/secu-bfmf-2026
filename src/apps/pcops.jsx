@@ -70,8 +70,6 @@ const KEY_CRISE = "bfmf2026-crise";
 const KEY_RECH = "bfmf2026-recherche";
 const KEY_JAUGE = "bfmf2026-jauge";
 
-const CAPACITE_SITE = 1500; // a ajuster selon le dossier de securite
-
 /* =====================================================================
    ONGLET DOSSIER -- contenu de reference pour les autorites.
    >>> C'EST ICI QUE L'ON MET A JOUR : liens Drive, numeros, PC.
@@ -350,7 +348,10 @@ export default function PcOps() {
   });
 
   missions
-    .filter((m) => m.statut !== STATUT_RESOLU && (m.bloquant === "Oui" || estUrgente(m.priorite)))
+    // Seules les DEMANDES URGENTES (bouton dédié, marquées refAlerte) remontent
+    // au PC-Ops. Les "Nouvelles demandes" ordinaires restent dans le moniteur
+    // logistique, meme bloquantes/P2 : elles ne sont pas des interventions de secours.
+    .filter((m) => m.refAlerte && m.statut !== STATUT_RESOLU)
     .forEach((m) => {
       evenements.push({
         id: m.id || m.ref,
@@ -400,10 +401,6 @@ export default function PcOps() {
       return { nom: `Etape ${i + 1}`, n, pct, label: pct >= 1.0 ? "COMPLET" : "DENSITE ELEVEE" };
     })
     .filter((e) => e.pct >= 0.72);
-
-  const surSite = jauge
-    ? Object.values(jauge.compteurs).reduce((s, c) => s + Math.max(0, (c.in || 0) - (c.out || 0)), 0)
-    : null;
 
   /* --------------------- BILAN DES INTERVENTIONS ---------------------
      Vue GLOBALE pour le Dir-PC-Ops : TOUTES les interventions en cours
@@ -604,7 +601,6 @@ export default function PcOps() {
             engage={intEngage}
             priseEnCharge={intPriseEnCharge}
             typesTries={typesTries}
-            surSite={surSite}
             persDehors={persDehors}
           />
         ) : (
@@ -679,20 +675,6 @@ export default function PcOps() {
           <Kpi label="Public sur parcours" value={persDehors} accent="text-amber-300" />
           <Kpi label="Groupes dehors" value={grpDehors.length} accent="text-slate-200" />
         </section>
-
-        {/* Jauge plaine (comptage des acces au site) */}
-        {surSite !== null && (
-          <div className="rounded-lg ring-1 ring-white/10 bg-[#131a22] px-4 py-2.5 flex items-center gap-3">
-            <Users className="w-4 h-4 text-slate-500 shrink-0" />
-            <span className="text-xs text-slate-300 shrink-0">Jauge plaine</span>
-            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <div className={`h-full ${surSite / CAPACITE_SITE >= 0.9 ? "bg-red-400" : surSite / CAPACITE_SITE >= 0.72 ? "bg-amber-400" : "bg-emerald-400"}`}
-                style={{ width: `${Math.min(100, Math.round((surSite / CAPACITE_SITE) * 100))}%` }} />
-            </div>
-            <span className={`font-mono text-sm ${surSite / CAPACITE_SITE >= 0.9 ? "text-red-300" : "text-slate-200"}`}>{surSite}</span>
-            <span className="font-mono text-[10px] text-slate-500 shrink-0">/ {CAPACITE_SITE}</span>
-          </div>
-        )}
 
         {consigne && (
           <div className="rounded-md ring-1 ring-amber-400/30 bg-amber-400/5 px-3 py-2 text-xs text-amber-200">
@@ -1085,10 +1067,11 @@ const ETAT_STYLE = {
   prise_en_charge: { label: "PRISE EN CHARGE",  cls: "ring-emerald-400/30 bg-emerald-400/5", badge: "bg-emerald-500/25 text-emerald-200" },
 };
 
-function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTries, surSite, persDehors }) {
+function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTries, persDehors }) {
   // Tri de la liste. Par defaut : le plus RECENT en haut — en situation, on
   // veut voir la derniere intervention immediatement, sans faire defiler.
   const [tri, setTri] = useState("recent"); // recent | ancien | priorite
+  const [ongletInt, setOngletInt] = useState("interventions"); // menu interne
 
   const rangEtat = { en_attente: 0, moyen_engage: 1, prise_en_charge: 2 };
   const interventionsTriees = [...interventions].sort((a, b) => {
@@ -1119,8 +1102,41 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
     </button>
   );
 
+  // Menu interne : evite de scroller toute la fiche. On regroupe les sections
+  // par usage. "Interventions" par defaut (l'operationnel du moment).
+  const SOUS_ONGLETS = [
+    { id: "interventions", label: "Interventions", icone: LifeBuoy },
+    { id: "acces", label: "Accès & secours", icone: MapPin },
+    { id: "ressources", label: "Ressources", icone: Droplets },
+    { id: "site", label: "Site & public", icone: Users },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* Menu interne a l'onglet Intervention : navigation sans scroll */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 sticky top-0 z-10 bg-[#0d1117]/95 backdrop-blur py-1">
+        {SOUS_ONGLETS.map((o) => {
+          const Ic = o.icone;
+          const actif = ongletInt === o.id;
+          return (
+            <button
+              key={o.id}
+              onClick={() => setOngletInt(o.id)}
+              className={`flex items-center gap-1.5 text-xs font-mono font-semibold px-3 py-2 rounded-lg ring-1 whitespace-nowrap transition-colors ${
+                actif
+                  ? "ring-sky-400/50 bg-sky-400/15 text-sky-200"
+                  : "ring-white/10 text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Ic className="w-3.5 h-3.5" /> {o.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ===== INTERVENTIONS ===== */}
+      {ongletInt === "interventions" && (
+      <>
       {/* 1. BILAN DES INTERVENTIONS (toutes natures) */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
@@ -1195,7 +1211,12 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
           Ce bilan complète le point de situation verbal du coordinateur, il ne le remplace pas.
         </div>
       </section>
+      </>
+      )}
 
+      {/* ===== ACCÈS & SECOURS ===== */}
+      {ongletInt === "acces" && (
+      <>
       {/* 2. ACCES SECOURS */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
@@ -1277,7 +1298,12 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
           entrecoupées de chemins accessibles aux véhicules.
         </div>
       </section>
+      </>
+      )}
 
+      {/* ===== SITE & PUBLIC ===== */}
+      {ongletInt === "site" && (
+      <>
       {/* 2 ter. HORAIRES ET FREQUENTATION */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
@@ -1347,7 +1373,12 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
           ))}
         </div>
       </section>
+      </>
+      )}
 
+      {/* ===== RESSOURCES ===== */}
+      {ongletInt === "ressources" && (
+      <>
       {/* 5. RESSOURCES EAU */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
@@ -1470,10 +1501,11 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
         </div>
 
         <div className="mt-3 pt-2.5 border-t border-white/5 text-[11px] text-slate-400">
-          Public présent à l'instant : <span className="font-mono text-slate-200">{surSite !== null ? surSite : "—"}</span> sur la plaine ·
-          <span className="font-mono text-slate-200"> {persDehors}</span> sur le parcours de 6,5 km.
+          Public sur le parcours de 6,5 km : <span className="font-mono text-slate-200">{persDehors}</span>.
         </div>
       </section>
+      </>
+      )}
     </div>
   );
 }

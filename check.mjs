@@ -52,6 +52,8 @@ const T = [
   ['dashboard — frise alertes geolocalisees', lire('src/apps/dashboard.jsx').includes('alertesCrises')],
   ['dashboard — frise anti-doublon', lire('src/apps/dashboard.jsx').includes('m.refAlerte === (a.heure')],
   ['pcops — tri evenements situation', lire('src/apps/pcops.jsx').includes('evenementsAffiches')],
+  ['pcops — menu interne intervention', lire('src/apps/pcops.jsx').includes('SOUS_ONGLETS') && lire('src/apps/pcops.jsx').includes('setOngletInt')],
+  ['dashboard — statut Attribuee restaure (pas En cours direct)', lire('src/apps/dashboard.jsx').includes('STATUT_ATTRIBUEE, attribueA')],
   ['priorites — 3 niveaux (pas de P4)', !lire('src/apps/referentiels.js').includes('court: "P4"')],
   ['logistique — pas de categorie metier form', !lire('src/apps/logistique.jsx').includes('Catégorie Métier')],
   ['pcops — seules demandes urgentes (refAlerte)', lire('src/apps/pcops.jsx').split('m.refAlerte && m.statut !== STATUT_RESOLU').length >= 3],
