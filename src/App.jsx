@@ -65,7 +65,7 @@ const COMPOSANTS = {
   "equipe-benevoles": GestionBenevoles,
 };
 const ROUTES_PUBLIQUES = ["sos", "signaler", "pcops"];
-const ROUTES_SANS_MENU = ["sanitaire", "balade", "balade-light"];
+const ROUTES_SANS_MENU = ["sanitaire", "balade", "balade-light", "stocks", "equipe-benevoles"];
 // Apps terrain qui affichent le bandeau Urgence (numeros/PRV/radio).
 // Exclut les routes publiques : le SOS a deja le 112, pcops est pour les autorites.
 const APPS_TERRAIN = ["volante", "balade", "balade-light", "sanitaire", "logistique", "recherche", "equipe-benevoles"];

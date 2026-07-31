@@ -15,8 +15,7 @@ const CATEGORIES = {
   logistique: { label: "Logistique & Regulation", icon: Truck, color: "text-sky-400" },
   rh: { label: "Ressources humaines", icon: Users, color: "text-violet-400" },
   terrain: { label: "Secours & Terrain", icon: HeartPulse, color: "text-cyan-400" },
-  benevoles: { label: "Benevoles — lien direct (sans menu)", icon: HeartPulse, color: "text-teal-400" },
-  public: { label: "Acces publics (QR / liens)", icon: Globe, color: "text-red-400" },
+  liendirect: { label: "Accès directs (liens / QR)", icon: Globe, color: "text-teal-400" },
 };
 
 const APPS_LIST = [
@@ -26,8 +25,11 @@ const APPS_LIST = [
   { id: "console-cm", name: "Console medias (CM)", cat: "qg" },
   { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg" },
   { id: "radios", name: "Parc & attributions radio", cat: "qg" },
+  { id: "balade", name: "Suivi balade & parcours (QG)", cat: "qg" },
+  { id: "recherche", name: "Personne recherchee", cat: "qg", alerte: true },
 
   // Pole Logistique & Regulation
+  { id: "logistique", name: "Missions logistiques", cat: "logistique" },
   { id: "stocks", name: "Stocks bar (plaine + etapes)", cat: "logistique" },
   { id: "jauge", name: "Jauge plaine / acces", cat: "logistique" },
 
@@ -36,24 +38,19 @@ const APPS_LIST = [
 
   // Pole Secours & Terrain
   { id: "volante", name: "Equipe volante", cat: "terrain" },
-  { id: "recherche", name: "Personne recherchee", cat: "terrain", alerte: true },
 
-  // Benevoles : ouvertes par lien direct, sans menu (bandeaux conserves).
+  // Acces directs : ouverts par lien ou QR, sans menu (bandeaux conserves).
   // Depuis le QG, le bouton RETOUR du navigateur ramene au menu.
-  { id: "logistique", name: "Missions logistiques", cat: "benevoles" },
-  { id: "balade", name: "Suivi balade & parcours (QG)", cat: "benevoles" },
-  { id: "balade-light", name: "Balade — accompagnateur", cat: "benevoles" },
-  { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "benevoles" },
-
-  // Acces publics — a diffuser aux festivaliers uniquement
-  { id: "pcops", name: "PC-Ops / Autorité (lien direct)", cat: "public" },
-  { id: "sos", name: "SOS participant (public)", cat: "public" },
-  { id: "signaler", name: "Signalement sanitaire (public)", cat: "public" },
+  { id: "balade-light", name: "Balade — accompagnateur", cat: "liendirect" },
+  { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "liendirect" },
+  { id: "pcops", name: "PC-Ops / Autorité (lien direct)", cat: "liendirect" },
+  { id: "sos", name: "SOS participant (public)", cat: "liendirect" },
+  { id: "signaler", name: "Signalement sanitaire (public)", cat: "liendirect" },
 ];
 
 export default function MenuApps({ currentApp, onChangeApp, onClose }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, rh: true, terrain: true, benevoles: true, public: false });
+  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, rh: true, terrain: true, liendirect: false });
 
   const toggleCat = (cat) => setOpenCats((prev) => ({ ...prev, [cat]: !prev[cat] }));
 
@@ -91,7 +88,7 @@ export default function MenuApps({ currentApp, onChangeApp, onClose }) {
 
           const Icon = catMeta.icon;
           const isOpen = openCats[catKey] || searchTerm.length > 0;
-          const estPublic = catKey === "public";
+          const estLienDirect = catKey === "liendirect";
 
           return (
             <div key={catKey} className="space-y-1.5">
@@ -107,10 +104,10 @@ export default function MenuApps({ currentApp, onChangeApp, onClose }) {
               </button>
 
               {isOpen && (
-                <div className={`pl-3 space-y-1 border-l ml-1.5 ${estPublic ? "border-red-400/20" : "border-white/5"}`}>
-                  {estPublic && (
-                    <div className="text-[9px] text-red-300/70 leading-snug pb-1">
-                      Pages festivaliers : s'ouvrent SANS le menu interne. Liens/QR a diffuser.
+                <div className={`pl-3 space-y-1 border-l ml-1.5 ${estLienDirect ? "border-teal-400/20" : "border-white/5"}`}>
+                  {estLienDirect && (
+                    <div className="text-[9px] text-teal-300/70 leading-snug pb-1">
+                      S'ouvrent SANS le menu interne. Liens directs / QR à diffuser aux équipes et festivaliers.
                     </div>
                   )}
                   {catApps.map((app) => (
@@ -120,8 +117,8 @@ export default function MenuApps({ currentApp, onChangeApp, onClose }) {
                       className={`w-full text-left px-2 py-1.5 rounded text-xs transition-all tracking-wide ${
                         currentApp === app.id
                           ? "bg-sky-500/10 text-sky-400 font-medium border border-sky-500/20 shadow-sm"
-                          : estPublic
-                          ? "text-red-300/80 hover:bg-red-500/5 hover:text-red-200"
+                          : estLienDirect
+                          ? "text-teal-300/80 hover:bg-teal-500/5 hover:text-teal-200"
                           : "text-slate-400 hover:bg-white/[0.02] hover:text-slate-200"
                       }`}
                     >
