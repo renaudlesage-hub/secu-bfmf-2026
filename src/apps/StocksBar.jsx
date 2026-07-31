@@ -189,6 +189,20 @@ export default function StocksBar() {
           {/* Boutons d'actions globaux */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
+              onClick={() => { window.location.hash = "logistique"; }}
+              className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-colors"
+              title="Ouvrir les missions logistiques"
+            >
+              <Package className="w-4 h-4" /> <span className="hidden sm:inline">Logistique</span>
+            </button>
+            <button
+              onClick={() => { window.location.hash = "equipe-benevoles"; }}
+              className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-teal-400/30 bg-teal-400/10 text-teal-300 hover:bg-teal-400/20 transition-colors"
+              title="Ouvrir les bénévoles (planning / contacts)"
+            >
+              <Users className="w-4 h-4" /> <span className="hidden sm:inline">Bénévoles</span>
+            </button>
+            <button
               onClick={handleReset}
               className="px-3 py-1.5 bg-white/5 hover:bg-red-500/10 hover:text-red-300 rounded text-xs font-mono text-slate-400 ring-1 ring-white/10 transition-colors"
             >
@@ -211,25 +225,6 @@ export default function StocksBar() {
             </button>
           </div>
         </header>
-
-        {/* Navigation rapide vers les autres apps du pôle logistique/RH */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mr-1">Aller à :</span>
-          <button
-            onClick={() => { window.location.hash = "logistique"; }}
-            className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-colors"
-            title="Ouvrir les missions logistiques"
-          >
-            <Package className="w-4 h-4" /> Logistique
-          </button>
-          <button
-            onClick={() => { window.location.hash = "equipe-benevoles"; }}
-            className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-teal-400/30 bg-teal-400/10 text-teal-300 hover:bg-teal-400/20 transition-colors"
-            title="Ouvrir les bénévoles (planning / contacts)"
-          >
-            <Users className="w-4 h-4" /> Bénévoles
-          </button>
-        </div>
 
         {/* Selecteur de vue : Saisie / Suivi general */}
         <div className="flex gap-1.5">
