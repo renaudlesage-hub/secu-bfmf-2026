@@ -83,6 +83,7 @@ function parseHash() {
 export default function App() {
   const [currentApp, setCurrentApp] = useState(parseHash);
   const [menuMobile, setMenuMobile] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(true);
 
   useEffect(() => {
     const onHash = () => { setCurrentApp(parseHash()); setMenuMobile(false); };
@@ -117,12 +118,27 @@ export default function App() {
 
   return (
     <div className="flex w-screen h-screen bg-[#0f1319] overflow-hidden">
-      {/* Menu lateral : fixe sur grand ecran, overlay sur mobile */}
-      <div className="hidden md:block h-full shrink-0">
-        <MenuApps currentApp={currentApp} onChangeApp={changerApp} />
-      </div>
+      {/* Sur smartphone en PAYSAGE (écran court), on masque automatiquement le
+          menu fixe pour récupérer de la hauteur. Le bouton toggle reste
+          disponible pour le rouvrir en overlay. */}
+      <style>{`
+        @media (orientation: landscape) and (max-height: 760px) {
+          .menu-fixe { display: none !important; }
+        }
+      `}</style>
+
+      {/* Menu latéral fixe : affiché quand menuVisible ET sur écran md+.
+          Masquable via le bouton toggle (menuVisible), et auto-masqué en
+          paysage smartphone (via .menu-fixe ci-dessus). */}
+      {menuVisible && (
+        <div className="menu-fixe hidden md:block h-full shrink-0 relative">
+          <MenuApps currentApp={currentApp} onChangeApp={changerApp} />
+        </div>
+      )}
+
+      {/* Menu overlay (mobile portrait + paysage smartphone, déclenché par le bouton) */}
       {menuMobile && (
-        <div className="md:hidden fixed inset-0 z-[70] flex">
+        <div className="fixed inset-0 z-[70] flex">
           <MenuApps currentApp={currentApp} onChangeApp={changerApp} onClose={() => setMenuMobile(false)} />
           <div className="flex-1 bg-black/60" onClick={() => setMenuMobile(false)} />
         </div>
@@ -130,13 +146,22 @@ export default function App() {
 
       {/* Zone applicative */}
       <div className="flex-1 h-full overflow-y-auto bg-[#0f1319] relative">
-        {/* Bouton menu (mobile uniquement) */}
+        {/* Bouton toggle du menu — TOUJOURS visible.
+            Sur md+ : masque/affiche le menu fixe (menuVisible).
+            Sur mobile/paysage : ouvre l'overlay (menuMobile). */}
         <button
-          onClick={() => setMenuMobile(true)}
-          className="md:hidden fixed bottom-4 left-4 z-[65] w-12 h-12 rounded-full bg-[#1a212b] ring-1 ring-white/20 shadow-xl flex items-center justify-center text-slate-200 active:scale-95"
-          title="Menu des applications"
+          onClick={() => {
+            if (window.matchMedia("(min-width: 768px)").matches &&
+                !window.matchMedia("(orientation: landscape) and (max-height: 760px)").matches) {
+              setMenuVisible((v) => !v);
+            } else {
+              setMenuMobile(true);
+            }
+          }}
+          className="fixed bottom-4 left-4 z-[65] w-12 h-12 rounded-full bg-[#1a212b] ring-1 ring-white/20 shadow-xl flex items-center justify-center text-slate-200 active:scale-95 hover:bg-[#222b38]"
+          title={menuVisible ? "Masquer le menu" : "Afficher le menu"}
         >
-          <Menu className="w-5 h-5" />
+          {menuVisible ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
         {/* Bandeaux crise + recherches : toutes les apps EQUIPES */}

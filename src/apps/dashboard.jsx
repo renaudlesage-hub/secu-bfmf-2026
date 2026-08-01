@@ -30,6 +30,7 @@ import {
   BellOff,
   Eye,
   EyeOff,
+  Car,
   HardDriveDownload,
 } from "lucide-react";
 
@@ -104,6 +105,7 @@ const KEY_GROUPES = "bfmf2026-suivi-balade";
 const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
 const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
 const KEY_SOS_PART = "bfmf2026-sos-participants";
+const KEY_TRANSPORT = "bfmf2026-transport";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
 const KEY_MEDIAS = "bfmf2026-medias-live";
@@ -175,6 +177,26 @@ const CODE_METEO = {
   rouge:  { text: "text-red-300", bg: "bg-red-400/10", ring: "ring-red-400/30", dot: "bg-red-500", border: "border-red-500", borderT: "border-t-red-500", ringHover: "hover:ring-red-500/60", label: "ROUGE" },
 };
 
+/* Tête de colonne thématique : titre + compteurs KPI colorés (façon maquette).
+   `kpis` = [{ n: nombre, l: libellé court, c: classe couleur }]. */
+function TeteColonne({ Icon, titre, accent, kpis }) {
+  return (
+    <div className="space-y-2">
+      <div className={`font-display text-[11px] uppercase tracking-[0.1em] font-semibold px-2.5 py-1.5 rounded-md flex items-center gap-1.5 ring-1 ${accent}`}>
+        <Icon className="w-3.5 h-3.5" /> {titre}
+      </div>
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${kpis.length}, minmax(0,1fr))` }}>
+        {kpis.map((k, i) => (
+          <div key={i} className={`rounded-md py-1.5 text-center ring-1 ${k.c}`}>
+            <div className="font-display text-lg leading-none">{k.n}</div>
+            <div className="text-[8px] uppercase tracking-wider text-slate-500 mt-0.5">{k.l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardQG() {
   const [now, setNow] = useState(new Date());
   const [operateur, setOperateur] = useState(chargerOperateur);
@@ -198,6 +220,7 @@ export default function DashboardQG() {
   const [crise, setCrise] = useState(null);
   const [recherches, setRecherches] = useState([]);
   const [jauge, setJauge] = useState(null);
+  const [transport, setTransport] = useState([]);
   const [motifCrise, setMotifCrise] = useState(MOTIFS_CRISE[0]);
   const [msgCrise, setMsgCrise] = useState("");
   const [sonActif, setSonActif] = useState(false);
@@ -315,11 +338,12 @@ export default function DashboardQG() {
 
   async function pullAllData() {
     try {
-      const [mi, gr, aLog, aBal, sosP, co, mto, san, med, cri, rch, jg] = await Promise.all([
+      const [mi, gr, aLog, aBal, sosP, co, mto, san, med, cri, rch, jg, trsp] = await Promise.all([
         kvGet(KEY_MISSIONS), kvGet(KEY_GROUPES), kvGet(KEY_ALERTE_LOG),
         kvGet(KEY_ALERTE_BAL), kvGet(KEY_SOS_PART), kvGet(KEY_CONSIGNE),
         kvGet(KEY_METEO), kvGet(KEY_SANITAIRE), kvGet(KEY_MEDIAS),
         kvGet(KEY_CRISE), kvGet(KEY_RECH), kvGet(KEY_JAUGE),
+        kvGet(KEY_TRANSPORT),
       ]);
       setMissionsLog(Array.isArray(mi) ? mi : []);
       setGroupesBalade(Array.isArray(gr) ? gr : []);
@@ -331,6 +355,7 @@ export default function DashboardQG() {
       setCrise(cri && cri.active ? cri : null);
       setRecherches(Array.isArray(rch) ? rch.filter((x) => x.statut === "active") : []);
       setJauge(jg && jg.compteurs ? jg : null);
+      setTransport(Array.isArray(trsp) ? trsp : []);
       
       // FIX : CAPTURE DU SOS TERRAIN DEPUIS L'APP POUR FAIRE FLASHER LE BANDEAU EN HAUT DU DASHBOARD
       const sosTerrainsCrise = Array.isArray(sosP)
@@ -533,6 +558,27 @@ export default function DashboardQG() {
   const sanParLieu = {}; sanActifs.forEach((s) => { if(s?.locNom) sanParLieu[s.locNom] = (sanParLieu[s.locNom] || 0) + 1; });
   const sanTop = Object.entries(sanParLieu).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
+  // Compteurs par pôle pour les bandeaux de tête de colonne (façon maquette).
+  const cSecu = {
+    nouveaux: sosVisibles.filter((s) => s.statut === "nouveau").length,
+    priseEnCompte: sosVisibles.filter((s) => s.statut === "pris en compte").length,
+  };
+  const cLog = {
+    aTraiter: logOuvertes.filter((m) => m.statut === STATUT_INITIAL).length,
+    attribuees: logOuvertes.filter((m) => m.statut === STATUT_ATTRIBUEE).length,
+    enCours: logOuvertes.filter((m) => m.statut === STATUT_EN_COURS).length,
+  };
+  const trspActifs = transport.filter((t) => t && t.statut !== "Resolue");
+  const cTrsp = {
+    aTraiter: trspActifs.filter((t) => t.statut === "A traiter").length,
+    attribuees: trspActifs.filter((t) => t.statut === "Attribuee").length,
+    enCours: trspActifs.filter((t) => t.statut === "En cours").length,
+  };
+  const cSan = {
+    actifs: sanActifs.length,
+    traites: safeSanitaire.filter((s) => s && (s.statut === "resolu" || s.statut === "résolu")).length,
+  };
+
   return (
     <div className="min-h-screen bg-[#0f1319] text-slate-100 font-sans antialiased w-full">
       <style>{`
@@ -556,8 +602,25 @@ export default function DashboardQG() {
             <UserCheck className="w-3 h-3 text-sky-400" /> PC Ops : {SESS_USER.nom}
           </button>
         </div>
-        <div className="flex items-center gap-4 font-mono text-xs text-slate-400">
+        <div className="flex items-center gap-2 sm:gap-4 font-mono text-xs text-slate-400">
           {sbError && <span className="text-red-400 animate-pulse font-bold">⚠️ SYNC ERROR</span>}
+          {/* Alertes sonores + Veille QG remontés dans le bandeau */}
+          <button
+            onClick={() => { setSonActif(!sonActif); if (!sonActif) bipAlerte(); }}
+            className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded ring-1 transition-colors ${sonActif ? "ring-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "ring-white/15 text-slate-500 hover:text-slate-300"}`}
+            title="Bip sonore quand un nouvel evenement critique apparait (SOS, alerte, recherche)"
+          >
+            {sonActif ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+            <span className="hidden md:inline">{sonActif ? "Son ON" : "Son OFF"}</span>
+          </button>
+          <button
+            onClick={basculerWake}
+            className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded ring-1 transition-colors ${wakeActif ? "ring-sky-400/40 bg-sky-400/10 text-sky-300" : "ring-white/15 text-slate-500 hover:text-slate-300"}`}
+            title="Empêche l'écran de s'éteindre : poste de veille QG. Sans écran allumé, aucun bip ne part."
+          >
+            {wakeActif ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span className="hidden md:inline">{wakeActif ? "Veille ON" : "Veille OFF"}</span>
+          </button>
           <button
             onClick={exporterSauvegarde}
             disabled={exportEnCours}
@@ -610,30 +673,15 @@ export default function DashboardQG() {
       )}
 
       {/* CONTENU PANORAMIQUE MULTI-COLONNES */}
-      <main className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-[1800px] mx-auto items-start">
-        {/* ===== BLOC PLEINE LARGEUR : consigne generale / recherches / jauge ===== */}
-        <div className="md:col-span-3 space-y-3">
+      <main className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 w-full max-w-[1800px] mx-auto items-start">
+        {/* ===== RANGÉE HAUT : Consignes (col 1-2) + Météo large (col 3-4) ===== */}
+        {/* Colonne 1-2 : CONSIGNE GÉNÉRALE + Alertes sonores + Veille QG */}
+        <div className="md:col-span-2 space-y-3">
           <section className={`rounded-lg p-4 ${crise ? "ring-2 ring-red-500/70 bg-red-500/15" : "bg-[#151b23] ring-1 ring-white/10"}`}>
             <div className="flex items-center justify-between mb-2">
               <h2 className={`font-display tracking-wide text-sm flex items-center gap-2 ${crise ? "text-red-200" : "text-slate-200"}`}>
                 <Megaphone className={`w-4 h-4 ${crise ? "text-red-300 pulse-slow" : "text-slate-500"}`} /> CONSIGNE GENERALE — TOUTES EQUIPES
               </h2>
-              <button
-                onClick={() => { setSonActif(!sonActif); if (!sonActif) bipAlerte(); }}
-                className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${sonActif ? "ring-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "ring-white/15 text-slate-500 hover:text-slate-300"}`}
-                title="Bip sonore quand un nouvel evenement critique apparait (SOS, alerte, recherche)"
-              >
-                {sonActif ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
-                {sonActif ? "Alertes sonores ON" : "Alertes sonores OFF"}
-              </button>
-              <button
-                onClick={basculerWake}
-                className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${wakeActif ? "ring-sky-400/40 bg-sky-400/10 text-sky-300" : "ring-white/15 text-slate-500 hover:text-slate-300"}`}
-                title="Empêche l'écran de s'éteindre : poste de veille QG. Sans écran allumé, aucun bip ne part."
-              >
-                {wakeActif ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                {wakeActif ? "Veille QG ON" : "Veille QG OFF"}
-              </button>
             </div>
             {wakeErreur && (
               <div className="text-[10px] font-mono text-amber-300/80 mb-2">{wakeErreur}</div>
@@ -671,6 +719,145 @@ export default function DashboardQG() {
             )}
           </section>
 
+          {/* Cartographie — sous la consigne (col 1-2) */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md flex flex-col justify-between">
+          <div className="flex items-center justify-between pb-1 border-b border-white/5">
+            <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
+              <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
+            </h2>
+            <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
+          </div>
+          <div className="relative h-14 mt-2">
+            <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
+            {REPERES.map((r, i) => (
+              <div key={i} className="absolute top-3" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-600 mx-auto mt-2" />
+                <div className="text-[8px] font-mono text-slate-500 text-center mt-0.5">{r.nom}</div>
+              </div>
+            ))}
+            {grpDehors.map((g, idx) => {
+              const km = POS_KM[g.position] ?? 0;
+              return (
+                <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} : ${g.participants} festivaliers`}>
+                  <div className="flex items-center bg-sky-500/20 ring-1 ring-sky-400/50 rounded px-1 py-0.5 text-[8px] font-mono text-sky-200">
+                    <Users className="w-2 h-2 text-sky-300 mr-0.5" />{g.participants}
+                  </div>
+                </div>
+              );
+            })}
+            {sosVisibles.filter((s) => s && s.surTrace && s.surTrace.km !== null).map((s) => (
+              <div key={s.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`SOS : ${s.motif}`}>
+                <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
+              </div>
+            ))}
+            {logOuvertes.filter((m) => m && m.surTrace && m.surTrace.km != null).map((m) => (
+              <div key={m.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(m.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`${m.nature} · km ${m.surTrace.km}`}>
+                <TriangleAlert className="w-3.5 h-3.5 text-amber-400 pulse-slow" />
+              </div>
+            ))}
+            {alertesCrises
+              .filter((a) => a && a.surTrace && a.surTrace.km != null)
+              .filter((a) => !logOuvertes.some((m) => m.refAlerte === (a.heure + "|" + a.auteur)))
+              .map((a, i) => (
+                <div key={"al" + i} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(a.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`Alerte ${a.source} : ${a.motif} · km ${a.surTrace.km}`}>
+                  <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
+                </div>
+              ))}
+          </div>
+          <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1 mt-1">
+            <span>Attente P0 : {persAttente}</span>
+            <span>Rentré QG : {persRentres}</span>
+          </div>
+        </div>
+        </div>
+        {/* fin colonne 1-2 (consigne + cartographie) */}
+
+        {/* ===== COLONNE DROITE (3-4) : Météo + Plan transmission ===== */}
+        <div className="md:col-span-2 flex flex-col gap-3 self-stretch">
+          {/* Moniteur météo — en tête de la colonne droite */}
+          {/* Bandeau météo principal : vigilance + timeline étalée */}
+          <div className={`bg-[#141a22] rounded-lg p-4 border ${mc.ring} border-t-2 ${mc.borderT} shadow-md`}>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <a href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
+                className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 hover:text-white">
+                <CloudLightning className="w-4 h-4 text-slate-500" /> MONITEUR MÉTÉO — IRM
+              </a>
+              <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full border tracking-wider uppercase ${
+                meteoLive ? `${mc.text} ${mc.bg} ${mc.ring}` : "text-red-300 bg-red-400/10 border-red-400/30"
+              }`}>{meteoLive ? `${mc.label}` : "HORS LIGNE"}</span>
+            </div>
+            <div className="text-xs font-semibold text-slate-100 mb-1">{METEO.titre} — {METEO.obsResume}</div>
+            <div className="flex items-center gap-4 text-[11px] text-slate-400 font-mono mb-3">
+              <span className="flex items-center gap-1"><Sun className="w-3.5 h-3.5 text-amber-400" /> UV {METEO.obsUV}</span>
+              <span className="flex items-center gap-1"><Sunset className="w-3.5 h-3.5 text-orange-400" /> Coucher {METEO.obsCoucher}</span>
+              <span className="text-slate-600">Sync {METEO.obsHeure}</span>
+            </div>
+            {/* Timeline horizontale (façon PC-Ops) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(METEO.timeline || []).slice(0, 4).map((t, i) => {
+                const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
+                return (
+                  <div key={i} className="rounded bg-black/20 border border-white/5 p-2.5 flex items-center gap-2 min-w-0">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${tc.dot}`} />
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-slate-100 font-medium truncate">{t.phenomene}</div>
+                      <div className="text-[10px] text-slate-500 font-mono truncate">{t.creneau?.split("·").pop()?.trim() || t.creneau}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* FANTOME 2027 — CONSOLE DE RÉGULATION MÉTÉO INTERNE retirée de
+              l'affichage (plus utile en 2026 : la météo IRM se met à jour seule).
+              Handlers (purgerTimelineMeteo, soumettreAjustementMeteo) et states
+              (mgtVigilance, mgtCreneau, mgtTexteAlea) restent définis, inertes.
+              Décommenter le bloc ci-dessous pour réactiver la régulation manuelle.
+
+              --- Console de régulation météo interne ---
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+            <div className="flex items-center justify-between pb-1 border-b border-white/5">
+              <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
+              <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
+            </div>
+            <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs pt-2">
+              <div className="grid grid-cols-3 gap-1.5">
+                <select className="bg-black/40 border border-white/10 rounded p-1.5 text-[11px] text-slate-200 focus:outline-none" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
+                  <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option><option value="rouge">ROUGE</option>
+                </select>
+                <select className="bg-black/40 border border-white/10 rounded p-1.5 text-[11px] text-slate-200 focus:outline-none" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
+                  <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
+                </select>
+                <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm transition-all">POUSSER</button>
+              </div>
+              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1.5 text-slate-300 focus:outline-none text-[11px]" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
+            </form>
+          </div>
+          */}
+
+          {/* ⚡ PLAN DE TRANSMISSION — sous la météo, col 3-4 */}
+          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md flex flex-col flex-1">
+            <div className="flex items-center gap-2 pb-1 border-b border-white/5">
+              <Radio className="w-4 h-4 text-amber-400" />
+              <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission & d'Urgence Radio (BFMF 2026)</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono flex-1 pt-2 items-center">
+              {CANAUX_RADIO.map((c) => (
+                <div key={c.canal} className={`bg-black/30 px-2 py-1 rounded border flex flex-col justify-center ${c.urgent ? "border-red-400/30" : "border-white/5"}`}>
+                  <span className="flex items-baseline gap-1">
+                    <span className={`font-bold text-xs ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
+                    <span className="font-mono text-[10px] text-sky-300">ch.{c.num}</span>
+                  </span>
+                  <span className="text-slate-400 text-[9px] leading-tight truncate">{c.usage}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ===== ALERTES PLEINE LARGEUR : SOS participants + recherches ===== */}
+        <div className="md:col-span-4 space-y-3">
           {sosParticipants.filter((s) => s.statut === "nouveau").map((s) => (
             <div key={s.id} className="rounded-lg ring-2 ring-red-500/70 bg-red-500/15 px-4 py-3">
               <div className="flex items-start gap-3 flex-wrap">
@@ -709,7 +896,13 @@ export default function DashboardQG() {
             </div>
           ))}
 
-          {surSite !== null && (
+
+        </div>
+
+
+        {/* ===== JAUGE PLAINE — pleine largeur, au-dessus des compteurs ===== */}
+        <div className="md:col-span-4 md:-mt-2">
+          {surSite !== null ? (
             <div className="rounded-lg ring-1 ring-white/10 bg-[#151b23] px-4 py-2.5 flex items-center gap-3">
               <Users className="w-4 h-4 text-slate-500 shrink-0" />
               <span className="text-xs text-slate-300">Jauge plaine</span>
@@ -720,50 +913,27 @@ export default function DashboardQG() {
               <span className={`font-mono text-sm ${surSite / CAPACITE_SITE >= 0.9 ? "text-red-300" : "text-slate-200"}`}>{surSite}</span>
               <span className="font-mono text-[10px] text-slate-500">/ {CAPACITE_SITE}</span>
             </div>
+          ) : (
+            <div className="rounded-lg ring-1 ring-white/5 bg-[#151b23]/50 px-4 py-2.5 text-xs text-slate-500 flex items-center gap-2">
+              <Users className="w-4 h-4 shrink-0 opacity-50" /> Jauge plaine — en attente de comptage
+            </div>
           )}
         </div>
 
-        {/* ==================== COLONNE 1 : ENVIRONNEMENT & URGENCE 🚨 ==================== */}
+        {/* ==================== 4 COLONNES THÉMATIQUES ==================== */}
+        {/* Ordre : Sécurité · Logistique · Transport · Sanitaire */}
+
+        {/* -------- COLONNE 1 : SÉCURITÉ -------- */}
         <div className="space-y-4 w-full md:col-span-1">
-          
-          {/* DISPLAY MÉTÉO SOURCÉ IRM */}
-          <a 
-            href={METEO.urlFerrieres || METEO_FALLBACK.urlFerrieres} target="_blank" rel="noopener noreferrer"
-            className={`block bg-[#141a22] rounded-lg p-3 border ${mc.ring} border-t-2 ${mc.borderT} hover:bg-[#18202b] transition-all shadow-md min-h-[102px] max-h-[102px] flex flex-col justify-between`}
-          >
-            <div className="flex justify-between items-center">
-              <span className={`text-xxs font-mono px-1.5 py-0.5 rounded border tracking-wider uppercase ${
-                meteoLive ? `${mc.text} ${mc.bg} ${mc.ring}` : "text-red-300 bg-red-400/10 border-red-400/30"
-              }`}>{meteoLive ? `IRM ${mc.label}` : "HORS LIGNE"}</span>
-              <span className="text-[10px] font-mono text-slate-500">Sync: {METEO.obsHeure}</span>
-            </div>
-            <div className="text-xs font-semibold text-slate-100 truncate my-1">{METEO.titre} — {METEO.obsResume}</div>
-            <div className="pt-1 border-t border-white/5 flex justify-between text-[10px] text-slate-400 font-mono">
-              <span className="flex items-center gap-0.5"><Sun className="w-3 h-3 text-amber-400" /> UV: {METEO.obsUV}</span>
-              <span className="flex items-center gap-0.5"><Sunset className="w-3 h-3 text-orange-400" /> Coucher: {METEO.obsCoucher}</span>
-            </div>
-          </a>
-
-          {/* 🌩️ CONSOLE DE RÉGULATION MÉTÉO INTERNE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md min-h-[155px] max-h-[155px] flex flex-col justify-between">
-            <div className="flex items-center justify-between pb-1 border-b border-white/5">
-              <div className="text-xs font-display text-amber-400 tracking-wider uppercase flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> Régulation / Console Météo Interne</div>
-              <button onClick={purgerTimelineMeteo} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/10">Purger</button>
-            </div>
-            <form onSubmit={soumettreAjustementMeteo} className="space-y-2 text-xs flex-1 flex flex-col justify-end pt-2">
-              <div className="grid grid-cols-3 gap-1.5">
-                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200 focus:outline-none" value={mgtVigilance} onChange={(e) => setMgtVigilance(e.target.value)}>
-                  <option value="vert">VERT</option><option value="jaune">JAUNE</option><option value="orange">ORANGE</option><option value="rouge">ROUGE</option>
-                </select>
-                <select className="bg-black/40 border border-white/10 rounded p-1 text-[11px] text-slate-200 focus:outline-none" value={mgtCreneau} onChange={(e) => setMgtCreneau(e.target.value)}>
-                  <option value="En cours">Direct</option><option value="Dans les 2h (+2h)">+2h</option>
-                </select>
-                <button type="submit" className="bg-sky-600 hover:bg-sky-500 rounded text-[10px] font-mono font-bold text-white shadow-sm transition-all">POUSSER</button>
-              </div>
-              <input type="text" className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-slate-300 focus:outline-none text-[11px]" value={mgtTexteAlea} onChange={(e) => setMgtTexteAlea(e.target.value)} placeholder="Texte descriptif..." required />
-            </form>
-          </div>
-
+          <TeteColonne
+            Icon={TriangleAlert}
+            titre="Sécurité"
+            accent="bg-red-400/10 text-red-300 ring-red-400/25"
+            kpis={[
+              { n: cSecu.nouveaux, l: "Nouveaux", c: "bg-red-400/10 text-red-300 ring-red-400/20" },
+              { n: cSecu.priseEnCompte, l: "Pris en compte", c: "bg-amber-400/10 text-amber-300 ring-amber-400/20" },
+            ]}
+          />
           {/* 🚨 MONITEUR SÉCURITÉ */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
             <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
@@ -795,7 +965,6 @@ export default function DashboardQG() {
                 )))}
             </div>
           </div>
-
           {/* INJECTION SOS TERRAIN */}
           <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-red-500 bg-gradient-to-br from-[#141a22] to-[#181a24] shadow-md h-[116px] flex flex-col justify-between">
             <div className="text-xs font-display text-red-400 tracking-wider uppercase flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Injecter un SOS terrain</div>
@@ -819,109 +988,139 @@ export default function DashboardQG() {
               </div>
             </form>
           </div>
-
-          {/* ENGAGEMENT ÉQUIPE VOLANTE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-            <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
-            {consigne ? (
-              <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
-                <div>
-                  <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
-                  {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
-                </div>
-                <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
-              </div>
-            ) : (
-              <div className="flex gap-1">
-                <select className="bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
-                <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
-                <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
-              </div>
-            )}
-          </div>
         </div>
+        {/* fin colonne Sécurité */}
 
-        {/* ==================== BLOC DROIT AVANCÉ MUTÉ ==================== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2 w-full">
-          
-          {/* ⚡ PLAN RADIO LARGE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-amber-400/20 shadow-md md:col-span-2 min-h-[102px] max-h-[102px] flex flex-col justify-between">
-            <div className="flex items-center gap-2 pb-1 border-b border-white/5">
-              <Radio className="w-4 h-4 text-amber-400" />
-              <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission & d'Urgence Radio (BFMF 2026)</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono flex-1 pt-2 items-center">
-              {CANAUX_RADIO.map((c) => (
-                <div key={c.canal} className={`bg-black/30 px-2 py-1 rounded border flex flex-col justify-center h-full ${c.urgent ? "border-red-400/30" : "border-white/5"}`}>
-                  <span className="flex items-baseline gap-1">
-                    <span className={`font-bold text-xs ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
-                    <span className="font-mono text-[10px] text-sky-300">ch.{c.num}</span>
-                  </span>
-                  <span className="text-slate-400 text-[9px] leading-tight truncate">{c.usage}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 📍 CARTOGRAPHIE LINÉAIRE LARGE */}
-          <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md md:col-span-2 min-h-[155px] max-h-[155px] flex flex-col justify-between">
-            <div className="flex items-center justify-between pb-1 border-b border-white/5">
-              <h2 className="font-display text-xs tracking-wider uppercase text-slate-300 flex items-center gap-2">
-                <Compass className="w-4 h-4 text-sky-400" /> Cartographie Linéaire (PCOps)
-              </h2>
-              <span className="font-mono text-xxs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">{totalMarcheursEnForet} personnes sur parcours</span>
-            </div>
-
-            <div className="relative h-14 mt-2">
-              <div className="absolute top-6 left-0 right-0 h-1 bg-white/10 rounded-full" />
-              {REPERES.map((r, i) => (
-                <div key={i} className="absolute top-3" style={{ left: `calc(${(r.km / LONGUEUR_KM) * 100}% - 8px)` }}>
-                  <div className="w-1.5 h-1.5 rounded-full bg-slate-600 mx-auto mt-2" />
-                  <div className="text-[8px] font-mono text-slate-500 text-center mt-0.5">{r.nom}</div>
-                </div>
-              ))}
-              {grpDehors.map((g, idx) => {
-                const km = POS_KM[g.position] ?? 0;
-                return (
-                  <div key={idx} className="absolute top-0" style={{ left: `calc(${(km / LONGUEUR_KM) * 100}% - 10px)` }} title={`${g.nom} : ${g.participants} festivaliers`}>
-                    <div className="flex items-center bg-sky-500/20 ring-1 ring-sky-400/50 rounded px-1 py-0.5 text-[8px] font-mono text-sky-200">
-                      <Users className="w-2 h-2 text-sky-300 mr-0.5" />{g.participants}
+        {/* -------- COLONNE 2 : LOGISTIQUE -------- */}
+        <div className="space-y-4 w-full md:col-span-1">
+          <TeteColonne
+            Icon={ClipboardList}
+            titre="Logistique"
+            accent="bg-sky-400/10 text-sky-300 ring-sky-400/25"
+            kpis={[
+              { n: cLog.aTraiter, l: "À traiter", c: "bg-amber-400/10 text-amber-300 ring-amber-400/20" },
+              { n: cLog.attribuees, l: "Attrib.", c: "bg-sky-400/10 text-sky-300 ring-sky-400/20" },
+              { n: cLog.enCours, l: "En cours", c: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20" },
+            ]}
+          />
+            {/* 🛠️ MONITEUR LOGISTIQUE */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
+              <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
+                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Moniteur Logistique</h3>
+                <span className="font-mono text-xxs bg-slate-500/15 text-slate-400 px-1.5 rounded border border-white/5">{logOuvertes.length} Actives</span>
+              </div>
+              <div className="space-y-2 overflow-y-auto pr-1 flex-1">
+                {logOuvertes.length === 0 ? (
+                  <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune anomalie matérielle ouverte.</div>
+                ) : (
+                  logOuvertes.map((m) => (
+                    <div key={m.id} className="text-xs bg-white/[0.02] p-2.5 rounded border border-white/5 space-y-1.5">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-200 font-medium flex-1 leading-snug">{m.nature}</span>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${priorite(m.priorite).badge}`}>
+                          {priorite(m.priorite).court}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono flex justify-between items-center">
+                        <span>📍 {m.zone}</span>
+                        <span className="text-xxs text-slate-500">Statut: <strong className="text-amber-400 font-normal">{m.attribueA ? `${m.statut} (${m.attribueA})` : m.statut || "À traiter"}</strong></span>
+                      </div>
+                      <div className="flex justify-end gap-1 pt-1.5 border-t border-white/5">
+                        {!m.attribueA && (
+                          <>
+                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 1")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 1</button>
+                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 2")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 2</button>
+                            <button onClick={() => pousserEnCriseLog(m)} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded">🚨 Alerte</button>
+                          </>
+                        )}
+                        <button onClick={() => resoudreMissionLog(m.id)} className="text-[9px] font-mono bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 ml-auto"><CheckCircle className="w-2.5 h-2.5" /> Clore</button>
+                      </div>
                     </div>
+                  ))
+                )}
+              </div>
+            </div>
+            {/* 📥 CRÉER UNE DEMANDE LOGISTIQUE */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md h-[116px] flex flex-col justify-between">
+              <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique</div>
+              <form onSubmit={ajouterMissionLogistique} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogLieu} onChange={(e) => setFormLogLieu(e.target.value)}>
+                      {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogPriorite} onChange={(e) => setFormLogPriorite(e.target.value)}>
+                      {Object.entries(PRIORITES).map(([val, p]) => (
+                        <option key={val} value={val}>{p.libelle}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none text-[11px]" value={formLogNature} onChange={(e) => setFormLogNature(e.target.value)} placeholder="Panne matos, élec, barrière..." required />
+                  <button type="submit" className="bg-sky-600 hover:bg-sky-500 px-3 py-0.5 rounded font-mono font-bold text-white shadow text-[11px]">INJECTER</button>
+                </div>
+              </form>
+            </div>        </div>
+
+        {/* -------- COLONNE 3 : TRANSPORT -------- */}
+        <div className="space-y-4 w-full md:col-span-1">
+          <TeteColonne
+            Icon={Car}
+            titre="Transport"
+            accent="bg-indigo-400/10 text-indigo-300 ring-indigo-400/25"
+            kpis={[
+              { n: cTrsp.aTraiter, l: "À planif.", c: "bg-amber-400/10 text-amber-300 ring-amber-400/20" },
+              { n: cTrsp.attribuees, l: "Attrib.", c: "bg-sky-400/10 text-sky-300 ring-sky-400/20" },
+              { n: cTrsp.enCours, l: "En cours", c: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20" },
+            ]}
+          />
+            {/* 🚗 MONITEUR TRANSPORT */}
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-indigo-400/20 shadow-md h-[360px] flex flex-col">
+              <div className="flex justify-between items-center mb-2 pb-1 border-b border-white/5 shrink-0">
+                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Car className="w-4 h-4 text-indigo-400" /> Prochains transferts
+                </h3>
+                <a href="#transport" className="text-[10px] font-mono text-indigo-300 hover:underline">Ouvrir l'app →</a>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+              {(() => {
+                const actifs = transport.filter((t) => t && t.statut !== "Resolue");
+                const prochains = actifs
+                  .filter((t) => t.statut === "A traiter" || t.statut === "Attribuee")
+                  .sort((a, b) => (a.jour + (a.heure || "")).localeCompare(b.jour + (b.heure || "")))
+                  .slice(0, 8);
+                return prochains.length === 0 ? (
+                  <div className="text-[11px] text-slate-500 text-center py-4">Aucun transfert en attente.</div>
+                ) : (
+                  <div className="space-y-1">
+                    {prochains.map((t) => (
+                      <div key={t.id} className="text-[11px] bg-black/20 px-2 py-1.5 rounded border border-white/5 flex items-center gap-1.5">
+                        <span className="text-slate-200 truncate flex-1 min-w-0">{t.qui} ×{t.nb} — {t.vers}</span>
+                        <span className="font-mono text-[10px] text-slate-500 shrink-0">{t.heure || "—"}</span>
+                      </div>
+                    ))}
                   </div>
                 );
-              })}
-              {sosVisibles.filter((s) => s && s.surTrace && s.surTrace.km !== null).map((s) => (
-                <div key={s.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(s.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`SOS : ${s.motif}`}>
-                  <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
-                </div>
-              ))}
-              {/* Missions logistiques géolocalisées (dont demandes urgentes) :
-                  marqueur ambre, pour les voir sur le parcours comme les SOS. */}
-              {logOuvertes.filter((m) => m && m.surTrace && m.surTrace.km != null).map((m) => (
-                <div key={m.id} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(m.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`${m.nature} · km ${m.surTrace.km}`}>
-                  <TriangleAlert className="w-3.5 h-3.5 text-amber-400 pulse-slow" />
-                </div>
-              ))}
-              {/* Alertes équipe géolocalisées, sauf celles déjà représentées
-                  par une mission (demande urgente = mission + alerte). */}
-              {alertesCrises
-                .filter((a) => a && a.surTrace && a.surTrace.km != null)
-                .filter((a) => !logOuvertes.some((m) => m.refAlerte === (a.heure + "|" + a.auteur)))
-                .map((a, i) => (
-                  <div key={"al" + i} className="absolute top-8 z-10" style={{ left: `calc(${(Math.min(a.surTrace.km, LONGUEUR_KM) / LONGUEUR_KM) * 100}% - 7px)` }} title={`Alerte ${a.source} : ${a.motif} · km ${a.surTrace.km}`}>
-                    <TriangleAlert className="w-3.5 h-3.5 text-red-400 pulse-slow" />
-                  </div>
-                ))}
+              })()}
+              </div>
             </div>
-            <div className="text-[10px] font-mono text-slate-500 flex justify-between px-1 mt-1">
-              <span>Attente P0 : {persAttente}</span>
-              <span>Rentré QG : {persRentres}</span>
-            </div>
-          </div>
+        </div>
+        {/* fin colonne Transport */}
 
-          {/* ==================== SUB-COLONNE 2 ==================== */}
-          <div className="space-y-4 w-full">
-            
+        {/* -------- COLONNE 4 : SANITAIRE (+ veille réseaux en bas) -------- */}
+        <div className="space-y-4 w-full md:col-span-1">
+          <TeteColonne
+            Icon={Droplets}
+            titre="Sanitaire"
+            accent="bg-cyan-400/10 text-cyan-300 ring-cyan-400/25"
+            kpis={[
+              { n: cSan.actifs, l: "Actifs", c: "bg-cyan-400/10 text-cyan-300 ring-cyan-400/20" },
+              { n: cSan.traites, l: "Traités", c: "bg-white/5 text-slate-300 ring-white/10" },
+            ]}
+          />
             {/* 🩺 MONITEUR SANITAIRE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
               <div className="flex justify-between items-center mb-3 pb-1 border-b border-white/5 shrink-0">
@@ -966,7 +1165,6 @@ export default function DashboardQG() {
                 )}
               </div>
             </div>
-
             {/* 📥 CRÉER UNE DEMANDE SANITAIRE */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[116px] flex flex-col justify-between">
               <form onSubmit={ajouterMissionSanitaire} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
@@ -1023,76 +1221,7 @@ export default function DashboardQG() {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* ==================== SUB-COLONNE 3 ==================== */}
-          <div className="space-y-4 w-full">
-            
-            {/* 🛠️ MONITEUR LOGISTIQUE */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
-              <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
-                <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Moniteur Logistique</h3>
-                <span className="font-mono text-xxs bg-slate-500/15 text-slate-400 px-1.5 rounded border border-white/5">{logOuvertes.length} Actives</span>
-              </div>
-              <div className="space-y-2 overflow-y-auto pr-1 flex-1">
-                {logOuvertes.length === 0 ? (
-                  <div className="text-xxs text-slate-500 italic py-4 text-center">Aucune anomalie matérielle ouverte.</div>
-                ) : (
-                  logOuvertes.map((m) => (
-                    <div key={m.id} className="text-xs bg-white/[0.02] p-2.5 rounded border border-white/5 space-y-1.5">
-                      <div className="flex justify-between items-start gap-2">
-                        <span className="text-slate-200 font-medium flex-1 leading-snug">{m.nature}</span>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${priorite(m.priorite).badge}`}>
-                          {priorite(m.priorite).court}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono flex justify-between items-center">
-                        <span>📍 {m.zone}</span>
-                        <span className="text-xxs text-slate-500">Statut: <strong className="text-amber-400 font-normal">{m.attribueA ? `${m.statut} (${m.attribueA})` : m.statut || "À traiter"}</strong></span>
-                      </div>
-                      <div className="flex justify-end gap-1 pt-1.5 border-t border-white/5">
-                        {!m.attribueA && (
-                          <>
-                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 1")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 1</button>
-                            <button onClick={() => attribuerMissionLog(m.id, "Log-Volante 2")} className="text-[9px] font-mono bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded flex items-center gap-1"><UserPlus className="w-2.5 h-2.5" /> Volante 2</button>
-                            <button onClick={() => pousserEnCriseLog(m)} className="text-[9px] font-mono bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded">🚨 Alerte</button>
-                          </>
-                        )}
-                        <button onClick={() => resoudreMissionLog(m.id)} className="text-[9px] font-mono bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 ml-auto"><CheckCircle className="w-2.5 h-2.5" /> Clore</button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* 📥 CRÉER UNE DEMANDE LOGISTIQUE */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border-l-2 border-sky-400 bg-gradient-to-br from-[#141a22] to-[#151f2b] shadow-md h-[116px] flex flex-col justify-between">
-              <div className="text-xs font-display text-sky-400 tracking-wider uppercase flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Créer une Demande Logistique</div>
-              <form onSubmit={ajouterMissionLogistique} className="space-y-1.5 text-xs flex flex-col justify-between h-full">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogLieu} onChange={(e) => setFormLogLieu(e.target.value)}>
-                      {Object.keys(POINTS_GPS).map((p) => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <select className="w-full bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none" value={formLogPriorite} onChange={(e) => setFormLogPriorite(e.target.value)}>
-                      {Object.entries(PRIORITES).map(([val, p]) => (
-                        <option key={val} value={val}>{p.libelle}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-slate-200 focus:outline-none text-[11px]" value={formLogNature} onChange={(e) => setFormLogNature(e.target.value)} placeholder="Panne matos, élec, barrière..." required />
-                  <button type="submit" className="bg-sky-600 hover:bg-sky-500 px-3 py-0.5 rounded font-mono font-bold text-white shadow text-[11px]">INJECTER</button>
-                </div>
-              </form>
-            </div>
-
-            {/* VEILLE RÉSEAUX */}
+            </div>            {/* VEILLE RÉSEAUX */}
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><Rss className="w-3.5 h-3.5 text-slate-400" /> Veille Réseaux</h3>
@@ -1105,9 +1234,29 @@ export default function DashboardQG() {
                 </div>
               ))}
             </div>
-          </div>
-
         </div>
+
+
+        {/* ===== ENGAGEMENT ÉQUIPE VOLANTE — sur 2 colonnes (bas gauche) ===== */}
+        <div className="md:col-span-2 bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+          <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
+          {consigne ? (
+            <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
+              <div>
+                <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
+                {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
+              </div>
+              <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
+            </div>
+          ) : (
+            <div className="flex gap-1.5">
+              <select className="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
+              <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
+              <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 px-4 py-1.5 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
+            </div>
+          )}
+        </div>
+
       </main>
     </div>
   );
