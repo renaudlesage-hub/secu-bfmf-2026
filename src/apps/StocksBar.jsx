@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ClipboardList, Save, RefreshCw, Layers, CheckCircle2, BarChart3, Download, TriangleAlert, ChevronRight, Package, Users } from "lucide-react";
+import { ClipboardList, Save, RefreshCw, Layers, CheckCircle2, BarChart3, Download, TriangleAlert, ChevronRight, Truck, Users } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 
 /* ---------------------------------------------------------------------
@@ -193,7 +193,7 @@ export default function StocksBar() {
               className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-colors"
               title="Ouvrir les missions logistiques"
             >
-              <Package className="w-4 h-4" /> <span className="hidden sm:inline">Logistique</span>
+              <Truck className="w-4 h-4" /> <span className="hidden sm:inline">Logistique</span>
             </button>
             <button
               onClick={() => { window.location.hash = "equipe-benevoles"; }}

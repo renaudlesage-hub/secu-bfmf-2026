@@ -30,6 +30,7 @@ const APPS_LIST = [
 
   // Pole Logistique & Regulation
   { id: "logistique", name: "Missions logistiques", cat: "logistique" },
+  { id: "transport", name: "Transport de personnes", cat: "logistique" },
   { id: "stocks", name: "Stocks bar (plaine + etapes)", cat: "logistique" },
   { id: "jauge", name: "Jauge plaine / acces", cat: "logistique" },
 
@@ -42,6 +43,7 @@ const APPS_LIST = [
   // Acces directs : ouverts par lien ou QR, sans menu (bandeaux conserves).
   // Depuis le QG, le bouton RETOUR du navigateur ramene au menu.
   { id: "balade-light", name: "Balade — accompagnateur", cat: "liendirect" },
+  { id: "chauffeur", name: "Chauffeur — mes courses", cat: "liendirect" },
   { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "liendirect" },
   { id: "pcops", name: "PC-Ops / Autorité (lien direct)", cat: "liendirect" },
   { id: "sos", name: "SOS participant (public)", cat: "liendirect" },

@@ -328,8 +328,9 @@ export default function LogistiqueMissions() {
   const counts = STATUTS.reduce((acc, s) => ({ ...acc, [s]: missions.filter((m) => m.id && m.statut === s).length }), {});
   const bloquantes = missions.filter((m) => m.statut !== "Resolue" && (m.bloquant === "Oui" || m.priorite?.startsWith("P1"))).length;
 
-  const METEO = meteoLive || METEO_FALLBACK;
-  const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
+  // FANTOME 2027 — inertes tant que le panneau météo est masqué (voir plus bas).
+  // const METEO = meteoLive || METEO_FALLBACK;
+  // const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
 
   function exportCSV() {
     const cols = [
@@ -395,7 +396,7 @@ export default function LogistiqueMissions() {
               className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-sky-400/30 bg-sky-400/10 text-sky-300 hover:bg-sky-400/20 transition-colors"
               title="Ouvrir les stocks bar (plaine + étapes)"
             >
-              <Package className="w-4 h-4 shrink-0" /> <span>Stocks</span>
+              <ClipboardList className="w-4 h-4 shrink-0" /> <span>Stocks</span>
             </button>
             <button
               onClick={() => { window.location.hash = "equipe-benevoles"; }}
@@ -442,7 +443,11 @@ export default function LogistiqueMissions() {
           </div>
         )}
 
-        {/* METEO PANEL */}
+        {/* FANTOME 2027 — MONITEUR MÉTÉO INTERNE masqué (non affiché en 2026).
+            La météo reste visible au QG (dashboard) et au PC-Ops. Ici, dans la
+            logistique, elle encombrait sans apporter d'action. Décommenter le
+            bloc ci-dessous pour la réafficher. Les states/lecture (meteoLive,
+            KEY_METEO, METEO_FALLBACK) restent en place, inertes.
         <section className="bg-[#151b23] rounded-lg p-4 ring-1 ring-white/10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2">
@@ -461,6 +466,7 @@ export default function LogistiqueMissions() {
             ))}
           </div>
         </section>
+        */}
 
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Kpi label="A traiter" value={counts["A traiter"] || 0} accent="text-amber-300" />

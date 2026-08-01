@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Users, UserPlus, Clock, Phone, Search, RefreshCw, Download,
-  CircleDot, CheckCircle2, X, CalendarDays, ClipboardList, Trash2, Package,
+  CircleDot, CheckCircle2, X, CalendarDays, ClipboardList, Trash2, Truck,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 import { ROLES } from "./referentiels";
@@ -202,14 +202,14 @@ export default function GestionBenevoles() {
               className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-sky-400/30 bg-sky-400/10 text-sky-300 hover:bg-sky-400/20 transition-colors"
               title="Ouvrir les stocks bar (plaine + étapes)"
             >
-              <Package className="w-4 h-4" /> <span className="hidden sm:inline">Stocks bars</span>
+              <ClipboardList className="w-4 h-4" /> <span className="hidden sm:inline">Stocks bars</span>
             </button>
             <button
               onClick={() => { window.location.hash = "logistique"; }}
               className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-colors"
               title="Ouvrir les missions logistiques"
             >
-              <ClipboardList className="w-4 h-4" /> <span className="hidden sm:inline">Logistique</span>
+              <Truck className="w-4 h-4" /> <span className="hidden sm:inline">Logistique</span>
             </button>
             <span className={`text-[11px] font-mono px-2 py-1 rounded ring-1 ${deGarde.length ? "ring-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "ring-white/10 text-slate-500"}`}>
               {deGarde.length} de garde

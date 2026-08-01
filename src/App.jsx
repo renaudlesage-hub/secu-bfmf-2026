@@ -19,6 +19,8 @@ import AppVolante from "./apps/volante";
 import Sanitaire from "./apps/sanitaire";
 import Balade from "./apps/balade";
 import BaladeLight from "./apps/balade-light";
+import Transport from "./apps/transport";
+import Chauffeur from "./apps/chauffeur";
 import EnfantPerdu from "./apps/enfantperdu";
 import Sos from "./apps/sos";
 import Signaler from "./apps/signaler";
@@ -59,16 +61,18 @@ const COMPOSANTS = {
   sanitaire: Sanitaire,
   balade: Balade,
   "balade-light": BaladeLight,
+  transport: Transport,
+  chauffeur: Chauffeur,
   recherche: EnfantPerdu,
   sos: Sos,
   signaler: Signaler,
   "equipe-benevoles": GestionBenevoles,
 };
 const ROUTES_PUBLIQUES = ["sos", "signaler", "pcops"];
-const ROUTES_SANS_MENU = ["sanitaire", "balade-light", "stocks", "equipe-benevoles"];
+const ROUTES_SANS_MENU = ["sanitaire", "balade-light", "stocks", "equipe-benevoles", "chauffeur"];
 // Apps terrain qui affichent le bandeau Urgence (numeros/PRV/radio).
 // Exclut les routes publiques : le SOS a deja le 112, pcops est pour les autorites.
-const APPS_TERRAIN = ["volante", "balade", "balade-light", "sanitaire", "logistique", "recherche", "equipe-benevoles"];
+const APPS_TERRAIN = ["volante", "balade", "balade-light", "sanitaire", "logistique", "recherche", "equipe-benevoles", "chauffeur"];
 
 function parseHash() {
   const h = (window.location.hash || "").slice(1);

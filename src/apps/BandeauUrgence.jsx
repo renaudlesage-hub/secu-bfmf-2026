@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   LifeBuoy, PhoneCall, MapPin, ChevronUp, ChevronDown, ExternalLink,
   TriangleAlert, Flame, HeartPulse, UserSearch, CloudLightning, Footprints,
-  Send, Check, X,
+  Send, Check, X, RadioTower,
 } from "lucide-react";
 import { ANNUAIRE, PRV, QUE_FAIRE, REGLE_OR } from "./referentiels";
 import { envoyer as envoyerAvecFile } from "./file-attente";
@@ -51,6 +51,22 @@ async function lireProfil() {
   } catch (e) { return null; }
 }
 
+// Lit une cle quelconque (pour sonder le statut de notre SOS cote QG).
+async function lireCle(key) {
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
+      {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        credentials: "omit",
+      }
+    );
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j.length ? j[0].value : null;
+  } catch (e) { return null; }
+}
+
 export default function BandeauUrgence() {
   const [ouvert, setOuvert] = useState(false);
   const [situation, setSituation] = useState(null); // id de la conduite depliee
@@ -68,6 +84,8 @@ export default function BandeauUrgence() {
   const [motif, setMotif] = useState(MOTIFS_TERRAIN[0]);
   const [precision, setPrecision] = useState("");
   const [envoi, setEnvoi] = useState("idle");          // idle|envoi|ok|erreur
+  const [sosEnvoyeId, setSosEnvoyeId] = useState(null); // id du SOS terrain envoyé
+  const [suiviQG, setSuiviQG] = useState(null);         // accusé de prise en compte du QG
   const [profil, setProfil] = useState(null);
 
   // Position GPS : COMPLEMENT, jamais un prerequis. Captee en tache de fond
@@ -103,8 +121,9 @@ export default function BandeauUrgence() {
     setEnvoi("envoi");
     const nom = profil && profil.nom ? profil.nom : "Équipe terrain";
     const role = profil && profil.role ? profil.role : "";
+    const id = "ter-" + Date.now();
     const intervention = {
-      id: "ter-" + Date.now(),
+      id,
       heure: new Date().toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" }),
       nom: role ? `${nom} (${role})` : nom,
       motif,
@@ -115,14 +134,39 @@ export default function BandeauUrgence() {
     };
     try {
       await envoyerAvecFile(KEY_INTERVENTIONS, intervention, "ajout-liste");
+      setSosEnvoyeId(id);   // on garde l'id pour sonder l'accusé du QG
       setEnvoi("ok");
       setPrecision("");
-      setTimeout(() => { setEnvoi("idle"); setSosOuvert(false); }, 2500);
+      // On NE ferme PAS le panneau : il affiche l'attente puis l'accusé QG.
     } catch (e) {
       // La file d'attente rejoue au retour du reseau : le SOS n'est pas perdu.
       setEnvoi("erreur");
       setTimeout(() => setEnvoi("idle"), 4000);
     }
+  }
+
+  // Sonde le statut de NOTRE SOS terrain cote QG (pris en compte ?).
+  // Meme mecanisme que le SOS participant : on retrouve notre SOS par id.
+  useEffect(() => {
+    if (!sosEnvoyeId) return;
+    let stop = false;
+    async function verifier() {
+      const brut = await lireCle(KEY_INTERVENTIONS);
+      const liste = Array.isArray(brut) ? brut : [];
+      const monSos = liste.find((s) => s.id === sosEnvoyeId);
+      if (!stop && monSos && monSos.statut !== "nouveau") setSuiviQG(monSos);
+    }
+    verifier();
+    const t = setInterval(verifier, 5000);
+    return () => { stop = true; clearInterval(t); };
+  }, [sosEnvoyeId]);
+
+  // Reinitialise le suivi quand on ferme le panneau SOS.
+  function fermerSos() {
+    setSosOuvert(false);
+    setEnvoi("idle");
+    setSosEnvoyeId(null);
+    setSuiviQG(null);
   }
 
   return (
@@ -143,7 +187,7 @@ export default function BandeauUrgence() {
 
       {/* Panneau SOS en overlay centré (déclenché depuis le bouton flottant) */}
       {sosTerrainActif && sosOuvert && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/60" onClick={() => { setSosOuvert(false); setEnvoi("idle"); }}>
+        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/60" onClick={fermerSos}>
           <div className="w-full max-w-sm rounded-xl ring-1 ring-red-500/50 bg-[#141a22] shadow-2xl p-3 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Garde absolue : l'app ne remplace jamais le 112 */}
             <a
@@ -159,8 +203,35 @@ export default function BandeauUrgence() {
             </div>
 
             {envoi === "ok" ? (
-              <div className="flex items-center justify-center gap-2 py-4 text-emerald-300 font-semibold">
-                <Check className="w-5 h-5" /> Le QG est prévenu.
+              <div className="space-y-3">
+                {/* Étape 1 : le SOS est parti */}
+                <div className="flex items-center justify-center gap-2 py-2 text-emerald-300 font-semibold">
+                  <Check className="w-5 h-5" /> SOS transmis au QG.
+                </div>
+                {/* Étape 2 : accusé de prise en compte, comme le SOS participant */}
+                {suiviQG ? (
+                  <div className="rounded-lg ring-1 ring-emerald-400/40 bg-emerald-400/10 px-3 py-3 text-center">
+                    <div className="text-emerald-200 font-semibold flex items-center justify-center gap-1.5">
+                      <Check className="w-4 h-4" /> Pris en compte par le QG
+                    </div>
+                    {suiviQG.acquittePar && (
+                      <div className="text-[11px] text-emerald-300/80 mt-1">
+                        {suiviQG.acquittePar}{suiviQG.heurePriseEnCompte ? ` · ${suiviQG.heurePriseEnCompte}` : ""}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-slate-400 mt-1.5">Les secours sont coordonnés. Restez joignable.</div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg ring-1 ring-white/10 bg-white/[0.03] px-3 py-3 text-center">
+                    <div className="text-slate-300 text-sm flex items-center justify-center gap-2">
+                      <RadioTower className="w-4 h-4 text-amber-300 pulse-slow" /> En attente de prise en compte du QG…
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-1">Le QG a reçu l'alerte. Confirmation dès qu'un opérateur la prend.</div>
+                  </div>
+                )}
+                <button onClick={fermerSos} className="w-full py-2 rounded ring-1 ring-white/15 text-slate-400 text-xs active:bg-white/5">
+                  Fermer
+                </button>
               </div>
             ) : (
               <>
@@ -202,7 +273,7 @@ export default function BandeauUrgence() {
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { setSosOuvert(false); setEnvoi("idle"); }}
+                    onClick={fermerSos}
                     className="px-3 py-2.5 rounded ring-1 ring-white/15 text-slate-400 text-xs active:bg-white/5"
                   >
                     <X className="w-4 h-4" />

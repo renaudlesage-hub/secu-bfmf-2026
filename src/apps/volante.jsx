@@ -278,8 +278,9 @@ export default function AppVolante() {
         }
       : null;
 
-  const METEO = meteoLive || METEO_FALLBACK;
-  const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
+  // FANTOME 2027 — inertes tant que le panneau météo est masqué (voir plus bas).
+  // const METEO = meteoLive || METEO_FALLBACK;
+  // const mc = CODE_METEO[METEO.codeActuel] || CODE_METEO["vert"];
 
   return (
     <div className="min-h-screen bg-[#11151b] text-slate-100 font-sans antialiased pb-12">
@@ -357,6 +358,10 @@ export default function AppVolante() {
           </div>
         )}
 
+        {/* FANTOME 2027 — Moniteur météo interne masqué (non affiché en 2026).
+            La météo reste au QG (dashboard) et au PC-Ops. Sur le terrain, la
+            volante reçoit les consignes du QG directement. Décommenter pour
+            réafficher. States/lecture (meteoLive, KEY_METEO) restent inertes.
         <section className="bg-[#151b23] rounded-xl p-4 ring-1 ring-white/10 shadow-md">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase">
@@ -380,6 +385,7 @@ export default function AppVolante() {
             })}
           </div>
         </section>
+        */}
 
         {consigne && (
           <section className="rounded-xl ring-2 ring-amber-400/50 bg-amber-400/10 p-4 shadow-lg space-y-3">
