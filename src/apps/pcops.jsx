@@ -113,51 +113,38 @@ const DOCUMENTS = [
 
 const ACCES_SECOURS = [
   {
-    nom: "Accès principal — À COMPLÉTER",
+    nom: "Accès principal - Festival",
     gps: "50.3835, 5.6215",
-    detail: "À COMPLÉTER : rue exacte, largeur utile, portail/barrière, revêtement, pente.",
-    vehicules: "À COMPLÉTER : autopompe ? ambulance ? grue ?",
-    cle: "À COMPLÉTER : cadenas ? qui détient la clé ? joignable comment ?",
-  },
-  {
-    nom: "Accès parcours — voies secours balisées (carte officielle)",
-    gps: "50.38219, 5.63600",
-    detail: "3 voies d'accès depuis les PRV vers les scènes : Scène 1 par PRV#4 (721 m), "
-      + "Scène 2 par PRV#5 ressortant au PRV#6 (752 m), Scène 3 par PRV#7 (131 m). "
-      + "À COMPLÉTER : praticabilité 4x4, largeur utile, état par temps de pluie.",
-    vehicules: "À COMPLÉTER : ces voies sont-elles carrossables autopompe / ambulance ?",
-    cle: "À COMPLÉTER : barrière ou cadenas sur ces voies ?",
+    detail: "Rue : Croisement Le Raumont et Chemin de l'Epine",
+    cle: "site fermé de nuit et gardienné par un maître chien",
   },
 ];
 
 const POINT_RENCONTRE = {
   lieu: "PRV#1 — Entrée site / Départ (Croisement Le Raumont – Chemin de l'Épine)",
   gps: "50.38242, 5.61624",
-  qui: "Renaud — Coordinateur sécurité",
+  qui: "Renaud Lesage — Coordinateur sécurité",
   tel: "0494 22 29 33",
-  suppleant: "Jérôme — Directeur d'événement · 0477 99 48 42",
+  suppleant: "Jérôme Grosjean — Directeur d'événement · 0477 99 48 42",
 };
 
 const RISQUES_SITE = [
-  { titre: "Foodtrucks — bonbonnes de gaz", detail: "À COMPLÉTER : nombre, emplacement, vanne de coupure, distance aux scènes." },
+  { titre: "Foodtrucks — bonbonnes de gaz", detail: "Foodtruck 1 - 1 bouteille de gaz." },
   { titre: "Alimentation électrique / groupes électrogènes", detail: "Les scènes de la balade sont alimentées par GROUPES ÉLECTROGÈNES (dossier § 11) — pas de raccordement réseau, donc pas de réception électrique SECT sur ces points. Site principal : réception électrique par SECT agréé. À COMPLÉTER : emplacement exact, puissance, organe de coupure générale (qui, où)." },
   { titre: "Structures scéniques", detail: "Balade : installations < 250 m² au sol, aucun risque de chute ≥ 2 m (pas de réception mécanique). Site principal : réception mécanique par SECT agréé. À COMPLÉTER : hauteur, PV de montage, seuil de vent d'arrêt (km/h)." },
-  { titre: "Pyrotechnie / effets", detail: "À COMPLÉTER : prévu ou non. Si oui : opérateur, horaires, périmètre." },
-  { titre: "Public — jauge et évacuation", detail: "À COMPLÉTER : capacité plaine, largeur des sorties, points de rassemblement." },
-  { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. AUCUN éclairage de secours sur les lieux de concert de la balade (milieux ouverts, dossier § 11) : prévoir l'éclairage individuel pour tout retour après le coucher du soleil. Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
+  { titre: "Public — jauge et évacuation", detail: "capacité plaine : 1200 persones, largeur des sorties : 3 x 6m60, points de rassemblement partie EST de la prairie." },
+  { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. AUCUN éclairage de secours sur les lieux de concert de la balade (milieux ouverts, dossier § 11). Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
 ];
 
-// Ressources en eau : liste issue de la carte officielle (calque Pompiers).
+// Ressources en eau : liste issue de la carte Bucolique.
 // Le debit de chaque hydrant reste a documenter aupres de la zone de secours.
 const RESSOURCES_EAU = [
   {
-    titre: "Bouches incendie et pompes — relevé carte officielle",
+    titre: "Bouches incendie et pompes — relevé carte Bucolique",
     detail: `${EAU_CARTE.filter((e) => e.type.startsWith("Bouche")).length} bouches incendie, `
       + `${EAU_CARTE.filter((e) => e.type.startsWith("Pompe")).length} pompes à eau, 1 tridivision. `
       + `La plus proche de l'entrée : tridivision à 96 m. Détail et GPS ci-dessous.`,
   },
-  { titre: "Débit des hydrants", detail: "À COMPLÉTER : débit (m³/h) à obtenir auprès de la zone de secours." },
-  { titre: "Point d'eau naturel", detail: "À COMPLÉTER : cours d'eau, accès engin, aspiration possible ?" },
 ];
 
 const MOYENS_ORGA = [
@@ -166,17 +153,17 @@ const MOYENS_ORGA = [
     detail: `DEA de l'organisation sur site (50.38244, 5.61735), à 80 m de l'entrée. `
       + `${DEA.length - 1} autres DEA dans un rayon de 4,5 km. Emplacements ci-dessous.`,
   },
-  { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières. À COMPLÉTER : organisme, emplacement du poste, brancard, VPSP ?" },
+  { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site et par groupe sur la balade. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières" },
   { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
-  { titre: "Équipe volante organisateur", detail: "À COMPLÉTER : nombre, moyen de déplacement, canal PMR4.1." },
+  { titre: "Équipe volante organisateur", detail: "3 véhicules tout terrain, canal PMR4.1." },
   { titre: "Accompagnateurs balade", detail: "4 personnes de l'organisation par groupe (dossier § 4.2), briefées sécurité. 3 groupes par jour d'environ 300 personnes." },
 ];
 
 const DOCTRINE = [
   "112 d'abord pour toute urgence vitale, puis information du QG par PMR333.",
-  "Les applications complètent la radio : elles ne la remplacent jamais.",
+  "Les applications complètent la radio ou le téléphone : elles ne les remplacent jamais.",
   "L'engagement des moyens reste au QG festival — cette vue est en lecture seule.",
-  "Point de regroupement enfant perdu / personne recherchée : ACCUEIL POINT 0.",
+  "Point de regroupement enfant perdu / personne recherchée : ACCUEIL Entrée festival.",
 ];
 
 const CAPACITE_ETAPE = 300;
@@ -485,6 +472,7 @@ export default function PcOps() {
   const intEngage = interventions.filter((i) => i.etat === "moyen_engage");
   const intPriseEnCharge = interventions.filter((i) => i.etat === "prise_en_charge");
 
+  
   // Repartition par type (pour le tableau de synthese)
   const parType = {};
   interventions.forEach((i) => { parType[i.type] = (parType[i.type] || 0) + 1; });
