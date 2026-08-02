@@ -106,6 +106,11 @@ const KEY_ALERTE_LOG = "bfmf2026-logistique-alerte";
 const KEY_ALERTE_BAL = "bfmf2026-suivi-balade-alerte";
 const KEY_SOS_PART = "bfmf2026-sos-participants";
 const KEY_TRANSPORT = "bfmf2026-transport";
+
+// Libellés courts des jours transport (pour le moniteur Transport).
+// Doit rester aligné avec la table JOURS de transport.jsx.
+const JOURS_COURT = { j0: "Ven 14/08", j1: "Sam 15/08", j2: "Dim 16/08", j3: "Lun 17/08", j4: "Mar 18/08" };
+const labelJour = (j) => JOURS_COURT[j] || j || "";
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
 const KEY_MEDIAS = "bfmf2026-medias-live";
@@ -716,7 +721,7 @@ export default function DashboardQG() {
       <main className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 w-full max-w-[1800px] mx-auto items-start">
         {/* ===== RANGÉE HAUT : Consignes (col 1-2) + Météo large (col 3-4) ===== */}
         {/* Colonne 1-2 : CONSIGNE GÉNÉRALE + Alertes sonores + Veille QG */}
-        <div className="md:col-span-2 space-y-3">
+        <div className="md:col-span-2 flex flex-col gap-3 self-stretch">
           <section className={`rounded-lg p-4 ${crise ? "ring-2 ring-red-500/70 bg-red-500/15" : "bg-[#151b23] ring-1 ring-white/10"}`}>
             <div className="flex items-center justify-between mb-2">
               <h2 className={`font-display tracking-wide text-sm flex items-center gap-2 ${crise ? "text-red-200" : "text-slate-200"}`}>
@@ -809,8 +814,28 @@ export default function DashboardQG() {
             <span>Rentré QG : {persRentres}</span>
           </div>
         </div>
+
+        {/* JAUGE PLAINE — sous la cartographie, comble l'espace jusqu'au bas (col 1-2) */}
+        <div className="mt-auto">
+          {surSite !== null ? (
+            <div className="rounded-lg ring-1 ring-white/10 bg-[#151b23] px-4 py-2.5 flex items-center gap-3">
+              <Users className="w-4 h-4 text-slate-500 shrink-0" />
+              <span className="text-xs text-slate-300">Jauge plaine</span>
+              <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className={`h-full ${surSite / CAPACITE_SITE >= 0.9 ? "bg-red-400" : surSite / CAPACITE_SITE >= 0.72 ? "bg-amber-400" : "bg-emerald-400"}`}
+                  style={{ width: `${Math.min(100, Math.round((surSite / CAPACITE_SITE) * 100))}%` }} />
+              </div>
+              <span className={`font-mono text-sm ${surSite / CAPACITE_SITE >= 0.9 ? "text-red-300" : "text-slate-200"}`}>{surSite}</span>
+              <span className="font-mono text-[10px] text-slate-500">/ {CAPACITE_SITE}</span>
+            </div>
+          ) : (
+            <div className="rounded-lg ring-1 ring-white/5 bg-[#151b23]/50 px-4 py-2.5 text-xs text-slate-500 flex items-center gap-2">
+              <Users className="w-4 h-4 shrink-0 opacity-50" /> Jauge plaine — en attente de comptage
+            </div>
+          )}
         </div>
-        {/* fin colonne 1-2 (consigne + cartographie) */}
+        </div>
+        {/* fin colonne 1-2 (consigne + cartographie + jauge) */}
 
         {/* ===== COLONNE DROITE (3-4) : Météo + Plan transmission ===== */}
         <div className="md:col-span-2 flex flex-col gap-3 self-stretch">
@@ -945,26 +970,6 @@ export default function DashboardQG() {
         </div>
 
 
-        {/* ===== JAUGE PLAINE — pleine largeur, au-dessus des compteurs ===== */}
-        <div className="md:col-span-4 md:-mt-2">
-          {surSite !== null ? (
-            <div className="rounded-lg ring-1 ring-white/10 bg-[#151b23] px-4 py-2.5 flex items-center gap-3">
-              <Users className="w-4 h-4 text-slate-500 shrink-0" />
-              <span className="text-xs text-slate-300">Jauge plaine</span>
-              <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div className={`h-full ${surSite / CAPACITE_SITE >= 0.9 ? "bg-red-400" : surSite / CAPACITE_SITE >= 0.72 ? "bg-amber-400" : "bg-emerald-400"}`}
-                  style={{ width: `${Math.min(100, Math.round((surSite / CAPACITE_SITE) * 100))}%` }} />
-              </div>
-              <span className={`font-mono text-sm ${surSite / CAPACITE_SITE >= 0.9 ? "text-red-300" : "text-slate-200"}`}>{surSite}</span>
-              <span className="font-mono text-[10px] text-slate-500">/ {CAPACITE_SITE}</span>
-            </div>
-          ) : (
-            <div className="rounded-lg ring-1 ring-white/5 bg-[#151b23]/50 px-4 py-2.5 text-xs text-slate-500 flex items-center gap-2">
-              <Users className="w-4 h-4 shrink-0 opacity-50" /> Jauge plaine — en attente de comptage
-            </div>
-          )}
-        </div>
-
         {/* ==================== 4 COLONNES THÉMATIQUES ==================== */}
         {/* Ordre : Sécurité · Logistique · Transport · Sanitaire */}
 
@@ -1052,7 +1057,7 @@ export default function DashboardQG() {
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md h-[360px] flex flex-col">
               <div className="flex items-center justify-between mb-3 pb-1 border-b border-white/5 shrink-0">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-400" /> Moniteur Logistique</h3>
-                <span className="font-mono text-xxs bg-slate-500/15 text-slate-400 px-1.5 rounded border border-white/5">{logOuvertes.length} Actives</span>
+                <a href="#logistique" className="text-[10px] font-mono text-sky-300 hover:underline">Ouvrir l'app →</a>
               </div>
               <div className="space-y-2 overflow-y-auto pr-1 flex-1">
                 {logOuvertes.length === 0 ? (
@@ -1144,7 +1149,9 @@ export default function DashboardQG() {
                       <div key={t.id} className="bg-black/20 px-2.5 py-2 rounded border border-white/5">
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="text-[11px] text-slate-100 truncate flex-1 min-w-0 font-medium">{t.qui} ×{t.nb} — {t.vers}</span>
-                          <span className="font-mono text-[10px] text-slate-500 shrink-0">{t.heure || "—"}</span>
+                          <span className="font-mono text-[10px] text-slate-400 shrink-0 text-right">
+                            {labelJour(t.jour)}{t.heure ? ` · ${t.heure}` : ""}
+                          </span>
                         </div>
                         {t.statut === "Attribuee" ? (
                           <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
