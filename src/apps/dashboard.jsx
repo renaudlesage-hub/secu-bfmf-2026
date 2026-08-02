@@ -507,6 +507,44 @@ export default function DashboardQG() {
     if (fusion) { setMissionsLog(fusion); setSbError(false); } else setSbError(true);
   }
 
+  // Attribution d'un TRANSPORT à l'équipe volante depuis le dashboard :
+  // crée une mission logistique (source "Transport", vue dans l'onglet
+  // Transport de la volante) et marque la demande transport comme confiée.
+  async function attribuerTransportVolante(id) {
+    const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const d = transport.find((x) => x.id === id);
+    if (!d) return;
+    const mission = {
+      id: "trsp-log-" + Date.now(),
+      ref: "TRSP-" + Date.now().toString().slice(-4),
+      nature: `Transport : ${d.qui} (×${d.nb}) — ${d.depuis} → ${d.vers}`,
+      zone: d.vers,
+      localisation: `${d.jour || ""}${d.heure ? " · " + d.heure : ""}`,
+      priorite: "P2 - urgent",
+      bloquant: "Non",
+      statut: STATUT_ATTRIBUEE,
+      attribueA: "Équipe volante",
+      heureAttribution: h,
+      signalePar: d.demandePar || "Programmation",
+      roleSignaleur: "Transport",
+      source: "Transport",
+      refTransport: d.id,
+    };
+    const okMission = await kvMerge(KEY_MISSIONS, (liste) => [mission, ...liste]);
+    const fusion = await kvMerge(KEY_TRANSPORT, (liste) =>
+      liste.map((x) => x.id === id ? { ...x, statut: STATUT_ATTRIBUEE, cible: "volante", chauffeur: "Équipe volante", heureAttribution: h } : x));
+    if (okMission && fusion) { if (Array.isArray(okMission)) setMissionsLog(okMission); setTransport(fusion); setSbError(false); } else setSbError(true);
+  }
+
+  // Attribution d'un TRANSPORT à un chauffeur extérieur depuis le dashboard :
+  // la demande reste dans transport (vue dans l'app chauffeur du nom saisi).
+  async function attribuerTransportChauffeur(id, chauffeur) {
+    const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const fusion = await kvMerge(KEY_TRANSPORT, (liste) =>
+      liste.map((x) => x.id === id ? { ...x, statut: STATUT_ATTRIBUEE, cible: "chauffeur", chauffeur, heureAttribution: h } : x));
+    if (fusion) { setTransport(fusion); setSbError(false); } else setSbError(true);
+  }
+
   async function resoudreMissionLog(id) {
     const h = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
     const fusion = await kvMerge(KEY_MISSIONS, (liste) =>
@@ -547,7 +585,9 @@ export default function DashboardQG() {
   const MEDIAS = mediasLive || MEDIAS_FALLBACK;
   const safeMissions = missionsLog, safeGroupes = groupesBalade, safeSos = sosParticipants, safeSanitaire = sanitaire;
 
-  const logOuvertes = safeMissions.filter((m) => m && m.statut !== STATUT_RESOLU && m.statut !== "Résolue");
+  // Missions logistiques ouvertes, en EXCLUANT les transports de personnes
+  // (source "Transport") : ils ont leur propre moniteur Transport.
+  const logOuvertes = safeMissions.filter((m) => m && m.statut !== STATUT_RESOLU && m.statut !== "Résolue" && m.source !== "Transport");
   const grpDehors = safeGroupes.filter((g) => g && g.position !== "p0" && g.position !== "ret");
   const totalMarcheursEnForet = grpDehors.reduce((s, g) => s + (Number(g.participants) || 0), 0);
   const persAttente = safeGroupes.filter((g) => g && g.position === "p0").reduce((s, g) => s + (Number(g.participants) || 0), 0);
@@ -792,16 +832,21 @@ export default function DashboardQG() {
               <span className="flex items-center gap-1"><Sunset className="w-3.5 h-3.5 text-orange-400" /> Coucher {METEO.obsCoucher}</span>
               <span className="text-slate-600">Sync {METEO.obsHeure}</span>
             </div>
-            {/* Timeline horizontale (façon PC-Ops) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(METEO.timeline || []).slice(0, 4).map((t, i) => {
+            {/* Alertes météo — cartes pleine largeur, texte complet.
+                max-h + scroll : le panneau ne grandit pas au-delà, pour rester
+                aligné avec la colonne gauche (cartographie). */}
+            <div className="space-y-2 max-h-[168px] overflow-y-auto pr-1">
+              {(METEO.timeline || []).slice(0, 5).map((t, i) => {
                 const tc = CODE_METEO[t.code] || CODE_METEO["vert"];
                 return (
-                  <div key={i} className="rounded bg-black/20 border border-white/5 p-2.5 flex items-center gap-2 min-w-0">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${tc.dot}`} />
-                    <div className="min-w-0">
-                      <div className="text-[11px] text-slate-100 font-medium truncate">{t.phenomene}</div>
-                      <div className="text-[10px] text-slate-500 font-mono truncate">{t.creneau?.split("·").pop()?.trim() || t.creneau}</div>
+                  <div key={i} className="rounded-lg bg-black/20 border border-white/10 p-2.5 flex items-start gap-2.5">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${tc.dot}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] text-slate-100 font-semibold">{t.phenomene}</span>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded uppercase tracking-wider ${tc.bg} ${tc.text}`}>{tc.label}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-mono mt-0.5 leading-snug">{t.creneau}</div>
                     </div>
                   </div>
                 );
@@ -1065,26 +1110,6 @@ export default function DashboardQG() {
               </form>
             </div>        </div>
 
-        {/* ===== ENGAGEMENT ÉQUIPE VOLANTE — colonnes 1-2, collé sous Sécu/Logistique ===== */}
-        <div className="md:col-span-2 md:col-start-1 bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-          <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
-          {consigne ? (
-            <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
-              <div>
-                <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
-                {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
-              </div>
-              <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
-            </div>
-          ) : (
-            <div className="flex gap-1.5">
-              <select className="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
-              <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
-              <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 px-4 py-1.5 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
-            </div>
-          )}
-        </div>
-
         {/* -------- COLONNE 3 : TRANSPORT -------- */}
         <div className="space-y-4 w-full md:col-span-1">
           <TeteColonne
@@ -1098,7 +1123,7 @@ export default function DashboardQG() {
             ]}
           />
             {/* 🚗 MONITEUR TRANSPORT */}
-            <div className="bg-[#141a22] rounded-lg p-3.5 border border-indigo-400/20 shadow-md h-[360px] flex flex-col">
+            <div className="bg-[#141a22] rounded-lg p-3.5 border border-indigo-400/20 shadow-md h-[492px] flex flex-col">
               <div className="flex justify-between items-center mb-2 pb-1 border-b border-white/5 shrink-0">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Car className="w-4 h-4 text-indigo-400" /> Prochains transferts
@@ -1110,16 +1135,44 @@ export default function DashboardQG() {
                 const actifs = transport.filter((t) => t && t.statut !== "Resolue");
                 const prochains = actifs
                   .filter((t) => t.statut === "A traiter" || t.statut === "Attribuee")
-                  .sort((a, b) => (a.jour + (a.heure || "")).localeCompare(b.jour + (b.heure || "")))
-                  .slice(0, 8);
+                  .sort((a, b) => (a.jour + (a.heure || "")).localeCompare(b.jour + (b.heure || "")));
                 return prochains.length === 0 ? (
                   <div className="text-[11px] text-slate-500 text-center py-4">Aucun transfert en attente.</div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {prochains.map((t) => (
-                      <div key={t.id} className="text-[11px] bg-black/20 px-2 py-1.5 rounded border border-white/5 flex items-center gap-1.5">
-                        <span className="text-slate-200 truncate flex-1 min-w-0">{t.qui} ×{t.nb} — {t.vers}</span>
-                        <span className="font-mono text-[10px] text-slate-500 shrink-0">{t.heure || "—"}</span>
+                      <div key={t.id} className="bg-black/20 px-2.5 py-2 rounded border border-white/5">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[11px] text-slate-100 truncate flex-1 min-w-0 font-medium">{t.qui} ×{t.nb} — {t.vers}</span>
+                          <span className="font-mono text-[10px] text-slate-500 shrink-0">{t.heure || "—"}</span>
+                        </div>
+                        {t.statut === "Attribuee" ? (
+                          <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                            {t.cible === "volante" ? <Users className="w-3 h-3 text-cyan-400" /> : <Car className="w-3 h-3 text-indigo-400" />}
+                            Confié à {t.chauffeur}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => attribuerTransportVolante(t.id)}
+                              className="text-[10px] font-mono px-2 py-1 rounded bg-cyan-400/10 text-cyan-300 ring-1 ring-cyan-400/30 hover:bg-cyan-400/20 flex items-center gap-1"
+                            >
+                              <Users className="w-3 h-3" /> Volante
+                            </button>
+                            <input
+                              id={`chauf-${t.id}`}
+                              placeholder="Chauffeur…"
+                              className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-1.5 py-1 text-[10px] text-white placeholder:text-slate-600"
+                              onKeyDown={(e) => { if (e.key === "Enter" && e.target.value.trim()) attribuerTransportChauffeur(t.id, e.target.value.trim()); }}
+                            />
+                            <button
+                              onClick={() => { const v = document.getElementById(`chauf-${t.id}`).value.trim(); if (v) attribuerTransportChauffeur(t.id, v); }}
+                              className="text-[10px] font-mono px-2 py-1 rounded bg-indigo-400/10 text-indigo-300 ring-1 ring-indigo-400/30 hover:bg-indigo-400/20 shrink-0"
+                            >
+                              OK
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1226,7 +1279,11 @@ export default function DashboardQG() {
               </form>
             </div>
 
-            {/* SIGNALEMENTS SANITAIRES TOP ACCUMULATIONS */}
+{/* FANTOME 2027 — ZONES SANITAIRES CHAUDES + VEILLE RÉSEAUX retirées de
+              l'affichage. Le calcul (sanTop) et les données (MEDIAS) restent
+              définis, inertes. Décommenter le bloc pour les réafficher.
+
+            --- Zones sanitaires chaudes ---
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Droplets className="w-4 h-4 text-sky-400" /> Zones Sanitaires Chaudes</h3>
               {sanTop.length === 0 ? (
@@ -1241,7 +1298,7 @@ export default function DashboardQG() {
                   ))}
                 </div>
               )}
-            </div>            {/* VEILLE RÉSEAUX */}
+            </div>            --- Veille reseaux ---
             <div className="bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5"><Rss className="w-3.5 h-3.5 text-slate-400" /> Veille Réseaux</h3>
@@ -1254,6 +1311,27 @@ export default function DashboardQG() {
                 </div>
               ))}
             </div>
+            */}
+        </div>
+
+        {/* ===== ENGAGEMENT ÉQUIPE VOLANTE — pleine largeur, tout en bas ===== */}
+        <div className="md:col-span-4 bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+          <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
+          {consigne ? (
+            <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
+              <div>
+                <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
+                {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
+              </div>
+              <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
+            </div>
+          ) : (
+            <div className="flex gap-1.5 max-w-2xl">
+              <select className="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
+              <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
+              <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 px-4 py-1.5 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
+            </div>
+          )}
         </div>
 
       </main>
