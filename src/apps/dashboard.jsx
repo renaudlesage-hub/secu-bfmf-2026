@@ -1065,6 +1065,26 @@ export default function DashboardQG() {
               </form>
             </div>        </div>
 
+        {/* ===== ENGAGEMENT ÉQUIPE VOLANTE — colonnes 1-2, collé sous Sécu/Logistique ===== */}
+        <div className="md:col-span-2 md:col-start-1 bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
+          <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
+          {consigne ? (
+            <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
+              <div>
+                <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
+                {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
+              </div>
+              <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
+            </div>
+          ) : (
+            <div className="flex gap-1.5">
+              <select className="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
+              <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
+              <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 px-4 py-1.5 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
+            </div>
+          )}
+        </div>
+
         {/* -------- COLONNE 3 : TRANSPORT -------- */}
         <div className="space-y-4 w-full md:col-span-1">
           <TeteColonne
@@ -1234,27 +1254,6 @@ export default function DashboardQG() {
                 </div>
               ))}
             </div>
-        </div>
-
-
-        {/* ===== ENGAGEMENT ÉQUIPE VOLANTE — sur 2 colonnes (bas gauche) ===== */}
-        <div className="md:col-span-2 bg-[#141a22] rounded-lg p-3.5 border border-white/5 shadow-md">
-          <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Footprints className="w-4 h-4 text-slate-500" /> Engagement Équipe Volante</h3>
-          {consigne ? (
-            <div className="bg-white/[0.02] border border-white/5 p-2 rounded text-xs flex justify-between items-start">
-              <div>
-                <div className="text-amber-300">Volante engagée : <strong className="text-slate-100">{consigne.prv}</strong></div>
-                {consigne.message && <div className="text-slate-400 mt-0.5 italic">"{consigne.message}"</div>}
-              </div>
-              <button onClick={leverConsigne} className="text-[10px] font-mono text-red-400 hover:underline">Rappeler</button>
-            </div>
-          ) : (
-            <div className="flex gap-1.5">
-              <select className="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={prvChoisi} onChange={(e) => setPrvChoisi(e.target.value)}>{PRVS.map((p) => <option key={p} value={p}>{p}</option>)}</select>
-              <input className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-slate-200" value={msgConsigne} onChange={(e) => setMsgConsigne(e.target.value)} placeholder="Ordre radio..." />
-              <button onClick={engagerVolante} className="bg-amber-500/20 text-amber-300 px-4 py-1.5 rounded border border-amber-500/30 text-xs font-mono">Lancer</button>
-            </div>
-          )}
         </div>
 
       </main>

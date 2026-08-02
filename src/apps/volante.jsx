@@ -151,6 +151,7 @@ function nowHM() {
 
 export default function AppVolante() {
   const [missions, setMissions] = useState([]);
+  const [ongletVolante, setOngletVolante] = useState("securite");
   const [groupes, setGroupes] = useState([]);
   const [alertes, setAlertes] = useState([]);
   const [sosPart, setSosPart] = useState([]);
@@ -217,14 +218,32 @@ export default function AppVolante() {
     };
   }, []);
 
-  const mesMissions = missions.filter(
+  // Missions confiées à la volante, non résolues.
+  const missionsVolante = missions.filter(
     (m) => (m.attribueA || "").toLowerCase().includes("volante") && m.statut !== "Resolue"
   );
+  // On sépare : missions logistiques (matériel) vs transports de personnes.
+  const mesMissions = missionsVolante.filter((m) => m.source !== "Transport");
+  const mesTransports = missionsVolante.filter((m) => m.source === "Transport");
 
   const sosActifs = sosPart.filter((s) => {
     const st = (s.statut || "").toLowerCase();
     return st !== "cloture" && st !== "clôture" && st !== "cloturé" && st !== "clos";
   }).slice(0, 5);
+
+  // Ouverture automatique sur l'onglet Sécurité quand un NOUVEAU SOS arrive.
+  // On compare le nombre de SOS "nouveau" au précédent : s'il augmente, on
+  // bascule (même si la volante était sur Logistique ou Transport), pour
+  // qu'un secours ne passe jamais inaperçu. On ne force pas si le compte
+  // baisse ou reste stable (la volante garde la main sur sa navigation).
+  const nbSosNouveaux = sosActifs.filter((s) => (s.statut || "").toLowerCase() === "nouveau").length;
+  const nbSosNouveauxRef = useRef(nbSosNouveaux);
+  useEffect(() => {
+    if (nbSosNouveaux > nbSosNouveauxRef.current) {
+      setOngletVolante("securite");
+    }
+    nbSosNouveauxRef.current = nbSosNouveaux;
+  }, [nbSosNouveaux]);
 
   const parEtape = { e1: 0, e2: 0, e3: 0 };
   groupes.forEach((g) => {
@@ -444,7 +463,29 @@ export default function AppVolante() {
             )}
           </div>
         ))}
+        {/* ===== BANDEAU DE COMPTEURS + ONGLETS ===== */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { id: "securite", label: "Sécurité", n: sosActifs.length, Icon: TriangleAlert, actif: "ring-red-400/50 bg-red-400/10 text-red-300", dot: sosActifs.some((s) => (s.statut || "").toLowerCase() === "nouveau") },
+            { id: "logistique", label: "Logistique", n: mesMissions.length, Icon: ClipboardList, actif: "ring-sky-400/50 bg-sky-400/10 text-sky-300", dot: mesMissions.some((m) => m.statut === "Attribuee") },
+            { id: "transport", label: "Transport", n: mesTransports.length, Icon: Car, actif: "ring-indigo-400/50 bg-indigo-400/10 text-indigo-300", dot: mesTransports.some((m) => m.statut === "Attribuee") },
+          ].map((o) => (
+            <button
+              key={o.id}
+              onClick={() => setOngletVolante(o.id)}
+              className={`relative rounded-xl p-3 ring-1 transition-colors flex flex-col items-center gap-1 ${ongletVolante === o.id ? o.actif : "ring-white/10 bg-[#151b23] text-slate-500"}`}
+            >
+              {o.dot && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-400 animate-pulse" />}
+              <o.Icon className="w-5 h-5" />
+              <span className="font-display text-2xl leading-none">{o.n}</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider">{o.label}</span>
+            </button>
+          ))}
+        </div>
 
+        {/* ===== ONGLET SÉCURITÉ : SOS Participants ===== */}
+        {ongletVolante === "securite" && (
+          <>
         <section className="bg-[#151b23] rounded-xl ring-1 ring-white/10 p-4 shadow-md space-y-3">
           <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase border-b border-white/5 pb-2">
             <TriangleAlert className={`w-4 h-4 ${sosActifs.some((s) => (s.statut || "").toLowerCase() === "nouveau") ? "text-red-400 pulse-slow" : "text-slate-500"}`} />
@@ -588,7 +629,12 @@ export default function AppVolante() {
             })}
           </div>
         </section>
+          </>
+        )}
 
+        {/* ===== ONGLET LOGISTIQUE : Missions ===== */}
+        {ongletVolante === "logistique" && (
+          <>
         <section className="bg-[#151b23] rounded-xl ring-1 ring-white/10 p-4 shadow-md space-y-3">
           <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase border-b border-white/5 pb-2">
             <ClipboardList className="w-4 h-4 text-slate-500" /> Missions Logistiques Volante ({mesMissions.length})
@@ -632,6 +678,56 @@ export default function AppVolante() {
             })}
           </div>
         </section>
+
+        {/* ===== TRANSPORT DE PERSONNES — champ dédié (séparé du fret) ===== */}          </>
+        )}
+
+        {/* ===== ONGLET TRANSPORT : Transport de personnes ===== */}
+        {ongletVolante === "transport" && (
+          <>
+        <section className="bg-[#151b23] rounded-xl ring-1 ring-white/10 p-4 shadow-md space-y-3">
+          <h2 className="font-display tracking-wide text-xs text-slate-400 font-bold flex items-center gap-2 uppercase border-b border-white/5 pb-2">
+            <Car className="w-4 h-4 text-indigo-400" /> Transport de personnes ({mesTransports.length})
+          </h2>
+          <div className="space-y-2.5">
+            {mesTransports.length === 0 && <div className="text-xs text-slate-500 text-center py-6 border border-dashed border-white/5 rounded-xl">Aucun transport de personnes attribué.</div>}
+            {mesTransports.map((m) => {
+              const ptZone = POINTS[ZONE_VERS_POINT[m.zone] || ""] ? { nom: ZONE_VERS_POINT[m.zone], ...POINTS[ZONE_VERS_POINT[m.zone]] } : null;
+              const cible = m.gps ? { nom: m.zone || "Position", lat: m.gps.lat, lon: m.gps.lon } : ptZone;
+              return (
+                <div key={m.id || m.ref} className="rounded-xl p-3 bg-indigo-400/[0.04] border border-indigo-400/20">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Car className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="font-mono text-[10px] text-slate-500 font-normal">{m.ref}</span>
+                    <span className="text-slate-100 flex-1 min-w-0 truncate">{m.nature}</span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1 pl-5 leading-tight">
+                    Vers : <span className="text-slate-300 font-medium">{m.zone}</span> · {m.localisation}
+                  </div>
+                  <div className="flex gap-2 mt-3 pl-5">
+                    {cible && (
+                      <button
+                        onClick={() => guiderVers(`Transport: ${cible.nom}`, cible.lat, cible.lon, `Transport ${m.ref}`)}
+                        className="text-xs font-mono font-bold px-3 py-2 rounded-xl ring-1 ring-white/10 bg-white/5 text-slate-300 flex items-center gap-1 active:bg-white/10"
+                      >
+                        <Compass className="w-3.5 h-3.5" /> Itinéraire
+                      </button>
+                    )}
+                    <button
+                      onClick={() => avancerMission(m)}
+                      className="flex-1 text-xs font-mono font-bold px-3 py-2 rounded-xl ring-1 ring-indigo-400/40 bg-indigo-400/10 text-indigo-200 active:bg-indigo-400/20"
+                    >
+                      {m.statut === "Attribuee" ? "Démarrer le transport" : "Clôturer le transport"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+          </>
+        )}
+
 
         <div className="text-[10px] text-slate-600 font-mono text-center pt-2 leading-relaxed">
           Cycle de scrutation : 8s · Secours Prioritaire : Inter-Réseaux PMR333 / 112<br />

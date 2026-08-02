@@ -324,9 +324,13 @@ export default function LogistiqueMissions() {
     setShowForm(false);
   }
 
-  const filtered = filtreStatut === "Tous" ? missions : missions.filter((m) => m.statut === filtreStatut);
-  const counts = STATUTS.reduce((acc, s) => ({ ...acc, [s]: missions.filter((m) => m.id && m.statut === s).length }), {});
-  const bloquantes = missions.filter((m) => m.statut !== "Resolue" && (m.bloquant === "Oui" || m.priorite?.startsWith("P1"))).length;
+  // Les transports de personnes attribués à la volante vivent dans la même
+  // table mais ne concernent pas la logistique matérielle : on les exclut ici
+  // (ils s'affichent dans le champ Transport dédié de l'app volante).
+  const missionsLog = missions.filter((m) => m.source !== "Transport");
+  const filtered = filtreStatut === "Tous" ? missionsLog : missionsLog.filter((m) => m.statut === filtreStatut);
+  const counts = STATUTS.reduce((acc, s) => ({ ...acc, [s]: missionsLog.filter((m) => m.id && m.statut === s).length }), {});
+  const bloquantes = missionsLog.filter((m) => m.statut !== "Resolue" && (m.bloquant === "Oui" || m.priorite?.startsWith("P1"))).length;
 
   // FANTOME 2027 — inertes tant que le panneau météo est masqué (voir plus bas).
   // const METEO = meteoLive || METEO_FALLBACK;
