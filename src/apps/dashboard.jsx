@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ShieldAlert,
   TriangleAlert,
@@ -66,6 +66,56 @@ async function kvGet(key) {
   if (!r.ok) throw new Error(`Supabase GET ${r.status}`);
   const j = await r.json();
   return j.length ? j[0].value : null;
+}
+
+/* ---------------------------------------------------------------------
+   SCRUTATION DELTA -- optimisation egress (sans changer le delai)
+   Au lieu de recharger la "value" complete des 13 cles a chaque tour
+   (8s), on procede en 2 temps :
+     1. Une SEULE requete legere recupere key + updated_at de toutes les
+        cles (quelques octets par cle).
+     2. On ne recharge la "value" complete (potentiellement lourde) QUE
+        des cles dont updated_at a change depuis le tour precedent.
+   Resultat : quand rien ne bouge (cas le plus frequent), on ne transfere
+   que la petite liste des horodatages, pas les gros blocs JSON. L'egress
+   s'effondre sans toucher a la reactivite (toujours 8s).
+   `stampsRef` memorise les updated_at connus ; `cacheRef` garde la
+   derniere valeur de chaque cle pour la renvoyer si inchangee.
+   --------------------------------------------------------------------- */
+async function kvGetDelta(cles, stampsRef, cacheRef) {
+  const filtre = cles.map((k) => `"${k}"`).join(",");
+  // 1. Liste legere des horodatages (une seule requete pour tout)
+  const rMeta = await fetch(
+    `${SUPABASE_URL}/rest/v1/app_store?key=in.(${encodeURIComponent(filtre)})&select=key,updated_at`,
+    { headers: SB_HEADERS, credentials: "omit" }
+  );
+  if (!rMeta.ok) throw new Error(`Supabase META ${rMeta.status}`);
+  const metas = await rMeta.json();
+  const stampParCle = {};
+  metas.forEach((m) => { stampParCle[m.key] = m.updated_at; });
+
+  // 2. Determiner les cles reellement modifiees
+  const modifiees = cles.filter((k) => stampParCle[k] && stampParCle[k] !== stampsRef.current[k]);
+
+  // 3. Recharger la value complete uniquement des cles modifiees (une requete)
+  if (modifiees.length) {
+    const filtreMod = modifiees.map((k) => `"${k}"`).join(",");
+    const rVal = await fetch(
+      `${SUPABASE_URL}/rest/v1/app_store?key=in.(${encodeURIComponent(filtreMod)})&select=key,value`,
+      { headers: SB_HEADERS, credentials: "omit" }
+    );
+    if (!rVal.ok) throw new Error(`Supabase VAL ${rVal.status}`);
+    const vals = await rVal.json();
+    vals.forEach((v) => {
+      cacheRef.current[v.key] = v.value;
+      stampsRef.current[v.key] = stampParCle[v.key];
+    });
+  }
+  // Cles disparues (jamais ecrites) : valeur null
+  cles.forEach((k) => { if (!(k in cacheRef.current)) cacheRef.current[k] = null; });
+
+  // Retourne la valeur (fraiche ou en cache) pour chaque cle demandee
+  return cles.map((k) => cacheRef.current[k]);
 }
 
 /* ---------------------------------------------------------------------
@@ -215,6 +265,9 @@ export default function DashboardQG() {
     try { localStorage.setItem(OPERATEUR_KEY, v); } catch (e) {}
   }
   const [missionsLog, setMissionsLog] = useState([]);
+  // Cache de scrutation delta : horodatages connus + dernières valeurs.
+  const stampsRef = useRef({});
+  const cacheRef = useRef({});
   const [groupesBalade, setGroupesBalade] = useState([]);
   const [alertesCrises, setAlertesCrises] = useState([]);
   const [sosParticipants, setSosParticipants] = useState([]);
@@ -343,13 +396,18 @@ export default function DashboardQG() {
 
   async function pullAllData() {
     try {
-      const [mi, gr, aLog, aBal, sosP, co, mto, san, med, cri, rch, jg, trsp] = await Promise.all([
-        kvGet(KEY_MISSIONS), kvGet(KEY_GROUPES), kvGet(KEY_ALERTE_LOG),
-        kvGet(KEY_ALERTE_BAL), kvGet(KEY_SOS_PART), kvGet(KEY_CONSIGNE),
-        kvGet(KEY_METEO), kvGet(KEY_SANITAIRE), kvGet(KEY_MEDIAS),
-        kvGet(KEY_CRISE), kvGet(KEY_RECH), kvGet(KEY_JAUGE),
-        kvGet(KEY_TRANSPORT),
-      ]);
+      // Scrutation delta : une requête légère (horodatages) + une requête
+      // ciblée sur les seules clés modifiées. Ordre des clés = ordre de
+      // destructuration ci-dessous (à garder synchronisés).
+      const CLES_SCRUTEES = [
+        KEY_MISSIONS, KEY_GROUPES, KEY_ALERTE_LOG,
+        KEY_ALERTE_BAL, KEY_SOS_PART, KEY_CONSIGNE,
+        KEY_METEO, KEY_SANITAIRE, KEY_MEDIAS,
+        KEY_CRISE, KEY_RECH, KEY_JAUGE,
+        KEY_TRANSPORT,
+      ];
+      const [mi, gr, aLog, aBal, sosP, co, mto, san, med, cri, rch, jg, trsp] =
+        await kvGetDelta(CLES_SCRUTEES, stampsRef, cacheRef);
       setMissionsLog(Array.isArray(mi) ? mi : []);
       setGroupesBalade(Array.isArray(gr) ? gr : []);
       setSosParticipants(Array.isArray(sosP) ? sosP : []);
