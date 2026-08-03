@@ -3,7 +3,7 @@ import {
   Car, MapPin, Clock, Package, Phone, RefreshCw, ArrowRight, Check, TriangleAlert, Navigation,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
-import { STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU } from "./referentiels";
+import { STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU, CHAUFFEURS } from "./referentiels";
 
 /* ---------------------------------------------------------------------
    APP CHAUFFEUR — BFMF 2026 (chauffeurs extérieurs)
@@ -181,19 +181,22 @@ export default function Chauffeur() {
         )}
 
         {!monNom ? (
-          /* Saisie du nom (première utilisation) */
+          /* Choix du profil (première utilisation) */
           <div className="rounded-xl ring-1 ring-white/10 bg-[#151b23] p-5 space-y-3">
-            <div className="text-sm text-slate-300 font-semibold">Votre nom de chauffeur</div>
+            <div className="text-sm text-slate-300 font-semibold">Qui êtes-vous ?</div>
             <div className="text-[11px] text-slate-500">
-              Saisissez le nom sous lequel le QG vous a enregistré. Vous ne verrez que les courses qui vous sont confiées.
+              Choisissez votre profil dans la liste. Vous ne verrez que les courses qui vous sont confiées par le QG.
             </div>
-            <input
+            <select
               value={nomInput}
               onChange={(e) => setNomInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && choisirNom()}
-              placeholder="Ex : Marc D."
-              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2.5 text-sm text-white placeholder:text-slate-600"
-            />
+              className="w-full bg-black/40 border border-white/10 rounded px-3 py-2.5 text-sm text-white"
+            >
+              <option value="">Sélectionnez votre nom…</option>
+              {CHAUFFEURS.map((c) => (
+                <option key={c.id} value={c.nom}>{c.nom}{c.vehicule ? ` — ${c.vehicule}` : ""}</option>
+              ))}
+            </select>
             <button
               onClick={choisirNom}
               disabled={nomInput.trim().length < 2}

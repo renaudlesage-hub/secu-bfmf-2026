@@ -4,7 +4,7 @@ import {
   Plus, X, Check, ArrowRight, Trash2, TriangleAlert, Truck, Users, Navigation,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
-import { STATUTS, STATUT_INITIAL, STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU } from "./referentiels";
+import { STATUTS, STATUT_INITIAL, STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU, CHAUFFEURS } from "./referentiels";
 
 /* ---------------------------------------------------------------------
    TRANSPORT DE PERSONNES -- BFMF 2026
@@ -434,20 +434,26 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
                 >
                   <Users className="w-4 h-4" /> Attribuer à l'équipe volante
                 </button>
-                {/* Circuit 2 : confier à un chauffeur extérieur (app chauffeur) */}
+                {/* Circuit 2 : confier à un chauffeur extérieur (app chauffeur).
+                    Liste déroulante des profils : évite les fautes de frappe
+                    qui casseraient le lien avec l'app chauffeur. */}
                 <div className="flex items-center gap-1.5">
-                  <input
+                  <select
                     value={chauffeurInput}
                     onChange={(e) => setChauffeurInput(e.target.value)}
-                    placeholder="Nom du chauffeur extérieur…"
-                    className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600"
-                  />
+                    className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white"
+                  >
+                    <option value="">Choisir un chauffeur…</option>
+                    {CHAUFFEURS.map((c) => (
+                      <option key={c.id} value={c.nom}>{c.nom}{c.vehicule ? ` — ${c.vehicule}` : ""}</option>
+                    ))}
+                  </select>
                   <button
                     onClick={() => chauffeurInput.trim() && onAttribuerChauffeur(chauffeurInput.trim())}
                     disabled={!chauffeurInput.trim()}
                     className="text-xs font-mono px-3 py-1.5 rounded bg-indigo-500/20 text-indigo-200 ring-1 ring-indigo-500/40 disabled:opacity-40 shrink-0"
                   >
-                    Attribuer chauffeur
+                    Attribuer
                   </button>
                 </div>
               </div>

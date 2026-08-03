@@ -122,6 +122,22 @@ export const POINTS_GPS = {
   PC-Ops et l'onglet Intervention. Ordre = ordre d'appel : le vital en tete.
   >>> Mettre a jour ICI uniquement. Verifie / complete le 18/07.
 --------------------------------------------------------------------- */
+/* ------------------- CHAUFFEURS (profils prédéfinis) ----------------
+  Liste des chauffeurs extérieurs, pour attribuer une course sans taper
+  le nom à la main (évite les fautes de frappe qui casseraient le lien
+  entre l'attribution et l'app chauffeur).
+  L'attribution enregistre le champ `chauffeur` = `nom` : le chauffeur qui
+  saisit EXACTEMENT ce nom (ou le choisit dans sa liste) voit ses courses.
+  >>> REMPLACER par les vrais chauffeurs avant le festival. Le `nom` doit
+      être unique et stable (c'est la clé de correspondance).
+--------------------------------------------------------------------- */
+export const CHAUFFEURS = [
+  { id: "ch1", nom: "Chauffeur 1", tel: "0470 00 00 01", vehicule: "Monospace 7 places" },
+  { id: "ch2", nom: "Chauffeur 2", tel: "0470 00 00 02", vehicule: "Break" },
+  { id: "ch3", nom: "Chauffeur 3", tel: "0470 00 00 03", vehicule: "Minibus 9 places" },
+  { id: "ch4", nom: "Chauffeur 4", tel: "0470 00 00 04", vehicule: "Camionnette" },
+];
+ 
 export const ANNUAIRE = [
  { nom: "URGENCE VITALE", num: "112", note: "médical / incendie — TOUJOURS en premier", urgent: true },
  { nom: "Police", num: "101", note: "" },

@@ -40,7 +40,7 @@ import {
 --------------------------------------------------------------------- */
 
 import { PRIORITES, PRIORITE_DEFAUT, STATUT_INITIAL, STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU, priorite, POINTS_GPS,
-  RADIO_PLAN as CANAUX_RADIO } from "./referentiels";
+  RADIO_PLAN as CANAUX_RADIO, CHAUFFEURS } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl } from "../config";
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
 
@@ -1224,18 +1224,16 @@ export default function DashboardQG() {
                             >
                               <Users className="w-3 h-3" /> Volante
                             </button>
-                            <input
-                              id={`chauf-${t.id}`}
-                              placeholder="Chauffeur…"
-                              className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-1.5 py-1 text-[10px] text-white placeholder:text-slate-600"
-                              onKeyDown={(e) => { if (e.key === "Enter" && e.target.value.trim()) attribuerTransportChauffeur(t.id, e.target.value.trim()); }}
-                            />
-                            <button
-                              onClick={() => { const v = document.getElementById(`chauf-${t.id}`).value.trim(); if (v) attribuerTransportChauffeur(t.id, v); }}
-                              className="text-[10px] font-mono px-2 py-1 rounded bg-indigo-400/10 text-indigo-300 ring-1 ring-indigo-400/30 hover:bg-indigo-400/20 shrink-0"
+                            <select
+                              defaultValue=""
+                              onChange={(e) => { if (e.target.value) attribuerTransportChauffeur(t.id, e.target.value); }}
+                              className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-1.5 py-1 text-[10px] text-white"
                             >
-                              OK
-                            </button>
+                              <option value="">Chauffeur…</option>
+                              {CHAUFFEURS.map((c) => (
+                                <option key={c.id} value={c.nom}>{c.nom}</option>
+                              ))}
+                            </select>
                           </div>
                         )}
                       </div>
