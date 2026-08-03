@@ -113,29 +113,33 @@ const DOCUMENTS = [
 
 const ACCES_SECOURS = [
   {
-    nom: "Accès principal — À COMPLÉTER",
-    gps: "50.3835, 5.6215",
-    detail: "À COMPLÉTER : rue exacte, largeur utile, portail/barrière, revêtement, pente.",
-    vehicules: "À COMPLÉTER : autopompe ? ambulance ? grue ?",
-    cle: "À COMPLÉTER : cadenas ? qui détient la clé ? joignable comment ?",
+    nom: "Accès principal — via PRV#1",
+    gps: "50.38242, 5.61624",
+    detail: "Carrefour Le Raumont - Chemin de l'épine.",
+    vehicules: "Carrossable camion, largeur minimale 4m, rayon de braquage pris en compte.",
+    cle: "Site ouvert en journée, fermé en dehors des heures d'ouverture avec présence d'un agent de sécurité",
+    nom: "Accès secondaire — via PRV#2",
+    gps: "50.38304, 5.61816",
+    detail: "Mon Legrand depuis Chemin de l'épine.",
+    vehicules: "Carrossable camion, largeur minimale 4m, rayon de braquage pris en compte.",
+    cle: "Site ouvert en journée, fermé en dehors des heures d'ouverture avec présence d'un agent de sécurité",
   },
   {
     nom: "Accès parcours — voies secours balisées (carte officielle)",
     gps: "50.38219, 5.63600",
     detail: "3 voies d'accès depuis les PRV vers les scènes : Scène 1 par PRV#4 (721 m), "
-      + "Scène 2 par PRV#5 ressortant au PRV#6 (752 m), Scène 3 par PRV#7 (131 m). "
-      + "À COMPLÉTER : praticabilité 4x4, largeur utile, état par temps de pluie.",
-    vehicules: "À COMPLÉTER : ces voies sont-elles carrossables autopompe / ambulance ?",
-    cle: "À COMPLÉTER : barrière ou cadenas sur ces voies ?",
+      + "Scène 2 par PRV#5 (752 m) ou PRV#6 (460 m), Scène 3 par PRV#7 (131 m). "
+    vehicules: "Carrossable camion, largeur minimale 4m, rayon de braquage pris en compte. ?",
+    cle: "ouvert en permanence",
   },
 ];
 
 const POINT_RENCONTRE = {
   lieu: "PRV#1 — Entrée site / Départ (Croisement Le Raumont – Chemin de l'Épine)",
   gps: "50.38242, 5.61624",
-  qui: "Renaud — Coordinateur sécurité",
+  qui: "Renaud Lesage — Coordinateur sécurité",
   tel: "0494 22 29 33",
-  suppleant: "Jérôme — Directeur d'événement · 0477 99 48 42",
+  suppleant: "Jérôme Grosjean — Directeur d'événement · 0477 99 48 42",
 };
 
 const RISQUES_SITE = [

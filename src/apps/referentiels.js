@@ -10,17 +10,14 @@
 export const ROLES = [
   // --- Direction & QG ---
   "Directeur d'événement",
-  "Coordination sécurité",
+  "Coordinateur technique & sécurité",
   "Opérateur QG",
  
   // --- Parcours / balade ---
   "Accompagnateur Balade",
   "Responsable Étape 1",
-  "Adjoint Étape 1",
   "Responsable Étape 2",
-  "Adjoint Étape 2",
   "Responsable Étape 3",
-  "Adjoint Étape 3",
  
   // --- Site / plaine ---
   "Responsable grande scène",
@@ -108,7 +105,7 @@ export const POINTS_GPS = {
  "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes" },
  "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt" },
- "PRV#4": { lat: 50.38219, lon: 5.63600, km: 0.9, segment: "Accès Étape 1 / Scène 1" },
+ "PRV#4": { lat: 50.38218,  lon: 5.63599, km: 0.9, segment: "Accès Étape 1 / Scène 1" },
  "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
  "Parcours Balade secteur B": { lat: 50.3756, lon: 5.6441, km: 1.8, segment: "Tracé Sud - Vers Étape 2" },
  "PRV#5": { lat: 50.37568, lon: 5.64412, km: 2.3, segment: "Balisage Secours #5" },
@@ -145,9 +142,9 @@ export const PRV = [
  { nom: "PRV#1 — Entrée site / Départ", gps: "50.38242, 5.61624", adresse: "Croisement rue Le Raumont – Chemin de l'Épine, 4190 Ferrières" },
  { nom: "PRV#2 — Entrée arrière site", gps: "50.38304, 5.61816", adresse: "Mon Legrand, 4190 Ferrières — entrée secondaire, contrôle d'accès" },
  { nom: "PRV#3 — Parking public", gps: "50.38212, 5.61673", adresse: "Rue Le Raumont, 4190 Ferrières" },
- { nom: "PRV#4 — Accès Étape 1 / Scène 1", gps: "50.38219, 5.63600", adresse: "Carrefour La Picherotte – Fosse du Loup – Rue de la Chapelle – Mon Lecomte" },
+ { nom: "PRV#4 — Accès Étape 1 / Scène 1", gps: "50.38218, 5.63599", adresse: "Carrefour La Picherotte – Fosse du Loup – Rue de la Chapelle – Mon Lecomte" },
  { nom: "PRV#5 — Accès Étape 2 / Scène 2", gps: "50.37568, 5.64412", adresse: "Rue de Jehonhé 6, 4190 Burnontige" },
- { nom: "PRV#6 — Accès Étape 2 / Scène 2", gps: "50.38239, 5.64584", adresse: "Lesfanges, 4190 Burnontige" },
+ { nom: "PRV#6 — Accès Étape 2 / Scène 2", gps: "50.38236, 5.64579", adresse: "Lesfanges, 4190 Burnontige" },
  { nom: "PRV#7 — Accès Étape 3 / Scène 3", gps: "50.38865, 5.62692", adresse: "Rue de la Chapelle 23, 4190 Le Trou" },
  { nom: "Étape 1 / Scène 1 (km 0,9)", gps: "50.37858, 5.62790", adresse: "Rue Sainte-Barbe, 4190 Burnontige" },
  { nom: "Étape 2 / Scène 2 (km 2,5)", gps: "50.37828, 5.64549", adresse: "Rue de Jehonhé 7, 4190 Burnontige" },
@@ -157,7 +154,7 @@ export const PRV = [
 /* --------------------------- PLAN RADIO ----------------------------- */
 export const RADIO_PLAN = [
  { canal: "PMR4.1", num: 9,  freq: "446.04375", ctcss: "67.0 Hz (Tx/Rx)",
-   usage: "Coordination générale (QG, scènes, volante, accompagnateurs)",
+   usage: "Coordination générale (QG, scènes, volante)",
    postes: "standard" },
  { canal: "PMR5",   num: 10, numSimple: 5, freq: "446.05625", ctcss: "Aucun",
    usage: "Bénévoles parking et sanitaires",
@@ -177,7 +174,7 @@ export const RADIO_PLAN = [
   inutilisable pour l'evenement.
 -------------------------------------------------------------------- */
 export const RADIO_MATERIEL = {
- modele: "Baofeng UV-16 Pro",
+ modele: "Baofeng UV5R et BF888",
  avertissement: "Postes préprogrammés — aucune reprogrammation possible sur site.",
 };
 
@@ -230,7 +227,7 @@ export const PROGRAMMATION_RADIO = [
 export const POSTES_RADIO = {
  standard: {
    nom: "Postes standard (double fréquence)",
-   qui: "QG, équipe volante, responsables de scène, accompagnateurs balade",
+   qui: "QG, équipe volante, responsables de scène",
    urgence: "PMR333 sur le canal 6",
    aUrgence: true,
    doubleVeille: true,
@@ -264,11 +261,11 @@ export const QUE_FAIRE = [
  {
    id: "malaise", titre: "Malaise / blessure", icone: "HeartPulse",
    etapes: [
-     "Proteger : ecarter le public, securiser la zone.",
+     "Protéger : écarter le public, sécuriser la zone.",
      "Alerter : gravite ? -> 112 D'ABORD si doute vital. Puis PMR333 : qui, quoi, ou (PRV le plus proche), combien.",
-     "Ne pas deplacer la victime sauf danger immediat.",
+     "Ne pas deplacer la victime sauf danger immédiat.",
      "Envoyer quelqu'un au PRV pour guider les secours.",
-     "Rester aupres, couvrir, parler, surveiller la conscience.",
+     "Rester aupres de la victime, couvrir, parler, surveiller la conscience, la respiration et le pouls.",
    ],
  },
  {
@@ -276,47 +273,48 @@ export const QUE_FAIRE = [
    etapes: [
      "Enfant TROUVE : rester avec lui, NE PAS le promener seul -> accompagner a deux vers l'ACCUEIL POINT 0. Annoncer sur PMR4.1.",
      "Enfant PERDU (parent) : conduire le parent a l'accueil, lancer la recherche dans l'app (#recherche) + PMR4.1.",
-     "Description precise : age, vetements, cheveux, dernier lieu vu.",
-     "Non retrouve apres 15 min ou circonstance inquietante : 112/101.",
-     "Jamais de nom d'enfant diffuse en sono publique (attire les mal intentionnes) : description uniquement.",
+     "Description précise : âge, vêtements, cheveux, dernier lieu vu.",
+     "Non retrouvé après 15 min ou circonstance inquiétante : 112/101.",
+     "Jamais de nom d'enfant diffusé en sono publique (attire les mal intentionnes) : description uniquement.",
    ],
  },
  {
    id: "feu", titre: "Debut d'incendie", icone: "Flame",
    etapes: [
      "Alerter IMMEDIATEMENT : 112 puis PMR333 (lieu exact, ampleur, vent).",
-     "Eloigner le public (perimetre large), couper la sono locale si scene.",
-     "Attaquer UNIQUEMENT si feu naissant + extincteur + sans risque.",
-     "Liberer les acces secours (vehicules, PRV).",
-     "Ne jamais rester dans la fumee.",
+     "Eloigner le public (périmetre large), couper la sono locale si scène.",
+     "Attaquer UNIQUEMENT si feu naissant avec extincteur et SANS SE METTRE EN DANGER.",
+     "Liberer les accès pour les secours et assurer le guidage.",
+     "Ne jamais rester dans la fumée.",
    ],
  },
  {
    id: "meteo", titre: "Orage / mise a l'abri", icone: "CloudLightning",
    etapes: [
-     "Sur consigne QG (ou eclair < 10 s du tonnerre) : suspension des activites exposees.",
-     "Plaine : diriger le public vers les batiments/chapiteaux durs designes.",
-     "Parcours : groupes a l'abri (eviter arbres isoles, clotures) au point dur le plus proche, accompagnateurs comptent leur groupe.",
-     "Attendre la levee de consigne QG avant reprise.",
+     "Sur consigne QG : suspension des activités exposées.",
+     "Plaine : diriger le public à l'écart des structures légères.",
+     "Parcours : groupes a l'abri (eviter arbres isolés, clôtures) au point dur le plus proche, accompagnateurs comptent leur groupe.",
+     "Attendre la levée de consigne QG avant reprise.",
    ],
  },
  {
    id: "balade", titre: "Incident sur le parcours", icone: "Footprints",
    etapes: [
      "Accompagnateur de tête : stopper le groupe en lieu sur, le serre-file compte.",
-     "Alerter : PMR4.1 (ou 112 si vital) avec le km / segment / PRV.",
+     "Appler le 112 si besoin de prise en charge par des secours éxtérieurs;",
+     "Appeler le Coordinateur Sécurité au 0494/22.29.33",
+     "Lancer un SOS via l'application.",
      "Un accompagnateur reste avec la personne, le groupe continue avec les autres si consigne QG.",
-     "Utiliser l'app Suivi balade pour ajuster effectif/position.",
    ],
  },
  {
    id: "evac", titre: "Evacuation (consigne QG uniquement)", icone: "TriangleAlert",
    etapes: [
-     "Ne JAMAIS lancer une evacuation de sa propre initiative (sauf peril immediat local).",
+     "Ne JAMAIS lancer une évacuation de sa propre initiative (sauf péril immédiat local).",
      "Relayer calmement la consigne exacte du QG, sans crier 'evacuation'.",
-     "Diriger vers les sorties/PRV designes, prioriser PMR et enfants.",
-     "Benevoles aux points de passage, comptage si demande.",
-     "Rendre compte au QG : zone videe / personnes restantes.",
+     "Diriger vers les sorties normales et de secours, prioriser PMR et enfants.",
+     "Bénévoles aide au guidage, comptage si demandé.",
+     "Rendre compte au QG : zone vidée / personnes restantes.",
    ],
  },
 ];
@@ -403,7 +401,7 @@ export const SECTEURS_PARCOURS = [
 
 // Autre ressource medicale a proximite
 export const CABINET_MEDICAL = {
- nom: "Cabinet médical Sneessens Nicolas",
+ nom: "Cabinet médical Sneessens - Lambotte",
  gps: "50.39875, 5.60932",
  note: "≈ 2 km du site — hors urgence vitale (112 en priorité)",
 };
@@ -422,9 +420,12 @@ export const VOIES_ACCES = [
  },
  {
    nom: "Voie d'accès secours — Scène 2",
-   depuis: "PRV#5", vers: "Scène 2 / Étape 2 (ressort au PRV#6)",
+   depuis: "PRV#5", vers: "Scène 2 / Étape 2",
    longueurM: 752,
    depart: "50.37575, 5.64411", arrivee: "50.38240, 5.64578",
+   depuis: "PRV#6", vers: "Scène 2 / Étape 2",
+   longueurM: 460,
+   depart: "50.38239, 5.64584", arrivee: "50.38240, 5.64578"
  },
  {
    nom: "Voie d'accès secours — Scène 3",
@@ -544,7 +545,7 @@ export const FREQUENTATION = {
  personnesParGroupe: 300,
  etapeParVague: 300,
  soireeAttendue: "750 à 1200 personnes",
- capaciteMax: "À CONFIRMER par les plans, prescriptions et contrôles",
+ capaciteMax: "1200",
  encadrantsParGroupe: 4,
 };
 
