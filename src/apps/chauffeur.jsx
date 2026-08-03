@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  Car, MapPin, Clock, Package, Phone, RefreshCw, ArrowRight, Check, TriangleAlert,
+  Car, MapPin, Clock, Package, Phone, RefreshCw, ArrowRight, Check, TriangleAlert, Navigation,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 import { STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU } from "./referentiels";
@@ -55,6 +55,11 @@ async function kvMerge(key, mutateur) {
 
 const pad = (n) => String(n).padStart(2, "0");
 const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+// Lien de géoguidage universel : ouvre l'app de navigation par défaut du
+// téléphone (Google Maps, Plans iOS…) en mode itinéraire vers l'adresse.
+const mapsUrl = (adresse) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresse)}`;
 
 const JOURS = {
   j0: "Ven 14/08 (montage)", j1: "Sam 15/08", j2: "Dim 16/08",
@@ -253,21 +258,74 @@ function CarteCourse({ d, onAvancer }) {
         )}
       </div>
 
-      {/* Trajet */}
-      <div className="mt-3 rounded-lg bg-black/20 ring-1 ring-white/5 p-3 space-y-2">
-        <div className="flex items-center gap-2 text-sm">
-          <MapPin className="w-4 h-4 text-slate-500 shrink-0" />
-          <span className="text-slate-200 min-w-0 truncate">{d.depuis}</span>
+      {/* Trajet — avec adresse et bouton GPS quand renseignés */}
+      <div className="mt-3 rounded-lg bg-black/20 ring-1 ring-white/5 p-3 space-y-2.5">
+        {/* Départ */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2 text-sm min-w-0">
+            <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-300/70">Prise en charge</div>
+              <div className="text-slate-200 truncate">{d.depuis}</div>
+              {d.adresseDepart && <div className="text-[11px] text-slate-500 leading-snug">{d.adresseDepart}</div>}
+            </div>
+          </div>
+          {d.adresseDepart && (
+            <a
+              href={mapsUrl(d.adresseDepart)}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/40 bg-emerald-400/10 text-emerald-200"
+            >
+              <Navigation className="w-3.5 h-3.5" /> GPS
+            </a>
+          )}
         </div>
-        <div className="flex items-center gap-2 text-sm pl-0.5">
-          <ArrowRight className="w-4 h-4 text-indigo-400 shrink-0" />
-          <span className="text-slate-100 font-medium min-w-0 truncate">{d.vers}</span>
+        {/* Arrivée */}
+        <div className="flex items-start justify-between gap-2 border-t border-white/5 pt-2.5">
+          <div className="flex items-start gap-2 text-sm min-w-0">
+            <ArrowRight className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-indigo-300/70">Destination finale</div>
+              <div className="text-slate-100 font-medium truncate">{d.vers}</div>
+              {d.adresseArrivee && <div className="text-[11px] text-slate-500 leading-snug">{d.adresseArrivee}</div>}
+            </div>
+          </div>
+          {d.adresseArrivee && (
+            <a
+              href={mapsUrl(d.adresseArrivee)}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 flex items-center gap-1 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-indigo-400/50 bg-indigo-400/15 text-indigo-100"
+            >
+              <Navigation className="w-3.5 h-3.5" /> GPS
+            </a>
+          )}
         </div>
       </div>
 
+      {/* Horaires : rendez-vous (prise en charge) + arrivée souhaitée */}
+      {(d.heure || d.heureDest) && (
+        <div className="mt-2.5 rounded-lg bg-black/20 ring-1 ring-white/5 px-3 py-2 flex items-center justify-around text-center">
+          {d.heure && (
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500">RDV prise en charge</div>
+              <div className="font-mono text-base text-amber-200 font-bold">{d.heure}</div>
+            </div>
+          )}
+          {d.heure && d.heureDest && <ArrowRight className="w-4 h-4 text-slate-600 shrink-0" />}
+          {d.heureDest && (
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500">Arrivée souhaitée</div>
+              <div className="font-mono text-base text-indigo-200 font-bold">{d.heureDest}</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Infos pratiques */}
       <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-2 flex-wrap">
-        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {JOURS[d.jour] || d.jour}{d.heure ? ` · ${d.heure}` : ""}</span>
+        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {JOURS[d.jour] || d.jour}</span>
         <span className="flex items-center gap-1"><Package className="w-3 h-3" /> {VOLUMES[d.volume] || "—"}</span>
       </div>
       {d.note && <div className="mt-2 text-[11px] text-slate-300 bg-white/[0.02] rounded p-2 leading-snug">{d.note}</div>}
