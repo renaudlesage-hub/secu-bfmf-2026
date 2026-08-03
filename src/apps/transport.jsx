@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Car, MapPin, Clock, Package, Phone, RefreshCw, Download,
-  Plus, X, Check, ArrowRight, Trash2, TriangleAlert, Truck, Users,
+  Plus, X, Check, ArrowRight, Trash2, TriangleAlert, Truck, Users, Navigation,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 import { STATUTS, STATUT_INITIAL, STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU } from "./referentiels";
@@ -177,7 +177,7 @@ export default function Transport() {
       ref: "TRSP-" + Date.now().toString().slice(-4),
       nature: `Transport ${nm.label} : ${d.qui} (×${d.nb}) — ${d.depuis} → ${d.vers}`,
       zone: d.vers,
-      localisation: `${jourLabel}${d.heure ? " · " + d.heure : ""} · ${vm.label}`,
+      localisation: `${jourLabel}${d.heure ? " · RDV " + d.heure : ""}${d.heureDest ? " · arrivée " + d.heureDest : ""} · ${vm.label}`,
       priorite: "P2 - urgent",
       bloquant: "Non",
       statut: STATUT_ATTRIBUEE,
@@ -187,6 +187,10 @@ export default function Transport() {
       roleSignaleur: "Transport",
       source: "Transport",
       refTransport: d.id,
+      heureRdv: d.heure || "",
+      heureDest: d.heureDest || "",
+      adresseDepart: d.adresseDepart || "",
+      adresseArrivee: d.adresseArrivee || "",
     };
     // 1. Creer la mission cote volante.
     const okMission = await kvMerge(KEY_MISSIONS, (liste) => [mission, ...liste]);
@@ -214,10 +218,10 @@ export default function Transport() {
   }
 
   function exportCSV() {
-    const entetes = ["Statut", "Nature", "Qui", "Nb", "De", "Vers", "Jour", "Heure", "Volume", "Chauffeur", "Contact", "Note"];
+    const entetes = ["Statut", "Nature", "Qui", "Nb", "De", "Vers", "Jour", "Heure RDV", "Heure arrivée", "Adresse départ", "Adresse arrivée", "Volume", "Chauffeur", "Contact", "Note"];
     const lignes = demandes.map((d) => [
       statutStyle(d.statut).label, natureMeta(d.nature).label, d.qui, d.nb, d.depuis, d.vers,
-      d.jour, d.heure, volumeMeta(d.volume).label, d.chauffeur || "", d.contact || "", (d.note || "").replace(/[\n;]/g, " "),
+      d.jour, d.heure, d.heureDest || "", (d.adresseDepart || "").replace(/[\n;]/g, " "), (d.adresseArrivee || "").replace(/[\n;]/g, " "), volumeMeta(d.volume).label, d.chauffeur || "", d.contact || "", (d.note || "").replace(/[\n;]/g, " "),
     ].map((c) => `"${String(c ?? "")}"`).join(";"));
     const csv = [entetes.join(";"), ...lignes].join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
@@ -386,6 +390,35 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
             <div className="col-span-2 text-[11px] text-slate-500">
               Volume : {vm.label} <span className="text-slate-600">— {vm.note}</span>
             </div>
+            {(d.heure || d.heureDest) && (
+              <div className="col-span-2 flex items-center gap-3 text-[11px] text-slate-400 font-mono">
+                <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                {d.heure && <span>RDV : <span className="text-slate-200">{d.heure}</span></span>}
+                {d.heureDest && <span>Arrivée souhaitée : <span className="text-slate-200">{d.heureDest}</span></span>}
+              </div>
+            )}
+            {(d.adresseDepart || d.adresseArrivee) && (
+              <div className="col-span-2 flex flex-wrap gap-2 pt-0.5">
+                {d.adresseDepart && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.adresseDepart)}`}
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-colors"
+                  >
+                    <Navigation className="w-3.5 h-3.5" /> GPS prise en charge
+                  </a>
+                )}
+                {d.adresseArrivee && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.adresseArrivee)}`}
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 ring-indigo-400/40 bg-indigo-400/10 text-indigo-300 hover:bg-indigo-400/20 transition-colors"
+                  >
+                    <Navigation className="w-3.5 h-3.5" /> GPS destination
+                  </a>
+                )}
+              </div>
+            )}
             {d.note && <div className="col-span-2 text-slate-300 bg-white/[0.02] rounded p-2 text-[11px] leading-snug">{d.note}</div>}
             {d.demandePar && <div className="col-span-2 text-[10px] text-slate-600">Demandé par {d.demandePar}{d.heureCreation ? ` · ${d.heureCreation}` : ""}</div>}
           </div>
@@ -450,9 +483,12 @@ function FormNouveau({ onClose, onAjouter }) {
   const [qui, setQui] = useState("");
   const [nb, setNb] = useState(1);
   const [depuis, setDepuis] = useState("");
+  const [adresseDepart, setAdresseDepart] = useState("");
+  const [adresseArrivee, setAdresseArrivee] = useState("");
   const [vers, setVers] = useState("");
   const [jour, setJour] = useState("j1");
   const [heure, setHeure] = useState("");
+  const [heureDest, setHeureDest] = useState("");
   const [volume, setVolume] = useState("aucun");
   const [contact, setContact] = useState("");
   const [note, setNote] = useState("");
@@ -469,7 +505,8 @@ function FormNouveau({ onClose, onAjouter }) {
       statut: STATUT_INITIAL,
       nature, qui: qui.trim(), nb: Number(nb) || 1,
       depuis: depuis.trim(), vers: vers.trim(),
-      jour, heure: heure.trim(), volume,
+      adresseDepart: adresseDepart.trim(), adresseArrivee: adresseArrivee.trim(),
+      jour, heure: heure.trim(), heureDest: heureDest.trim(), volume,
       contact: contact.trim(), note: note.trim(),
       demandePar: demandePar.trim(), heureCreation: nowHM(),
       chauffeur: "",
@@ -535,8 +572,42 @@ function FormNouveau({ onClose, onAjouter }) {
             </datalist>
           </div>
 
+          {/* Adresses géoguidables : le chauffeur ouvrira son GPS dessus.
+              Bouton GPS pour tester/ouvrir directement l'itinéraire.
+              Départ = point de prise en charge · Arrivée = destination finale. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <span className={labelCls}>Point de prise en charge (adresse GPS)</span>
+              <div className="flex gap-1.5">
+                <input value={adresseDepart} onChange={(e) => setAdresseDepart(e.target.value)} placeholder="Rue, n°, code postal, ville" className={inputCls} />
+                <a
+                  href={adresseDepart.trim() ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresseDepart.trim())}` : undefined}
+                  target="_blank" rel="noreferrer"
+                  className={`shrink-0 px-2.5 flex items-center rounded-lg ring-1 transition-colors ${adresseDepart.trim() ? "ring-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20" : "ring-white/10 text-slate-600 pointer-events-none"}`}
+                  title="Ouvrir le guidage GPS vers le point de prise en charge"
+                >
+                  <Navigation className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+            <div>
+              <span className={labelCls}>Destination finale (adresse GPS)</span>
+              <div className="flex gap-1.5">
+                <input value={adresseArrivee} onChange={(e) => setAdresseArrivee(e.target.value)} placeholder="Rue, n°, code postal, ville" className={inputCls} />
+                <a
+                  href={adresseArrivee.trim() ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresseArrivee.trim())}` : undefined}
+                  target="_blank" rel="noreferrer"
+                  className={`shrink-0 px-2.5 flex items-center rounded-lg ring-1 transition-colors ${adresseArrivee.trim() ? "ring-indigo-400/40 bg-indigo-400/10 text-indigo-300 hover:bg-indigo-400/20" : "ring-white/10 text-slate-600 pointer-events-none"}`}
+                  title="Ouvrir le guidage GPS vers la destination finale"
+                >
+                  <Navigation className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+
           {/* Quand */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <span className={labelCls}>Jour</span>
               <select value={jour} onChange={(e) => setJour(e.target.value)} className={inputCls}>
@@ -544,8 +615,14 @@ function FormNouveau({ onClose, onAjouter }) {
               </select>
             </div>
             <div>
-              <span className={labelCls}>Heure souhaitée</span>
+              <span className={labelCls}>Heure de rendez-vous</span>
               <input type="time" value={heure} onChange={(e) => setHeure(e.target.value)} className={inputCls} />
+              <span className="text-[10px] text-slate-500 mt-0.5 block">avec les personnes à transporter</span>
+            </div>
+            <div>
+              <span className={labelCls}>Heure attendue à destination</span>
+              <input type="time" value={heureDest} onChange={(e) => setHeureDest(e.target.value)} className={inputCls} />
+              <span className="text-[10px] text-slate-500 mt-0.5 block">arrivée souhaitée</span>
             </div>
           </div>
 
