@@ -81,16 +81,11 @@ const NATURES = [
 const natureMeta = (id) => NATURES.find((n) => n.id === id) || NATURES[0];
 
 // Lieux frequents (depart/arrivee). Saisie libre possible en plus (gare, hotel).
-const LIEUX_SUGGERES = [
-  "Gare de Aywaille", "Gare de Liège-Guillemins", "Hôtel (préciser)",
-  "Parking artistes", "Site backstage", "Site grande scène", "Site petite scène",
-  "Site zone logistique", "Parking public", "Point 0 (balade)",
-];
-
-// Destinations prédéfinies AVEC coordonnées GPS : un clic remplit le nom du
-// lieu ET l'adresse GPS (les coordonnées deviennent le "point de guidage").
-// Source : POINTS_GPS / PRV de referentiels.js. Les étapes du parcours
-// (Étape 1/2/3) sont géolocalisées au ravitaillement correspondant.
+// Destinations prédéfinies AVEC coordonnées GPS : choisir un lieu dans les
+// menus déroulants Depuis/Vers remplit automatiquement l'adresse GPS
+// correspondante (point de guidage pour le chauffeur / la volante).
+// Étapes 1/2/3 = ravitaillements du parcours (source POINTS_GPS).
+// Gare : adresse textuelle (Google Maps la résout mieux qu'un point).
 const DESTINATIONS_GPS = [
   { nom: "Étape 1", gps: "50.37858, 5.6279" },
   { nom: "Étape 2", gps: "50.37828, 5.64549" },
@@ -617,41 +612,67 @@ function FormNouveau({ onClose, onAjouter, demandeInitiale }) {
             </div>
           </div>
 
-          {/* Depuis / vers */}
+          {/* Depuis / vers : menus déroulants. Choisir une destination connue
+              remplit automatiquement l'adresse GPS correspondante (départ ou
+              arrivée). L'option « Autre… » ouvre un champ de saisie manuelle. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* DEPUIS */}
             <div>
               <span className={labelCls}>Depuis *</span>
-              <input list="lieux-transport" value={depuis} onChange={(e) => setDepuis(e.target.value)} placeholder="Gare, hôtel, parking…" className={inputCls} />
+              <select
+                value={DESTINATIONS_GPS.some((d) => d.nom === depuis) ? depuis : (depuis ? "__autre__" : "")}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "__autre__") { setDepuis(""); }
+                  else {
+                    setDepuis(v);
+                    const dst = DESTINATIONS_GPS.find((d) => d.nom === v);
+                    if (dst) setAdresseDepart(dst.gps);
+                  }
+                }}
+                className={inputCls}
+              >
+                <option value="">Choisir un lieu…</option>
+                {DESTINATIONS_GPS.map((d) => <option key={d.nom} value={d.nom}>{d.nom}</option>)}
+                <option value="__autre__">Autre (saisie manuelle)…</option>
+              </select>
+              {!DESTINATIONS_GPS.some((d) => d.nom === depuis) && (
+                <input
+                  value={depuis}
+                  onChange={(e) => setDepuis(e.target.value)}
+                  placeholder="Saisir le lieu de départ…"
+                  className={`${inputCls} mt-1.5`}
+                />
+              )}
             </div>
+            {/* VERS */}
             <div>
               <span className={labelCls}>Vers *</span>
-              <input list="lieux-transport" value={vers} onChange={(e) => setVers(e.target.value)} placeholder="Scène, backstage…" className={inputCls} />
-            </div>
-            <datalist id="lieux-transport">
-              {LIEUX_SUGGERES.map((l) => <option key={l} value={l} />)}
-            </datalist>
-          </div>
-
-          {/* Destinations rapides : un clic remplit "Vers" + l'adresse GPS
-              d'arrivée. Pratique pour les étapes du parcours (coordonnées
-              connues). Reste modifiable ensuite. */}
-          <div>
-            <span className={labelCls}>Destination rapide (ou saisie manuelle ci-dessus / dans l'adresse)</span>
-            <div className="flex flex-wrap gap-1.5">
-              {DESTINATIONS_GPS.map((dst) => (
-                <button
-                  key={dst.nom}
-                  type="button"
-                  onClick={() => { setVers(dst.nom); setAdresseArrivee(dst.gps); }}
-                  className={`text-[11px] px-2 py-1 rounded ring-1 transition-colors ${
-                    vers === dst.nom
-                      ? "ring-indigo-400/50 bg-indigo-400/15 text-indigo-200"
-                      : "ring-white/10 text-slate-400 hover:text-slate-200 hover:ring-white/20"
-                  }`}
-                >
-                  {dst.nom}
-                </button>
-              ))}
+              <select
+                value={DESTINATIONS_GPS.some((d) => d.nom === vers) ? vers : (vers ? "__autre__" : "")}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "__autre__") { setVers(""); }
+                  else {
+                    setVers(v);
+                    const dst = DESTINATIONS_GPS.find((d) => d.nom === v);
+                    if (dst) setAdresseArrivee(dst.gps);
+                  }
+                }}
+                className={inputCls}
+              >
+                <option value="">Choisir un lieu…</option>
+                {DESTINATIONS_GPS.map((d) => <option key={d.nom} value={d.nom}>{d.nom}</option>)}
+                <option value="__autre__">Autre (saisie manuelle)…</option>
+              </select>
+              {!DESTINATIONS_GPS.some((d) => d.nom === vers) && (
+                <input
+                  value={vers}
+                  onChange={(e) => setVers(e.target.value)}
+                  placeholder="Saisir la destination…"
+                  className={`${inputCls} mt-1.5`}
+                />
+              )}
             </div>
           </div>
 
