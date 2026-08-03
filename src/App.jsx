@@ -21,6 +21,7 @@ import Balade from "./apps/balade";
 import BaladeLight from "./apps/balade-light";
 import Transport from "./apps/transport";
 import Chauffeur from "./apps/chauffeur";
+import Planning from "./apps/planning";
 import EnfantPerdu from "./apps/enfantperdu";
 import Sos from "./apps/sos";
 import Signaler from "./apps/signaler";
@@ -63,6 +64,7 @@ const COMPOSANTS = {
   "balade-light": BaladeLight,
   transport: Transport,
   chauffeur: Chauffeur,
+  planning: Planning,
   recherche: EnfantPerdu,
   sos: Sos,
   signaler: Signaler,

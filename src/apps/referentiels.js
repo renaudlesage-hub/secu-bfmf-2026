@@ -10,15 +10,17 @@
 export const ROLES = [
   // --- Direction & QG ---
   "Directeur d'événement",
-  "Coordinateur sécurité",
+  "Coordination sécurité",
   "Opérateur QG",
  
   // --- Parcours / balade ---
   "Accompagnateur Balade",
   "Responsable Étape 1",
+  "Adjoint Étape 1",
   "Responsable Étape 2",
+  "Adjoint Étape 2",
   "Responsable Étape 3",
- 
+  "Adjoint Étape 3",
  
   // --- Site / plaine ---
   "Responsable grande scène",
@@ -27,6 +29,8 @@ export const ROLES = [
   "Responsable backstage",
   "Team parking",
   "Team sanitaires",
+  "Technique",
+  "Logistique",
 
  // --- Secours & sûreté ---
  "Volante",
@@ -93,11 +97,11 @@ export function estUrgente(p) {
 
 export const POINTS_GPS = {
  "Site grande scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Grande Scène" },
- "Site petite scène": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Plaine centrale — Petite Scène" },
- "Site plaine": { lat: 50.3838, lon: 5.6215, km: 0, segment: "Zone Public / Pelouse" },
- "Site bar": { lat: 50.3836, lon: 5.6212, km: 0, segment: "Zone Débit de Boissons" },
- "Site foodtrucks": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Allée Restauration" },
- "Site sanitaires": { lat: 50.3838, lon: 5.6212, km: 0, segment: "Blocs WC Publics" },
+ "Site petite scène": { lat: 50.3832, lon: 5.6219, km: 0, segment: "Plaine centrale — Petite Scène" },
+ "Site plaine": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Zone Public / Pelouse" },
+ "Site bar": { lat: 50.3836, lon: 5.6222, km: 0, segment: "Zone Débit de Boissons" },
+ "Site foodtrucks": { lat: 50.3831, lon: 5.6208, km: 0, segment: "Allée Restauration" },
+ "Site sanitaires": { lat: 50.3841, lon: 5.6211, km: 0, segment: "Blocs WC Publics" },
  "Site backstage": { lat: 50.3842, lon: 5.6201, km: 0, segment: "Coulisses / Loges" },
  "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie" },
  "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public" },
@@ -141,9 +145,9 @@ export const PRV = [
  { nom: "PRV#1 — Entrée site / Départ", gps: "50.38242, 5.61624", adresse: "Croisement rue Le Raumont – Chemin de l'Épine, 4190 Ferrières" },
  { nom: "PRV#2 — Entrée arrière site", gps: "50.38304, 5.61816", adresse: "Mon Legrand, 4190 Ferrières — entrée secondaire, contrôle d'accès" },
  { nom: "PRV#3 — Parking public", gps: "50.38212, 5.61673", adresse: "Rue Le Raumont, 4190 Ferrières" },
- { nom: "PRV#4 — Accès Étape 1 / Scène 1", gps: "50.38212, 5.61673", adresse: "Carrefour La Picherotte – Fosse du Loup – Rue de la Chapelle – Mon Lecomte" },
+ { nom: "PRV#4 — Accès Étape 1 / Scène 1", gps: "50.38219, 5.63600", adresse: "Carrefour La Picherotte – Fosse du Loup – Rue de la Chapelle – Mon Lecomte" },
  { nom: "PRV#5 — Accès Étape 2 / Scène 2", gps: "50.37568, 5.64412", adresse: "Rue de Jehonhé 6, 4190 Burnontige" },
- { nom: "PRV#6 — Accès Étape 2 / Scène 2", gps: "50.38236, 5.64579", adresse: "Lesfanges, 4190 Burnontige" },
+ { nom: "PRV#6 — Accès Étape 2 / Scène 2", gps: "50.38239, 5.64584", adresse: "Lesfanges, 4190 Burnontige" },
  { nom: "PRV#7 — Accès Étape 3 / Scène 3", gps: "50.38865, 5.62692", adresse: "Rue de la Chapelle 23, 4190 Le Trou" },
  { nom: "Étape 1 / Scène 1 (km 0,9)", gps: "50.37858, 5.62790", adresse: "Rue Sainte-Barbe, 4190 Burnontige" },
  { nom: "Étape 2 / Scène 2 (km 2,5)", gps: "50.37828, 5.64549", adresse: "Rue de Jehonhé 7, 4190 Burnontige" },
@@ -153,7 +157,7 @@ export const PRV = [
 /* --------------------------- PLAN RADIO ----------------------------- */
 export const RADIO_PLAN = [
  { canal: "PMR4.1", num: 9,  freq: "446.04375", ctcss: "67.0 Hz (Tx/Rx)",
-   usage: "Coordination générale (QG, scènes, volante)",
+   usage: "Coordination générale (QG, scènes, volante, accompagnateurs)",
    postes: "standard" },
  { canal: "PMR5",   num: 10, numSimple: 5, freq: "446.05625", ctcss: "Aucun",
    usage: "Bénévoles parking et sanitaires",
@@ -173,12 +177,13 @@ export const RADIO_PLAN = [
   inutilisable pour l'evenement.
 -------------------------------------------------------------------- */
 export const RADIO_MATERIEL = {
- modele: "Baofeng UV5R & Baofeng BF888",
+ modele: "Baofeng UV-16 Pro",
  avertissement: "Postes préprogrammés — aucune reprogrammation possible sur site.",
 };
 
 /* --- Programmation des POSTES STANDARD (25 canaux) -------------------
-  Table complete des postes du QG, de la volante, des scenes. Le numero de canal ne correspond PAS au numero PMR.
+  Table complete des postes du QG, de la volante, des scenes et des
+  accompagnateurs balade. Le numero de canal ne correspond PAS au numero PMR.
   Les postes SIMPLES (parking/sanitaire/securite privee) ont une
   programmation differente et reduite -- voir POSTES_RADIO ci-dessous.
 -------------------------------------------------------------------- */
@@ -203,7 +208,7 @@ export const PROGRAMMATION_RADIO = [
 
   Il existe DEUX types de postes, programmes differemment :
 
-  1. POSTES STANDARD (QG, volante, scenes)
+  1. POSTES STANDARD (QG, volante, scenes, accompagnateurs balade)
      -> programmation complete 25 canaux (voir PROGRAMMATION_RADIO)
      -> PMR333 (urgence) accessible sur le CANAL 6
 
@@ -225,7 +230,7 @@ export const PROGRAMMATION_RADIO = [
 export const POSTES_RADIO = {
  standard: {
    nom: "Postes standard (double fréquence)",
-   qui: "QG, équipe volante, responsables de scène",
+   qui: "QG, équipe volante, responsables de scène, accompagnateurs balade",
    urgence: "PMR333 sur le canal 6",
    aUrgence: true,
    doubleVeille: true,
@@ -259,11 +264,11 @@ export const QUE_FAIRE = [
  {
    id: "malaise", titre: "Malaise / blessure", icone: "HeartPulse",
    etapes: [
-     "Proteger : écarter le public, sécuriser la zone.",
-     "Alerter : gravité ? -> 112 D'ABORD si doute vital. Puis PMR333 : qui, quoi, ou (PRV le plus proche), combien.",
+     "Proteger : ecarter le public, securiser la zone.",
+     "Alerter : gravite ? -> 112 D'ABORD si doute vital. Puis PMR333 : qui, quoi, ou (PRV le plus proche), combien.",
      "Ne pas deplacer la victime sauf danger immediat.",
      "Envoyer quelqu'un au PRV pour guider les secours.",
-     "Rester auprès, couvrir, parler, surveiller la conscience, la respiration et le pouls.",
+     "Rester aupres, couvrir, parler, surveiller la conscience.",
    ],
  },
  {
@@ -271,49 +276,47 @@ export const QUE_FAIRE = [
    etapes: [
      "Enfant TROUVE : rester avec lui, NE PAS le promener seul -> accompagner a deux vers l'ACCUEIL POINT 0. Annoncer sur PMR4.1.",
      "Enfant PERDU (parent) : conduire le parent a l'accueil, lancer la recherche dans l'app (#recherche) + PMR4.1.",
-     "Description précise : âge, vêtements, cheveux, dernier lieu vu.",
-     "Non retrouvé apres 30 min ou circonstance inquiétante : 112/101.",
-     "Jamais de nom d'enfant diffusé en sono publique (attire les mal intentionnés) : description uniquement.",
+     "Description precise : age, vetements, cheveux, dernier lieu vu.",
+     "Non retrouve apres 15 min ou circonstance inquietante : 112/101.",
+     "Jamais de nom d'enfant diffuse en sono publique (attire les mal intentionnes) : description uniquement.",
    ],
  },
  {
    id: "feu", titre: "Debut d'incendie", icone: "Flame",
    etapes: [
-     "Alerter IMMEDIATEMENT : 112 puis PMR333 (lieu exact, ampleur, sens du vent).",
-     "Eloigner le public (périmetre large), couper la sono locale si scène.",
-     "Attaquer UNIQUEMENT si feu naissant avec un extincteur SANS SE METTRE EN DANGER.",
-     "Libérer les accès secours (vehicules, PRV).",
-     "Assurer le guidage des secours",
+     "Alerter IMMEDIATEMENT : 112 puis PMR333 (lieu exact, ampleur, vent).",
+     "Eloigner le public (perimetre large), couper la sono locale si scene.",
+     "Attaquer UNIQUEMENT si feu naissant + extincteur + sans risque.",
+     "Liberer les acces secours (vehicules, PRV).",
      "Ne jamais rester dans la fumee.",
    ],
  },
  {
    id: "meteo", titre: "Orage / mise a l'abri", icone: "CloudLightning",
    etapes: [
-     "Sur consigne QG : suspension des activites exposées.",
-     "Plaine : diriger le public à l'écart des structures légères.",
-     "Parcours : groupes a l'abri (eviter arbres isolés, clotures) au point dur le plus proche, accompagnateurs comptent leur groupe.",
-     "Attendre la levée de consigne QG avant reprise.",
+     "Sur consigne QG (ou eclair < 10 s du tonnerre) : suspension des activites exposees.",
+     "Plaine : diriger le public vers les batiments/chapiteaux durs designes.",
+     "Parcours : groupes a l'abri (eviter arbres isoles, clotures) au point dur le plus proche, accompagnateurs comptent leur groupe.",
+     "Attendre la levee de consigne QG avant reprise.",
    ],
  },
  {
    id: "balade", titre: "Incident sur le parcours", icone: "Footprints",
    etapes: [
-     "Accompagnateur de tête : stopper le groupe en lieu sûr, le serre-file compte.",
-     "Alerter : Appel au 112 si urgence puis signalement au QG via le bouton SOS de l'application.",
-     "Un accompagnateur reste avec la personne, se rend visible pourles secours",
-     "Le groupe continue avec les autres accompagnateur si consigne QG.",
-     ,
+     "Accompagnateur de tête : stopper le groupe en lieu sur, le serre-file compte.",
+     "Alerter : PMR4.1 (ou 112 si vital) avec le km / segment / PRV.",
+     "Un accompagnateur reste avec la personne, le groupe continue avec les autres si consigne QG.",
+     "Utiliser l'app Suivi balade pour ajuster effectif/position.",
    ],
  },
  {
    id: "evac", titre: "Evacuation (consigne QG uniquement)", icone: "TriangleAlert",
    etapes: [
-     "Ne JAMAIS lancer une evacuation de sa propre initiative (sauf péril immediat local).",
-     "Relayer calmement la consigne exacte du QG, sans crier 'évacuation'.",
-     "Diriger vers les sorties/PRV désignés, prioriser PMR et enfants.",
-     "Bénévoles aux points de passage, comptage si demande.",
-     "Rendre compte au QG : zone vidée / personnes restantes.",
+     "Ne JAMAIS lancer une evacuation de sa propre initiative (sauf peril immediat local).",
+     "Relayer calmement la consigne exacte du QG, sans crier 'evacuation'.",
+     "Diriger vers les sorties/PRV designes, prioriser PMR et enfants.",
+     "Benevoles aux points de passage, comptage si demande.",
+     "Rendre compte au QG : zone videe / personnes restantes.",
    ],
  },
 ];
@@ -400,7 +403,7 @@ export const SECTEURS_PARCOURS = [
 
 // Autre ressource medicale a proximite
 export const CABINET_MEDICAL = {
- nom: "Cabinet médical Sneessens - Lambotte",
+ nom: "Cabinet médical Sneessens Nicolas",
  gps: "50.39875, 5.60932",
  note: "≈ 2 km du site — hors urgence vitale (112 en priorité)",
 };
@@ -419,12 +422,9 @@ export const VOIES_ACCES = [
  },
  {
    nom: "Voie d'accès secours — Scène 2",
-   depuis: "PRV#5", vers: "Scène 2 / Étape 2",
+   depuis: "PRV#5", vers: "Scène 2 / Étape 2 (ressort au PRV#6)",
    longueurM: 752,
    depart: "50.37575, 5.64411", arrivee: "50.38240, 5.64578",
-   depuis: "PRV#6", vers: "Scène 2 / Étape 2",
-   longueurM: 450,
-   depart: "50.38236, 5.64579", arrivee: "50.38240, 5.64578",
  },
  {
    nom: "Voie d'accès secours — Scène 3",
@@ -499,13 +499,52 @@ export const HORAIRES = [
  { jour: "Dimanche 16/08", departs: ["11h00", "13h00", "14h30"], concerts: "16h00 → 00h30" },
 ];
 
+/* --- Programmation concerts (source unique) -------------------------
+   Deux jours de concerts : samedi 15/08 et dimanche 16/08. Le festival
+   s'arrête dans la nuit du dimanche au lundi (pas de programme le 17/08).
+   scene : "1" ou "2". Les heures après minuit (00h15, 01h00) restent
+   rattachées au jour de la soirée qui les a ouvertes.
+   -------------------------------------------------------------------- */
+export const PROGRAMMATION = [
+  {
+    jour: "Samedi 15/08",
+    concerts: [
+      { heure: "17:30", scene: "2", artiste: "Whoisinnocent" },
+      { heure: "18:40", scene: "1", artiste: "The Bathrobes" },
+      { heure: "19:20", scene: "2", artiste: "Whoisinnocent" },
+      { heure: "20:10", scene: "1", artiste: "Ojos" },
+      { heure: "20:50", scene: "2", artiste: "Whoisinnocent" },
+      { heure: "21:40", scene: "1", artiste: "Clarence Pinko" },
+      { heure: "22:35", scene: "2", artiste: "Julie Rains" },
+      { heure: "23:20", scene: "1", artiste: "Pamela" },
+      { heure: "00:15", scene: "2", artiste: "Cheapjewels" },
+      { heure: "01:00", scene: "1", artiste: "EV" },
+    ],
+  },
+  {
+    jour: "Dimanche 16/08",
+    concerts: [
+      { heure: "16:00", scene: "2", artiste: "Coffee Boy B2B Panda" },
+      { heure: "16:40", scene: "1", artiste: "The Broken Fingers Club" },
+      { heure: "17:30", scene: "2", artiste: "Coffee Boy B2B Panda" },
+      { heure: "18:40", scene: "1", artiste: "Coup Dur" },
+      { heure: "19:30", scene: "2", artiste: "Sïan Able" },
+      { heure: "20:20", scene: "1", artiste: "Saule" },
+      { heure: "21:30", scene: "2", artiste: "Chose" },
+      { heure: "22:20", scene: "1", artiste: "Dyna, Lewis & The Soul Caravan" },
+      { heure: "23:35", scene: "1", artiste: "Zénobe & Gaston" },
+    ],
+  },
+];
+
+
 /* --- Fréquentation de reference (dossier § 4.1) ---------------------- */
 export const FREQUENTATION = {
  groupesParJour: 3,
  personnesParGroupe: 300,
  etapeParVague: 300,
  soireeAttendue: "750 à 1200 personnes",
- capaciteMax: "1200",
+ capaciteMax: "À CONFIRMER par les plans, prescriptions et contrôles",
  encadrantsParGroupe: 4,
 };
 
