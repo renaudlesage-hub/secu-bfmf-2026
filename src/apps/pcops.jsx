@@ -128,7 +128,7 @@ const ACCES_SECOURS = [
     nom: "Accès parcours — voies secours balisées (carte officielle)",
     gps: "50.38219, 5.63600",
     detail: "3 voies d'accès depuis les PRV vers les scènes : Scène 1 par PRV#4 (721 m), "
-      + "Scène 2 par PRV#5 (752 m) ou PRV#6 (460 m), Scène 3 par PRV#7 (131 m). "
+      + "Scène 2 par PRV#5 (752 m) ou PRV#6 (460 m), Scène 3 par PRV#7 (131 m). ",
     vehicules: "Carrossable camion, largeur minimale 4m, rayon de braquage pris en compte. ?",
     cle: "ouvert en permanence",
   },
