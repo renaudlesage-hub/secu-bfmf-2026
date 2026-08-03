@@ -95,12 +95,8 @@ const DESTINATIONS_GPS = [
   { nom: "Étape 1", gps: "50.37858, 5.6279" },
   { nom: "Étape 2", gps: "50.37828, 5.64549" },
   { nom: "Étape 3", gps: "50.38817, 5.62891" },
-  { nom: "Point 0 (départ balade)", gps: "50.3835, 5.6215" },
-  { nom: "Site grande scène", gps: "50.3838, 5.6212" },
-  { nom: "Site petite scène", gps: "50.3832, 5.6219" },
-  { nom: "Site backstage", gps: "50.3842, 5.6201" },
-  { nom: "PRV#4 — Accès Étape 1 / Scène 1", gps: "50.38218, 5.63599" },
-  { nom: "PRV#5 — Accès Étape 2 / Scène 2", gps: "50.37568, 5.64412" },
+  { nom: "Backstage plaine", gps: "50.3842, 5.6201" },
+  { nom: "Gare des Guillemins", gps: "Place des Guillemins 2, 4000 Liège" },
 ];
 
 // Volume de materiel : echelle simple et parlante pour choisir le vehicule.
@@ -640,7 +636,7 @@ function FormNouveau({ onClose, onAjouter, demandeInitiale }) {
               d'arrivée. Pratique pour les étapes du parcours (coordonnées
               connues). Reste modifiable ensuite. */}
           <div>
-            <span className={labelCls}>Destination rapide (remplit l'adresse GPS)</span>
+            <span className={labelCls}>Destination rapide (ou saisie manuelle ci-dessus / dans l'adresse)</span>
             <div className="flex flex-wrap gap-1.5">
               {DESTINATIONS_GPS.map((dst) => (
                 <button
@@ -653,7 +649,7 @@ function FormNouveau({ onClose, onAjouter, demandeInitiale }) {
                       : "ring-white/10 text-slate-400 hover:text-slate-200 hover:ring-white/20"
                   }`}
                 >
-                  {dst.nom.startsWith("PRV") ? dst.nom.split(" — ")[0] : dst.nom}
+                  {dst.nom}
                 </button>
               ))}
             </div>
