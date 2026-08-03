@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Car, MapPin, Clock, Package, Phone, RefreshCw, Download,
-  Plus, X, Check, ArrowRight, Trash2, TriangleAlert, Truck, Users, Navigation,
+  Plus, X, Check, ArrowRight, Trash2, TriangleAlert, Truck, Users, Navigation, Pencil,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 import { STATUTS, STATUT_INITIAL, STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU, CHAUFFEURS } from "./referentiels";
@@ -110,6 +110,7 @@ export default function Transport() {
   const [loading, setLoading] = useState(true);
   const [syncError, setSyncError] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [enEdition, setEnEdition] = useState(null);
   const [filtre, setFiltre] = useState("Tous");
   const [selected, setSelected] = useState(null);
 
@@ -148,8 +149,17 @@ export default function Transport() {
   }, [demandes, filtre]);
 
   async function ajouter(demande) {
-    const fusion = await kvMerge(KEY_TRANSPORT, (liste) => [demande, ...liste]);
-    if (fusion) { setDemandes(fusion); setSyncError(false); setShowForm(false); }
+    // Upsert : si l'id existe déjà dans la liste, on MET À JOUR cette entrée
+    // (édition) ; sinon on l'ajoute en tête (création). kvMerge relit la
+    // liste fraîche côté serveur avant d'écrire → pas d'écrasement des
+    // autres demandes réelles saisies entre-temps par un autre poste.
+    const fusion = await kvMerge(KEY_TRANSPORT, (liste) => {
+      const existe = liste.some((x) => x && x.id === demande.id);
+      return existe
+        ? liste.map((x) => (x && x.id === demande.id ? demande : x))
+        : [demande, ...liste];
+    });
+    if (fusion) { setDemandes(fusion); setSyncError(false); setShowForm(false); setEnEdition(null); }
     else setSyncError(true);
   }
 
@@ -325,6 +335,7 @@ export default function Transport() {
                 onAttribuerVolante={() => attribuerVolante(d.id)}
                 onAvancer={() => avancer(d.id)}
                 onSupprimer={() => supprimer(d.id)}
+                onModifier={() => { setEnEdition(d); setSelected(null); }}
                 ouvert={selected === d.id}
                 onToggle={() => setSelected(selected === d.id ? null : d.id)}
               />
@@ -333,13 +344,19 @@ export default function Transport() {
         )}
       </div>
 
-      {showForm && <FormNouveau onClose={() => setShowForm(false)} onAjouter={ajouter} />}
+      {(showForm || enEdition) && (
+        <FormNouveau
+          onClose={() => { setShowForm(false); setEnEdition(null); }}
+          onAjouter={ajouter}
+          demandeInitiale={enEdition}
+        />
+      )}
     </div>
   );
 }
 
 /* ---- Carte d'une demande de transport ---- */
-function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, onSupprimer, ouvert, onToggle }) {
+function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, onSupprimer, onModifier, ouvert, onToggle }) {
   const [chauffeurInput, setChauffeurInput] = useState("");
   const nm = natureMeta(d.nature);
   const st = statutStyle(d.statut);
@@ -473,7 +490,10 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
                 Terminé{d.heureArrivee ? ` à ${d.heureArrivee}` : ""}.
               </span>
             )}
-            <button onClick={onSupprimer} className="ml-auto text-slate-600 hover:text-red-300" title="Supprimer">
+            <button onClick={onModifier} className="ml-auto flex items-center gap-1 text-[11px] font-mono text-slate-500 hover:text-indigo-300 transition-colors" title="Modifier cette demande">
+              <Pencil className="w-3.5 h-3.5" /> Modifier
+            </button>
+            <button onClick={onSupprimer} className="text-slate-600 hover:text-red-300" title="Supprimer">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -483,22 +503,28 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
   );
 }
 
-/* ---- Formulaire de nouveau besoin ---- */
-function FormNouveau({ onClose, onAjouter }) {
-  const [nature, setNature] = useState("artiste");
-  const [qui, setQui] = useState("");
-  const [nb, setNb] = useState(1);
-  const [depuis, setDepuis] = useState("");
-  const [adresseDepart, setAdresseDepart] = useState("");
-  const [adresseArrivee, setAdresseArrivee] = useState("");
-  const [vers, setVers] = useState("");
-  const [jour, setJour] = useState("j1");
-  const [heure, setHeure] = useState("");
-  const [heureDest, setHeureDest] = useState("");
-  const [volume, setVolume] = useState("aucun");
-  const [contact, setContact] = useState("");
-  const [note, setNote] = useState("");
-  const [demandePar, setDemandePar] = useState("");
+/* ---- Formulaire de nouveau besoin OU d'édition d'un besoin existant ----
+   Si `demandeInitiale` est fourni, le formulaire pré-remplit les champs et
+   MET À JOUR la demande (conserve son id, son statut et ses champs de suivi
+   comme heureAttribution/chauffeur). Sinon, il crée une nouvelle demande.
+   Important : des données réelles existent en base — on ne recrée jamais un
+   id, on met à jour l'existant via onAjouter (qui gère create + update). */
+function FormNouveau({ onClose, onAjouter, demandeInitiale }) {
+  const edition = !!demandeInitiale;
+  const [nature, setNature] = useState(demandeInitiale?.nature || "artiste");
+  const [qui, setQui] = useState(demandeInitiale?.qui || "");
+  const [nb, setNb] = useState(demandeInitiale?.nb || 1);
+  const [depuis, setDepuis] = useState(demandeInitiale?.depuis || "");
+  const [adresseDepart, setAdresseDepart] = useState(demandeInitiale?.adresseDepart || "");
+  const [adresseArrivee, setAdresseArrivee] = useState(demandeInitiale?.adresseArrivee || "");
+  const [vers, setVers] = useState(demandeInitiale?.vers || "");
+  const [jour, setJour] = useState(demandeInitiale?.jour || "j1");
+  const [heure, setHeure] = useState(demandeInitiale?.heure || "");
+  const [heureDest, setHeureDest] = useState(demandeInitiale?.heureDest || "");
+  const [volume, setVolume] = useState(demandeInitiale?.volume || "aucun");
+  const [contact, setContact] = useState(demandeInitiale?.contact || "");
+  const [note, setNote] = useState(demandeInitiale?.note || "");
+  const [demandePar, setDemandePar] = useState(demandeInitiale?.demandePar || "");
   const [envoi, setEnvoi] = useState(false);
 
   const valide = qui.trim().length >= 2 && depuis.trim() && vers.trim();
@@ -506,17 +532,33 @@ function FormNouveau({ onClose, onAjouter }) {
   function soumettre() {
     if (!valide) return;
     setEnvoi(true);
-    onAjouter({
-      id: "trsp-" + Date.now(),
-      statut: STATUT_INITIAL,
-      nature, qui: qui.trim(), nb: Number(nb) || 1,
-      depuis: depuis.trim(), vers: vers.trim(),
-      adresseDepart: adresseDepart.trim(), adresseArrivee: adresseArrivee.trim(),
-      jour, heure: heure.trim(), heureDest: heureDest.trim(), volume,
-      contact: contact.trim(), note: note.trim(),
-      demandePar: demandePar.trim(), heureCreation: nowHM(),
-      chauffeur: "",
-    });
+    if (edition) {
+      // Édition : on repart de la demande existante et on écrase uniquement
+      // les champs modifiables. On PRÉSERVE id, statut, chauffeur, cible et
+      // tous les champs de suivi déjà en base.
+      onAjouter({
+        ...demandeInitiale,
+        nature, qui: qui.trim(), nb: Number(nb) || 1,
+        depuis: depuis.trim(), vers: vers.trim(),
+        adresseDepart: adresseDepart.trim(), adresseArrivee: adresseArrivee.trim(),
+        jour, heure: heure.trim(), heureDest: heureDest.trim(), volume,
+        contact: contact.trim(), note: note.trim(),
+        demandePar: demandePar.trim(),
+        modifieLe: nowHM(),
+      });
+    } else {
+      onAjouter({
+        id: "trsp-" + Date.now(),
+        statut: STATUT_INITIAL,
+        nature, qui: qui.trim(), nb: Number(nb) || 1,
+        depuis: depuis.trim(), vers: vers.trim(),
+        adresseDepart: adresseDepart.trim(), adresseArrivee: adresseArrivee.trim(),
+        jour, heure: heure.trim(), heureDest: heureDest.trim(), volume,
+        contact: contact.trim(), note: note.trim(),
+        demandePar: demandePar.trim(), heureCreation: nowHM(),
+        chauffeur: "",
+      });
+    }
   }
 
   const inputCls = "w-full bg-black/40 border border-white/10 rounded px-2.5 py-2 text-sm text-white placeholder:text-slate-600";
@@ -527,7 +569,7 @@ function FormNouveau({ onClose, onAjouter }) {
       <div className="w-full max-w-lg rounded-xl ring-1 ring-indigo-500/40 bg-[#141a22] p-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display tracking-wide text-slate-100 flex items-center gap-2">
-            <Car className="w-5 h-5 text-indigo-300" /> Nouveau besoin de transport
+            <Car className="w-5 h-5 text-indigo-300" /> {edition ? "Modifier le besoin de transport" : "Nouveau besoin de transport"}
           </h2>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-200"><X className="w-5 h-5" /></button>
         </div>
@@ -665,7 +707,7 @@ function FormNouveau({ onClose, onAjouter }) {
               disabled={!valide || envoi}
               className="flex-1 flex items-center justify-center gap-2 rounded py-2.5 bg-indigo-500/25 text-indigo-100 ring-1 ring-indigo-400/50 font-mono text-sm font-semibold disabled:opacity-40"
             >
-              {envoi ? "ENVOI…" : <><Plus className="w-4 h-4" /> ENREGISTRER LE BESOIN</>}
+              {envoi ? "ENVOI…" : edition ? <><Check className="w-4 h-4" /> ENREGISTRER LES MODIFICATIONS</> : <><Plus className="w-4 h-4" /> ENREGISTRER LE BESOIN</>}
             </button>
           </div>
           {!valide && (qui || depuis || vers) && (
