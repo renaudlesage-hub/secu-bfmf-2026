@@ -87,6 +87,22 @@ const LIEUX_SUGGERES = [
   "Site zone logistique", "Parking public", "Point 0 (balade)",
 ];
 
+// Destinations prédéfinies AVEC coordonnées GPS : un clic remplit le nom du
+// lieu ET l'adresse GPS (les coordonnées deviennent le "point de guidage").
+// Source : POINTS_GPS / PRV de referentiels.js. Les étapes du parcours
+// (Étape 1/2/3) sont géolocalisées au ravitaillement correspondant.
+const DESTINATIONS_GPS = [
+  { nom: "Étape 1", gps: "50.37858, 5.6279" },
+  { nom: "Étape 2", gps: "50.37828, 5.64549" },
+  { nom: "Étape 3", gps: "50.38817, 5.62891" },
+  { nom: "Point 0 (départ balade)", gps: "50.3835, 5.6215" },
+  { nom: "Site grande scène", gps: "50.3838, 5.6212" },
+  { nom: "Site petite scène", gps: "50.3832, 5.6219" },
+  { nom: "Site backstage", gps: "50.3842, 5.6201" },
+  { nom: "PRV#4 — Accès Étape 1 / Scène 1", gps: "50.38218, 5.63599" },
+  { nom: "PRV#5 — Accès Étape 2 / Scène 2", gps: "50.37568, 5.64412" },
+];
+
 // Volume de materiel : echelle simple et parlante pour choisir le vehicule.
 const VOLUMES = [
   { id: "aucun", label: "Aucun / bagages à main", note: "Voiture OK" },
@@ -618,6 +634,29 @@ function FormNouveau({ onClose, onAjouter, demandeInitiale }) {
             <datalist id="lieux-transport">
               {LIEUX_SUGGERES.map((l) => <option key={l} value={l} />)}
             </datalist>
+          </div>
+
+          {/* Destinations rapides : un clic remplit "Vers" + l'adresse GPS
+              d'arrivée. Pratique pour les étapes du parcours (coordonnées
+              connues). Reste modifiable ensuite. */}
+          <div>
+            <span className={labelCls}>Destination rapide (remplit l'adresse GPS)</span>
+            <div className="flex flex-wrap gap-1.5">
+              {DESTINATIONS_GPS.map((dst) => (
+                <button
+                  key={dst.nom}
+                  type="button"
+                  onClick={() => { setVers(dst.nom); setAdresseArrivee(dst.gps); }}
+                  className={`text-[11px] px-2 py-1 rounded ring-1 transition-colors ${
+                    vers === dst.nom
+                      ? "ring-indigo-400/50 bg-indigo-400/15 text-indigo-200"
+                      : "ring-white/10 text-slate-400 hover:text-slate-200 hover:ring-white/20"
+                  }`}
+                >
+                  {dst.nom.startsWith("PRV") ? dst.nom.split(" — ")[0] : dst.nom}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Adresses géoguidables : le chauffeur ouvrira son GPS dessus.
