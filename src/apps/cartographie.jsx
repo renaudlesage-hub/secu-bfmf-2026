@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { MapPin, Plus, X, RefreshCw, Layers, Navigation, TriangleAlert } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
-import { TRACE, PRV, POINTS_GPS, SECTEURS_PARCOURS } from "./referentiels";
+import { TRACE, PRV, POINTS_GPS, SECTEURS_PARCOURS, localiser } from "./referentiels";
 
 /* ---------------------------------------------------------------------
    MAP OPS — Cartographie tactique BFMF 2026
@@ -25,6 +25,9 @@ const SB_HEADERS = {
 };
 const KEY_CARTE = "bfmf2026-incidents-carte";
 const KEY_SOS = "bfmf2026-sos-participants";
+// Flux cibles selon la catégorie de l'incident carto (injection).
+const KEY_MISSIONS = "bfmf2026-missions-logistique";
+const KEY_SANITAIRE = "bfmf2026-sanitaire";
 
 async function kvGet(key) {
   const r = await fetch(
@@ -142,9 +145,12 @@ export default function Cartographie({ lectureSeule = false, embarque = false })
       }
 
       // SOS : on ne garde que les actifs AVEC coordonnées GPS (les autres ne
-      // peuvent pas être placés sur la carte).
+      // peuvent pas être placés sur la carte). On exclut les SOS issus de la
+      // carte elle-même (source:"Carte") : ils sont déjà représentés par leur
+      // incident carto, inutile de les afficher deux fois.
       const sosListe = (Array.isArray(dataSos) ? dataSos : [])
         .filter((s) => {
+          if (s.source === "Carte") return false;
           const st = (s.statut || "").toLowerCase();
           const actif = st !== "cloture" && st !== "clôture" && st !== "cloturé" && st !== "clos" && st !== "resolu" && st !== "résolu";
           return actif && s.gps && typeof s.gps.lat === "number" && typeof s.gps.lon === "number";
@@ -174,8 +180,9 @@ export default function Cartographie({ lectureSeule = false, embarque = false })
 
   async function creerIncident() {
     if (!form.titre.trim() || !modal) return;
+    const baseId = "inc-" + Date.now();
     const incident = {
-      id: "inc-" + Date.now(),
+      id: baseId,
       titre: form.titre.trim(),
       categorie: form.categorie,
       description: form.description.trim(),
@@ -184,15 +191,91 @@ export default function Cartographie({ lectureSeule = false, embarque = false })
       heure: nowHM(),
       creeLe: new Date().toISOString(),
     };
+
+    // Situe le point sur le parcours (utile pour SOS / mission).
+    let surTrace = null;
+    try {
+      const loc = localiser(modal.lat, modal.lon);
+      if (loc) {
+        surTrace = {
+          km: Number(loc.kmTrace.toFixed(2)),
+          ecartMetres: loc.distTrace,
+          segment: loc.avant && loc.apres ? `${loc.avant.nom} -> ${loc.apres.nom}` : "",
+          reperePlusProche: loc.plusProche?.nom || "",
+        };
+      }
+    } catch { /* hors trace : pas grave */ }
+
+    // 1) L'incident reste sur la carte (annotation visuelle).
     const fusion = await kvMerge(KEY_CARTE, (liste) => [incident, ...liste]);
-    if (fusion) {
-      setIncidents(fusion);
-      cacheRef.current = JSON.stringify(fusion);
-      setModal(null);
-      setForm({ titre: "", categorie: "securite", description: "" });
-    } else {
+    if (!fusion) { setSyncError(true); return; }
+
+    // 2) Injection dans le flux métier correspondant à la catégorie.
+    //    Chaque objet créé porte source:"Carte" + origineCarteId pour la
+    //    traçabilité et pour permettre une clôture liée plus tard.
+    try {
+      if (form.categorie === "logistique") {
+        // -> Mission logistique (visible logistique / dashboard / volante / pcops)
+        const mission = {
+          id: `m${Date.now()}`,
+          ref: "CARTE",
+          titre: incident.titre,
+          nature: incident.description,
+          lieu: surTrace ? `km ${surTrace.km} (${surTrace.reperePlusProche})` : `${modal.lat.toFixed(5)}, ${modal.lon.toFixed(5)}`,
+          gps: { lat: modal.lat, lon: modal.lon },
+          priorite: "P2 - urgent",
+          statut: "A traiter",
+          source: "Carte",
+          origineCarteId: baseId,
+          heureConstat: nowHM(),
+          attribueA: "", responsableSuivi: "", heurePriseEnCompte: "",
+          heureEstimeeResolution: "", actionEffectuee: "", realiseePar: "",
+          regleTotalement: "", risqueResiduel: "", pointREX: "",
+          historique: [{ heure: nowHM(), texte: "Créé depuis la carte tactique (Map Ops)" }],
+        };
+        await kvMerge(KEY_MISSIONS, (liste) => [mission, ...(Array.isArray(liste) ? liste : [])]);
+      } else if (form.categorie === "sanitaire") {
+        // -> Signalement sanitaire (visible app sanitaire + dashboard)
+        const signalement = {
+          id: "san-carte-" + Date.now(),
+          type: incident.titre,
+          description: incident.description,
+          lieu: surTrace ? `km ${surTrace.km} (${surTrace.reperePlusProche})` : `${modal.lat.toFixed(5)}, ${modal.lon.toFixed(5)}`,
+          gps: { lat: modal.lat, lon: modal.lon },
+          statut: "nouveau",
+          source: "Carte",
+          origineCarteId: baseId,
+          heure: nowHM(),
+          creeLe: new Date().toISOString(),
+        };
+        await kvMerge(KEY_SANITAIRE, (liste) => [signalement, ...(Array.isArray(liste) ? liste : [])]);
+      } else {
+        // securite -> SOS participant (visible volante / dashboard / pcops)
+        const sos = {
+          id: "sos-carte-" + Date.now(),
+          heure: nowHM(),
+          date: new Date().toISOString(),
+          nom: "Signalé PC-Ops",
+          tel: "",
+          motif: incident.titre,
+          details: incident.description,
+          statut: "nouveau",
+          source: "Carte",
+          origineCarteId: baseId,
+          gps: { lat: modal.lat, lon: modal.lon, precision: null },
+          surTrace,
+        };
+        await kvMerge(KEY_SOS, (liste) => [sos, ...(Array.isArray(liste) ? liste : [])]);
+      }
+    } catch {
+      // L'incident carto est déjà créé ; on signale juste l'échec d'injection.
       setSyncError(true);
     }
+
+    setIncidents(fusion);
+    cacheRef.current = JSON.stringify(fusion);
+    setModal(null);
+    setForm({ titre: "", categorie: "securite", description: "" });
   }
 
   async function supprimerIncident(id) {
