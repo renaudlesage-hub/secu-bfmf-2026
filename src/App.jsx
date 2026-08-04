@@ -9,6 +9,7 @@ import IndicateurReseau from "./apps/IndicateurReseau";
 import DashboardQG from "./apps/dashboard";
 import ConsoleCM from "./apps/Console-CM";
 import PCOps from "./apps/pcops";
+import Cartographie from "./apps/cartographie";
 import MainCourante from "./apps/maincourante";
 import FicheReflexe from "./apps/fichereflexe";
 import AppLogistique from "./apps/logistique";
@@ -52,6 +53,8 @@ const COMPOSANTS = {
   dashboard: DashboardQG,
   "console-cm": ConsoleCM,
   pcops: PCOps,
+  cartographie: Cartographie,
+  "cartographie-lecture": () => <Cartographie lectureSeule />,
   maincourante: MainCourante,
   fichereflexe: FicheReflexe,
   logistique: AppLogistique,
@@ -70,7 +73,7 @@ const COMPOSANTS = {
   signaler: Signaler,
   "equipe-benevoles": GestionBenevoles,
 };
-const ROUTES_PUBLIQUES = ["sos", "signaler", "pcops"];
+const ROUTES_PUBLIQUES = ["sos", "signaler", "pcops", "cartographie-lecture"];
 const ROUTES_SANS_MENU = ["sanitaire", "balade-light", "stocks", "equipe-benevoles", "chauffeur", "logistique"];
 // Apps terrain qui affichent le bandeau Urgence (numeros/PRV/radio).
 // Exclut les routes publiques : le SOS a deja le 112, pcops est pour les autorites.

@@ -5,6 +5,7 @@ import {
   Clock,
   Footprints,
   MapPin,
+  Map,
   CircleDot,
   CheckCircle2,
   Users,
@@ -33,6 +34,7 @@ import {
   SEGMENTS_PARCOURS, HORAIRES, FREQUENTATION, PROGRAMMATION_RADIO, RADIO_EXCEPTION, POSTES_RADIO,
 } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, myMapsUrl, MYMAPS_MID } from "../config";
+import CartographiePcops from "./cartographie";
 
 /* ---------------------------------------------------------------------
    PC-OPS / AUTORITE -- BFMF 2026
@@ -118,19 +120,13 @@ const ACCES_SECOURS = [
     detail: "Carrefour Le Raumont - Chemin de l'épine.",
     vehicules: "Carrossable camion, largeur minimale 4m, rayon de braquage pris en compte.",
     cle: "Site ouvert en journée, fermé en dehors des heures d'ouverture avec présence d'un agent de sécurité",
+  },
+  {
     nom: "Accès secondaire — via PRV#2",
     gps: "50.38304, 5.61816",
     detail: "Mon Legrand depuis Chemin de l'épine.",
     vehicules: "Carrossable camion, largeur minimale 4m, rayon de braquage pris en compte.",
     cle: "Site ouvert en journée, fermé en dehors des heures d'ouverture avec présence d'un agent de sécurité",
-  },
-  {
-    nom: "Accès parcours — voies secours balisées (carte officielle)",
-    gps: "50.38219, 5.63600",
-    detail: "3 voies d'accès depuis les PRV vers les scènes : Scène 1 par PRV#4 (721 m), "
-      + "Scène 2 par PRV#5 (752 m) ou PRV#6 (460 m), Scène 3 par PRV#7 (131 m). ",
-    vehicules: "Carrossable camion, largeur minimale 4m, rayon de braquage pris en compte. ?",
-    cle: "ouvert en permanence",
   },
 ];
 
@@ -1159,6 +1155,19 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
             </button>
           );
         })}
+        {/* Carte tactique = sous-onglet interne : s'affiche DANS le PC-Ops,
+            navigation fluide (pas de fenêtre séparée, pas de cul-de-sac). */}
+        <button
+          onClick={() => setOngletInt("carte")}
+          className={`flex items-center gap-1.5 text-xs font-mono font-semibold px-3 py-2 rounded-lg ring-1 whitespace-nowrap transition-colors ml-auto ${
+            ongletInt === "carte"
+              ? "ring-emerald-400/50 bg-emerald-400/15 text-emerald-200"
+              : "ring-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20"
+          }`}
+          title="Afficher la cartographie tactique (lecture seule)"
+        >
+          <Map className="w-3.5 h-3.5" /> Carte tactique
+        </button>
       </div>
 
       {/* ===== INTERVENTIONS ===== */}
@@ -1247,8 +1256,12 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
       {/* 2. ACCES SECOURS */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Truck className="w-4 h-4 text-sky-300" /> ACCÈS SECOURS
+          <Truck className="w-4 h-4 text-sky-300" /> ACCÈS SECOURS — ENTRÉES DU SITE
         </h2>
+        <div className="text-[10px] font-mono text-slate-500 mb-3 leading-relaxed">
+          Points d'entrée des secours sur le site. L'accès aux scènes du parcours
+          est détaillé plus bas (Accès aux étapes).
+        </div>
         <div className="space-y-2">
           {ACCES_SECOURS.map((a) => (
             <div key={a.nom} className="rounded-md ring-1 ring-white/10 bg-white/[0.02] px-3 py-2.5">
@@ -1271,48 +1284,91 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
         </div>
       </section>
 
-      {/* 2 bis. ACCES AUX ETAPES — BRANCARDAGE ET NATURE DES VOIES */}
+      {/* 2 bis. ACCÈS AUX ÉTAPES & SCÈNES (destinations : PRV, voie, GPS) */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
-          <Footprints className="w-4 h-4 text-amber-300" /> ACCÈS AUX ÉTAPES — BRANCARDAGE
+          <MapPin className="w-4 h-4 text-sky-300" /> ACCÈS AUX ÉTAPES & SCÈNES
         </h2>
         <div className="text-[10px] font-mono text-slate-500 mb-3 leading-relaxed">
-          Dossier de sécurité § 9. La <span className="text-amber-200">distance de brancardage</span> est
-          l'éloignement maximal entre un point du tronçon et un véhicule : c'est elle qui dimensionne
-          l'équipe de portage, pas le cumul de voies non carrossables.
+          Par où un véhicule de secours atteint chaque scène : point de rendez-vous (PRV),
+          voie d'accès balisée, adresse et coordonnées d'arrivée.
         </div>
 
         <div className="space-y-2">
           {SEGMENTS_PARCOURS.map((s) => {
-            const dur = s.brancardageMaxM >= 400 ? "ring-red-400/40 bg-red-400/[0.07]"
-              : s.brancardageMaxM >= 250 ? "ring-amber-400/30 bg-amber-400/[0.05]"
-              : "ring-white/10 bg-white/[0.02]";
-            const txt = s.brancardageMaxM >= 400 ? "text-red-200"
-              : s.brancardageMaxM >= 250 ? "text-amber-200" : "text-emerald-200";
+            const voie = VOIES_ACCES.find((v) => s.prv.some((p) => v.depuis === p));
+            const entreeGps = voie?.depart || s.arriveeGps;
+            return (
+              <div key={s.nom} className="rounded-lg px-3 py-2.5 ring-1 ring-white/10 bg-white/[0.02]">
+                <div className="text-sm text-slate-100 font-semibold flex items-center gap-1.5 mb-1.5">
+                  <MapPin className="w-4 h-4 text-sky-300 shrink-0" /> {s.arriveeNom}
+                </div>
+                <div className="text-[11px] space-y-1">
+                  <div className="flex items-start gap-2">
+                    <span className="text-slate-500 shrink-0 w-16">Entrée</span>
+                    <div className="min-w-0">
+                      <span className="text-slate-200 font-mono">{s.prv.join(" / ")}</span>
+                      <a href={`https://www.google.com/maps?q=${entreeGps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
+                        className="ml-1.5 text-sky-300 inline-flex items-center gap-0.5 font-mono">
+                        {entreeGps} <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                  </div>
+                  {voie && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-slate-500 shrink-0 w-16">Voie</span>
+                      <span className="text-slate-300">Voie secours balisée sur <span className="font-mono text-emerald-200/80">{voie.longueurM} m</span></span>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2">
+                    <span className="text-slate-500 shrink-0 w-16">Arrivée</span>
+                    <div className="min-w-0">
+                      <span className="text-slate-300">{s.arriveeAdresse}</span>
+                      <a href={`https://www.google.com/maps?q=${s.arriveeGps.replace(/\s/g, "")}`} target="_blank" rel="noreferrer"
+                        className="ml-1.5 text-sky-300 inline-flex items-center gap-0.5 font-mono">
+                        {s.arriveeGps} <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 2 ter. TRONÇONS DU PARCOURS — BRANCARDAGE ET NATURE DES VOIES */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
+          <Footprints className="w-4 h-4 text-amber-300" /> TRONÇONS DU PARCOURS — BRANCARDAGE
+        </h2>
+        <div className="text-[10px] font-mono text-slate-500 mb-3 leading-relaxed">
+          Pour chaque segment : longueur, nature du chemin, et distance maximale de portage à pied
+          (<span className="text-amber-200">brancardage</span>) — c'est elle qui dimensionne l'équipe, pas la longueur totale.
+        </div>
+
+        <div className="space-y-2">
+          {SEGMENTS_PARCOURS.map((s) => {
+            const niveau = s.brancardageMaxM >= 400 ? "difficile"
+              : s.brancardageMaxM >= 250 ? "modere" : "aise";
+            const dur = niveau === "difficile" ? "ring-red-400/40 bg-red-400/[0.07]"
+              : niveau === "modere" ? "ring-amber-400/30 bg-amber-400/[0.05]"
+              : "ring-emerald-400/20 bg-emerald-400/[0.04]";
+            const txt = niveau === "difficile" ? "text-red-200"
+              : niveau === "modere" ? "text-amber-200" : "text-emerald-200";
+            const label = niveau === "difficile" ? "portage LONG"
+              : niveau === "modere" ? "portage modéré" : "accès aisé";
             return (
               <div key={s.nom} className={`rounded px-2.5 py-2 ring-1 ${dur}`}>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-slate-100 font-semibold">{s.nom}</span>
                   <span className="font-mono text-[10px] text-slate-500">{s.distanceM} m</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/30 ${txt}`}>
-                    brancardage max {s.brancardageMaxM} m
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 ${txt} ml-auto`}>
+                    {label} · {s.brancardageMaxM} m
                   </span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1 leading-snug">{s.voies}</div>
-                <div className="mt-1 flex items-center gap-2 flex-wrap text-[10px]">
-                  <span className="text-slate-500">Arrivée :</span>
-                  <span className="text-slate-300">{s.arriveeNom}</span>
-                  <a
-                    href={`https://www.google.com/maps?q=${s.arriveeGps.replace(/\s/g, "")}`}
-                    target="_blank" rel="noreferrer"
-                    className="text-sky-300 inline-flex items-center gap-0.5"
-                  >
-                    {s.arriveeGps} <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
-                  <span className="text-slate-500">·</span>
-                  <span className="text-slate-400">{s.arriveeAdresse}</span>
-                  <span className="text-slate-500">· PRV :</span>
-                  <span className="text-amber-200/80 font-mono">{s.prv.join(" / ")}</span>
+                <div className="text-[10px] text-slate-400 mt-1 leading-snug">
+                  <span className="text-slate-600">Chemin : </span>{s.voies}
                 </div>
               </div>
             );
@@ -1320,16 +1376,15 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
         </div>
 
         <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
-          Lecture : les longueurs par type de voie sont des <span className="text-slate-400">cumuls sur le tronçon</span>,
-          pas des portions continues. Un tronçon « 1250 m non carrossables » comporte plusieurs sections
-          entrecoupées de chemins accessibles aux véhicules.
+          « Portage LONG » (≥ 400 m) = équipe de brancardage renforcée. Les longueurs par type de voie
+          sont des cumuls sur le tronçon, entrecoupés de sections carrossables.
         </div>
       </section>
 
-      {/* 2 bis. ÉVACUATION HÉLIPORTÉE + VOIES D'ACCÈS (déplacé depuis Ressources) */}
+      {/* 2 bis. ÉVACUATION HÉLIPORTÉE (voies d'accès fusionnées dans Accès aux étapes) */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <MapPin className="w-4 h-4 text-violet-300" /> ÉVACUATION HÉLIPORTÉE & VOIES D'ACCÈS
+          <MapPin className="w-4 h-4 text-violet-300" /> ÉVACUATION HÉLIPORTÉE
         </h2>
 
         <div className="text-[10px] font-mono uppercase tracking-wider text-violet-300/70 mb-1.5">
@@ -1344,27 +1399,6 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
               gps={z.gps}
               accent={z.nuit ? "text-amber-300" : "text-violet-300"}
             />
-          ))}
-        </div>
-
-        <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-300/70 mt-3 mb-1.5">
-          Voies d'accès secours ({VOIES_ACCES.length})
-        </div>
-        <div className="space-y-1">
-          {VOIES_ACCES.map((v) => (
-            <div key={v.nom} className="rounded px-2.5 py-1.5 bg-white/[0.02] ring-1 ring-white/5">
-              <div className="text-[11px] text-slate-100">{v.nom}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">
-                Depuis <span className="text-slate-200">{v.depuis}</span> vers {v.vers} · {v.longueurM} m
-              </div>
-              <a
-                href={`https://www.google.com/maps?q=${v.depart.replace(/\s/g, "")}`}
-                target="_blank" rel="noreferrer"
-                className="font-mono text-[10px] text-sky-300 inline-flex items-center gap-0.5 mt-0.5"
-              >
-                entrée : {v.depart} <ExternalLink className="w-2.5 h-2.5" />
-              </a>
-            </div>
           ))}
         </div>
       </section>
@@ -1539,6 +1573,13 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
         </div>
       </section>
       </>
+      )}
+
+      {/* ===== CARTE TACTIQUE (lecture seule, affichée dans le PC-Ops) ===== */}
+      {ongletInt === "carte" && (
+        <div className="-mx-1">
+          <CartographiePcops lectureSeule embarque />
+        </div>
       )}
     </div>
   );

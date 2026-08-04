@@ -22,6 +22,7 @@ const APPS_LIST = [
   // Pole Commandement & QG
   { id: "dashboard", name: "Tableau de bord QG", cat: "qg" },
   { id: "maincourante", name: "Main courante QG", cat: "qg" },
+  { id: "cartographie", name: "Map Ops — cartographie", cat: "qg" },
   { id: "console-cm", name: "Console medias (CM)", cat: "qg" },
   { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg" },
   { id: "radios", name: "Parc & attributions radio", cat: "qg" },
