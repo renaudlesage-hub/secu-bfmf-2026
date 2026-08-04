@@ -131,13 +131,35 @@ export default function Cartographie({ lectureSeule = false, embarque = false })
   const sosCacheRef = useRef(null);
 
   // Scrutation polling (8 s), cohérente avec le reste de la plateforme.
-  // Lit deux clés : les incidents manuels (KEY_CARTE) ET les SOS participants
-  // géolocalisés (KEY_SOS, en lecture seule — gérés depuis volante/dashboard).
+  // Lit les incidents manuels (KEY_CARTE), les SOS (KEY_SOS), et aussi les
+  // missions et signalements sanitaires — pour savoir si un objet créé depuis
+  // la carte a été CLÔTURÉ dans son flux (dashboard/volante/logistique/sanitaire).
+  // Si oui, l'incident carto correspondant est masqué de la carte (synchro).
   const pull = useCallback(async () => {
     try {
-      const [dataInc, dataSos] = await Promise.all([kvGet(KEY_CARTE), kvGet(KEY_SOS)]);
+      const [dataInc, dataSos, dataMiss, dataSan] = await Promise.all([
+        kvGet(KEY_CARTE), kvGet(KEY_SOS), kvGet(KEY_MISSIONS), kvGet(KEY_SANITAIRE),
+      ]);
 
-      const liste = Array.isArray(dataInc) ? dataInc : [];
+      // Statuts considérés comme "clôturé / résolu" dans les flux.
+      const estClos = (statut) => {
+        const st = (statut || "").toLowerCase();
+        return st === "cloture" || st === "clôture" || st === "cloturé" || st === "clos"
+          || st === "resolu" || st === "résolu" || st === "resolue" || st === "résolue";
+      };
+
+      // Ensemble des origineCarteId dont l'objet lié a été clôturé ailleurs.
+      const clotures = new Set();
+      [dataSos, dataMiss, dataSan].forEach((coll) => {
+        (Array.isArray(coll) ? coll : []).forEach((o) => {
+          if (o.source === "Carte" && o.origineCarteId && estClos(o.statut)) {
+            clotures.add(o.origineCarteId);
+          }
+        });
+      });
+
+      // Incidents carto : on masque ceux dont l'objet lié est clôturé.
+      const liste = (Array.isArray(dataInc) ? dataInc : []).filter((inc) => !clotures.has(inc.id));
       const sig = JSON.stringify(liste);
       if (sig !== cacheRef.current) {
         cacheRef.current = sig;
@@ -151,8 +173,7 @@ export default function Cartographie({ lectureSeule = false, embarque = false })
       const sosListe = (Array.isArray(dataSos) ? dataSos : [])
         .filter((s) => {
           if (s.source === "Carte") return false;
-          const st = (s.statut || "").toLowerCase();
-          const actif = st !== "cloture" && st !== "clôture" && st !== "cloturé" && st !== "clos" && st !== "resolu" && st !== "résolu";
+          const actif = !estClos(s.statut);
           return actif && s.gps && typeof s.gps.lat === "number" && typeof s.gps.lon === "number";
         });
       const sigSos = JSON.stringify(sosListe);
@@ -279,12 +300,29 @@ export default function Cartographie({ lectureSeule = false, embarque = false })
   }
 
   async function supprimerIncident(id) {
+    // On retire l'incident de la carte...
     const fusion = await kvMerge(KEY_CARTE, (liste) => liste.filter((i) => i.id !== id));
-    if (fusion) {
-      setIncidents(fusion);
-      cacheRef.current = JSON.stringify(fusion);
-      setDetail(null);
-    } else {
+    if (!fusion) { setSyncError(true); return; }
+    setIncidents(fusion);
+    cacheRef.current = JSON.stringify(fusion);
+    setDetail(null);
+
+    // ...et on clôture l'objet lié dans son flux (synchro carte -> flux), pour
+    // qu'il disparaisse aussi du dashboard / volante / logistique / sanitaire.
+    const closDansFlux = (liste) =>
+      (Array.isArray(liste) ? liste : []).map((o) =>
+        o.origineCarteId === id
+          ? { ...o, statut: o.type !== undefined || o.motif !== undefined ? "resolu" : "Resolue", clotureLe: new Date().toISOString() }
+          : o
+      );
+    try {
+      await Promise.all([
+        kvMerge(KEY_SOS, closDansFlux),
+        kvMerge(KEY_MISSIONS, closDansFlux),
+        kvMerge(KEY_SANITAIRE, closDansFlux),
+      ]);
+    } catch {
+      // L'incident carto est retiré ; l'échec de clôture liée n'est pas bloquant.
       setSyncError(true);
     }
   }
