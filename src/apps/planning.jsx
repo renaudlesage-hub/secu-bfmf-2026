@@ -57,8 +57,38 @@ export default function Planning() {
     return mn;
   })();
 
-  // Un item est "en cours" s'il a commencé et que le suivant n'a pas encore commencé
-  function statutItem(items, i) {
+  // Extrait [jour, mois] depuis un libellé "Samedi 15/08" -> [15, 8].
+  function dateDuLibelle(libelle) {
+    const m = (libelle || "").match(/(\d{1,2})\/(\d{1,2})/);
+    return m ? [parseInt(m[1], 10), parseInt(m[2], 10)] : null;
+  }
+
+  // Compare le jour AFFICHÉ à la date réelle : renvoie "avant" | "aujourdhui" | "apres".
+  // Les créneaux après minuit (< 6h) appartiennent encore à la soirée de la veille,
+  // donc on rattache la nuit au jour du planning correspondant.
+  function positionJour(jourLibelle) {
+    const d = dateDuLibelle(jourLibelle);
+    if (!d) return "aujourdhui"; // au pire, comportement horaire seul
+    const [jour, mois] = d;
+    // Date réelle, en tenant compte de la nuit (avant 6h = encore la veille au soir)
+    const ref = new Date(now);
+    if (ref.getHours() < 6) ref.setDate(ref.getDate() - 1);
+    const rJour = ref.getDate();
+    const rMois = ref.getMonth() + 1;
+    if (rMois === mois && rJour === jour) return "aujourdhui";
+    // comparaison simple mois puis jour
+    if (rMois < mois || (rMois === mois && rJour < jour)) return "apres";
+    return "avant";
+  }
+
+  // Un item est "en cours" s'il a commencé et que le suivant n'a pas encore commencé,
+  // ET SEULEMENT si le jour affiché est le jour réel (sinon on aurait "en cours"
+  // sur les deux jours à la même heure).
+  function statutItem(items, i, jourLibelle) {
+    const pos = positionJour(jourLibelle);
+    if (pos === "avant") return "passe";   // jour déjà écoulé : tout est passé
+    if (pos === "apres") return "avenir";  // jour futur : tout est à venir
+    // pos === "aujourdhui" : logique horaire habituelle
     const debut = minutesTri(items[i].heure);
     const finApprox = i + 1 < items.length ? minutesTri(items[i + 1].heure) : debut + 60;
     if (maintenantMin >= debut && maintenantMin < finApprox) return "encours";
@@ -105,7 +135,7 @@ export default function Planning() {
         {/* Timeline du jour */}
         <div className="space-y-2">
           {items.map((it, i) => {
-            const st = statutItem(items, i);
+            const st = statutItem(items, i, jours[jourActif]);
             const estBalade = it.type === "balade";
             return (
               <div

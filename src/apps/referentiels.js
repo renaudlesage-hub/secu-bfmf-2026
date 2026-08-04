@@ -117,11 +117,6 @@ export const POINTS_GPS = {
  "PRV#7": { lat: 50.38865, lon: 5.62692, km: 5.2, segment: "Balisage Secours #7" }
 };
 
-/* ------------------------- ANNUAIRE DE CRISE -------------------------
-  Source unique des contacts d'urgence. Importe par la fiche reflexe, le
-  PC-Ops et l'onglet Intervention. Ordre = ordre d'appel : le vital en tete.
-  >>> Mettre a jour ICI uniquement. Verifie / complete le 18/07.
---------------------------------------------------------------------- */
 /* ------------------- CHAUFFEURS (profils prédéfinis) ----------------
   Liste des chauffeurs extérieurs, pour attribuer une course sans taper
   le nom à la main (évite les fautes de frappe qui casseraient le lien
@@ -137,7 +132,12 @@ export const CHAUFFEURS = [
   { id: "ch3", nom: "Chauffeur 3", tel: "0470 00 00 03", vehicule: "Minibus 9 places" },
   { id: "ch4", nom: "Chauffeur 4", tel: "0470 00 00 04", vehicule: "Camionnette" },
 ];
- 
+
+ /* ------------------------- ANNUAIRE DE CRISE -------------------------
+  Source unique des contacts d'urgence. Importe par la fiche reflexe, le
+  PC-Ops et l'onglet Intervention. Ordre = ordre d'appel : le vital en tete.
+  >>> Mettre a jour ICI uniquement. Verifie / complete le 18/07.
+--------------------------------------------------------------------- */
 export const ANNUAIRE = [
  { nom: "URGENCE VITALE", num: "112", note: "médical / incendie — TOUJOURS en premier", urgent: true },
  { nom: "Police", num: "101", note: "" },

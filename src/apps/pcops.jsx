@@ -1295,7 +1295,7 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
         </div>
 
         <div className="space-y-2">
-          {SEGMENTS_PARCOURS.map((s) => {
+          {SEGMENTS_PARCOURS.filter((s) => /scène/i.test(s.arriveeNom)).map((s) => {
             const voie = VOIES_ACCES.find((v) => s.prv.some((p) => v.depuis === p));
             const entreeGps = voie?.depart || s.arriveeGps;
             return (
