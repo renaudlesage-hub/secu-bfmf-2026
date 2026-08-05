@@ -1381,6 +1381,28 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
         </div>
       </section>
 
+      {/* 2 quater. BALISAGE KILOMÉTRIQUE DU PARCOURS (déplacé depuis Ressources) */}
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
+          <Navigation className="w-4 h-4 text-sky-300" /> BALISAGE KILOMÉTRIQUE DU PARCOURS
+        </h2>
+
+        <div className="text-[10px] font-mono uppercase tracking-wider text-sky-300/70 mt-3 mb-1.5">
+          Balisage kilométrique du parcours ({BORNES_KM.length} bornes)
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          {BORNES_KM.map((b) => (
+            <LigneGps key={b.nom} label={b.nom} note={`km ${b.km.toFixed(1)}`} gps={b.gps} accent="text-sky-400" />
+          ))}
+        </div>
+        <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
+          Une intervention annoncée « au km 3,2 » se situe entre BK3 et BK4. Ces bornes sont
+          physiquement posées sur le parcours : elles restent lisibles sans réseau ni batterie.
+          Zones et voies relevées sur la carte opérationnelle partagée avec les disciplines.
+          Seules les zones marquées NUIT sont utilisables après le coucher du soleil.
+        </div>
+      </section>
+
       {/* 2 bis. ÉVACUATION HÉLIPORTÉE (voies d'accès fusionnées dans Accès aux étapes) */}
       <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
@@ -1513,28 +1535,6 @@ function Intervention({ interventions, enAttente, engage, priseEnCharge, typesTr
               />
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* 5 bis. BALISAGE KILOMÉTRIQUE DU PARCOURS */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
-        <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
-          <Navigation className="w-4 h-4 text-sky-300" /> BALISAGE KILOMÉTRIQUE DU PARCOURS
-        </h2>
-
-        <div className="text-[10px] font-mono uppercase tracking-wider text-sky-300/70 mt-3 mb-1.5">
-          Balisage kilométrique du parcours ({BORNES_KM.length} bornes)
-        </div>
-        <div className="grid grid-cols-2 gap-1">
-          {BORNES_KM.map((b) => (
-            <LigneGps key={b.nom} label={b.nom} note={`km ${b.km.toFixed(1)}`} gps={b.gps} accent="text-sky-400" />
-          ))}
-        </div>
-        <div className="text-[10px] font-mono text-slate-600 mt-2.5 leading-relaxed">
-          Une intervention annoncée « au km 3,2 » se situe entre BK3 et BK4. Ces bornes sont
-          physiquement posées sur le parcours : elles restent lisibles sans réseau ni batterie.
-          Zones et voies relevées sur la carte opérationnelle partagée avec les disciplines.
-          Seules les zones marquées NUIT sont utilisables après le coucher du soleil.
         </div>
       </section>
 
