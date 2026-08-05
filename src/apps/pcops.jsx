@@ -163,9 +163,9 @@ const MOYENS_ORGA = [
     detail: `DEA de l'organisation sur site (50.38244, 5.61735), à 80 m de l'entrée. `
       + `${DEA.length - 1} autres DEA dans un rayon de 4,5 km. Emplacements ci-dessous.`,
   },
-  { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières. À COMPLÉTER : organisme, emplacement du poste, brancard, VPSP ?" },
+  { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site et par groupe de marcheurs. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières." },
   { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
-  { titre: "Équipe volante organisateur", detail: "À COMPLÉTER : nombre, moyen de déplacement, canal PMR4.1." },
+  { titre: "Équipe volante organisateur", detail: "3 véhicules 4x4 chacun pourvu d'un extincteur poudre 5kg." },
   { titre: "Accompagnateurs balade", detail: "4 personnes de l'organisation par groupe (dossier § 4.2), briefées sécurité. 3 groupes par jour d'environ 300 personnes." },
 ];
 
