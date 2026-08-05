@@ -156,8 +156,6 @@ const RESSOURCES_EAU = [
       + `${EAU_CARTE.filter((e) => e.type.startsWith("Pompe")).length} pompes à eau, 1 tridivision. `
       + `La plus proche de l'entrée : tridivision à 96 m. Détail et GPS ci-dessous.`,
   },
-  { titre: "Débit des hydrants", detail: "À COMPLÉTER : débit (m³/h) à obtenir auprès de la zone de secours." },
-  { titre: "Point d'eau naturel", detail: "À COMPLÉTER : cours d'eau, accès engin, aspiration possible ?" },
 ];
 
 const MOYENS_ORGA = [
