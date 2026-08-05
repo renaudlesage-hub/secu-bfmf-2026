@@ -970,16 +970,32 @@ export default function DashboardQG() {
               <Radio className="w-4 h-4 text-amber-400" />
               <h2 className="font-display text-xs tracking-wider uppercase text-slate-200">Plan de Transmission & d'Urgence Radio (BFMF 2026)</h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono flex-1 pt-2 items-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 text-xs font-mono flex-1 pt-2 content-start">
               {CANAUX_RADIO.map((c) => (
-                <div key={c.canal} className={`bg-black/30 px-2 py-1 rounded border flex flex-col justify-center ${c.urgent ? "border-red-400/30" : "border-white/5"}`}>
-                  <span className="flex items-baseline gap-1">
-                    <span className={`font-bold text-xs ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
-                    <span className="font-mono text-[10px] text-sky-300">ch.{c.num}</span>
+                <div key={c.canal} className={`bg-black/30 px-2.5 py-2 rounded border flex flex-col gap-1 ${c.urgent ? "border-red-400/40 bg-red-500/[0.07]" : "border-white/5"}`}>
+                  <span className="flex items-baseline justify-between gap-1">
+                    <span className={`font-bold text-[13px] ${c.urgent ? "text-red-300" : "text-amber-300"}`}>{c.canal}</span>
+                    <span className={`font-mono text-[10px] px-1.5 rounded ${c.urgent ? "bg-red-500/25 text-red-100" : "bg-sky-500/15 text-sky-200"}`}>
+                      ch.{c.num}{c.postes === "les deux" && <span className="text-amber-200">/{c.numSimple}</span>}
+                    </span>
                   </span>
-                  <span className="text-slate-400 text-[9px] leading-tight truncate">{c.usage}</span>
+                  <span className={`text-[10px] leading-snug ${c.urgent ? "text-red-200/90 font-semibold" : "text-slate-300"}`}>{c.usage}</span>
+                  <span className="text-[9px] text-slate-500 leading-tight mt-auto pt-0.5">
+                    {c.urgent
+                      ? "Ne pas encombrer"
+                      : c.postes === "les deux"
+                      ? `ch.${c.num} standard · ch.${c.numSimple} simple`
+                      : c.postes === "standard"
+                      ? "Postes standard"
+                      : "Tous postes"}
+                  </span>
                 </div>
               ))}
+            </div>
+            <div className="text-[9px] font-mono text-slate-500 leading-snug pt-2 mt-1 border-t border-white/5">
+              <span className="text-red-300/80 font-semibold">PMR333 (ch.6)</span> = urgence, réservé.
+              Urgence vitale : <span className="text-slate-300">112 d'abord</span>, puis QG.
+              Les postes standard tiennent PMR4.1 tout en écoutant PMR333.
             </div>
           </div>
         </div>
