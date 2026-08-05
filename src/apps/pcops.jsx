@@ -143,7 +143,7 @@ const RISQUES_SITE = [
   { titre: "Alimentation électrique / groupes électrogènes", detail: "Les scènes de la balade sont alimentées par GROUPES ÉLECTROGÈNES (dossier § 11) — pas de raccordement réseau, donc pas de réception électrique SECT sur ces points. Site principal : réception électrique par SECT agréé. À COMPLÉTER : emplacement exact, puissance, organe de coupure générale (qui, où)." },
   { titre: "Structures scéniques", detail: "Balade : installations < 250 m² au sol, aucun risque de chute ≥ 2 m (pas de réception mécanique). Site principal : réception mécanique par SECT agréé. À COMPLÉTER : hauteur, PV de montage, seuil de vent d'arrêt (km/h)." },
   { titre: "Public — jauge et évacuation", detail: "À COMPLÉTER : capacité plaine, largeur des sorties, points de rassemblement." },
-  { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. AUCUN éclairage de secours sur les lieux de concert de la balade (milieux ouverts, dossier § 11). Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
+  { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. Aucun éclairage de secours sur les lieux de concert de la balade (milieux ouverts, dossier § 11). Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
 ];
 
 // Ressources en eau : liste issue de la carte officielle (calque Pompiers).
