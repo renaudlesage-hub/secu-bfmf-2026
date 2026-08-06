@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { CalendarDays, Footprints, Music, Clock, MapPin } from "lucide-react";
-import { HORAIRES, PROGRAMMATION } from "./referentiels";
+import { CalendarDays, Footprints, Music, Clock, MapPin, Car } from "lucide-react";
+import { HORAIRES, PROGRAMMATION, STATUT_ATTRIBUEE, STATUT_EN_COURS } from "./referentiels";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
+
+const SB_HEADERS = {
+  apikey: SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+  "Content-Type": "application/json",
+};
+const KEY_TRANSPORT = "bfmf2026-transport";
+
+async function kvGet(key) {
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
+    { headers: SB_HEADERS, credentials: "omit" }
+  );
+  if (!r.ok) throw new Error("GET " + r.status);
+  const j = await r.json();
+  return j.length ? j[0].value : null;
+}
+
+// Jours transport -> index du planning (le planning n'a que Sam=0 / Dim=1 ;
+// les transports du vendredi montage "j0" ne sont pas affichés ici).
+const JOUR_TRANSPORT_VERS_PLANNING = { j1: 0, j2: 1 };
 
 /* ---------------------------------------------------------------------
    APP PLANNING WEEK-END — BFMF 2026
@@ -28,13 +50,36 @@ const fmtH = (h) => h.replace("h", ":");
 export default function Planning() {
   const [now, setNow] = useState(new Date());
   const [jourActif, setJourActif] = useState(0);
+  const [transports, setTransports] = useState([]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
   }, []);
 
-  // Construit la timeline fusionnée d'un jour (balades + concerts triés)
+  // Lecture des transports (app_store) : polling 15 s. Lecture seule.
+  // On ne garde que les transports ATTRIBUÉS et ACTIFS (Attribuee ou En cours) :
+  // ils ont un chauffeur et un RDV, donc un engagement réel à planifier.
+  useEffect(() => {
+    let stop = false;
+    async function pull() {
+      try {
+        const data = await kvGet(KEY_TRANSPORT);
+        if (stop) return;
+        const liste = (Array.isArray(data) ? data : []).filter(
+          (d) => d.statut === STATUT_ATTRIBUEE || d.statut === STATUT_EN_COURS
+        );
+        setTransports(liste);
+      } catch {
+        if (!stop) setTransports([]);
+      }
+    }
+    pull();
+    const t = setInterval(pull, 15000);
+    return () => { stop = true; clearInterval(t); };
+  }, []);
+
+  // Construit la timeline fusionnée d'un jour (balades + concerts + transports triés)
   function timelineDuJour(idx) {
     const h = HORAIRES[idx];
     const prog = PROGRAMMATION[idx];
@@ -45,6 +90,19 @@ export default function Planning() {
     });
     (prog?.concerts || []).forEach((c) => {
       items.push({ type: "concert", heure: c.heure, label: c.artiste, scene: c.scene });
+    });
+    // Transports attribués + actifs dont le jour correspond au jour affiché,
+    // et qui ont une heure de RDV exploitable.
+    transports.forEach((t) => {
+      if (JOUR_TRANSPORT_VERS_PLANNING[t.jour] !== idx) return;
+      if (!t.heure) return;
+      const trajet = [t.depuis, t.vers].filter(Boolean).join(" → ");
+      items.push({
+        type: "transport",
+        heure: t.heure,
+        label: trajet || "Transport",
+        detail: `${t.chauffeur ? "Chauffeur " + t.chauffeur : "Attribué"}${t.heureDest ? " · arrivée " + t.heureDest : ""}`,
+      });
     });
 
     return items.sort((a, b) => minutesTri(a.heure) - minutesTri(b.heure));
@@ -131,6 +189,8 @@ export default function Planning() {
               <span className="font-display text-sm">{j}</span>
               <span className="text-[10px] font-mono text-slate-500">
                 {HORAIRES[i].departs.length} balades · {PROGRAMMATION[i].concerts.length} concerts
+                {transports.filter((t) => JOUR_TRANSPORT_VERS_PLANNING[t.jour] === i && t.heure).length > 0 &&
+                  ` · ${transports.filter((t) => JOUR_TRANSPORT_VERS_PLANNING[t.jour] === i && t.heure).length} transports`}
               </span>
             </button>
           ))}
@@ -141,29 +201,36 @@ export default function Planning() {
           {items.map((it, i) => {
             const st = statutItem(items, i, jours[jourActif]);
             const estBalade = it.type === "balade";
+            const estTransport = it.type === "transport";
+            const ringBg = st === "encours"
+              ? "ring-emerald-400/50 bg-emerald-400/[0.06]"
+              : estTransport
+              ? "ring-teal-400/25 bg-teal-400/[0.04]"
+              : estBalade
+              ? "ring-amber-400/20 bg-amber-400/[0.03]"
+              : "ring-white/10 bg-[#151b23]";
+            const pastille = estTransport
+              ? "bg-teal-400/10 text-teal-300"
+              : estBalade
+              ? "bg-amber-400/10 text-amber-300"
+              : "bg-sky-400/10 text-sky-300";
             return (
               <div
                 key={i}
                 className={`rounded-xl p-3 ring-1 flex items-center gap-3 transition-opacity ${
                   st === "passe" ? "opacity-40" : ""
-                } ${
-                  st === "encours"
-                    ? "ring-emerald-400/50 bg-emerald-400/[0.06]"
-                    : estBalade
-                    ? "ring-amber-400/20 bg-amber-400/[0.03]"
-                    : "ring-white/10 bg-[#151b23]"
-                }`}
+                } ${ringBg}`}
               >
                 <div className="font-mono text-sm font-bold text-slate-200 w-14 shrink-0 text-right">{it.heure}</div>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                  estBalade ? "bg-amber-400/10 text-amber-300" : "bg-sky-400/10 text-sky-300"
-                }`}>
-                  {estBalade ? <Footprints className="w-4 h-4" /> : <Music className="w-4 h-4" />}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${pastille}`}>
+                  {estTransport ? <Car className="w-4 h-4" /> : estBalade ? <Footprints className="w-4 h-4" /> : <Music className="w-4 h-4" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm text-slate-100 font-medium truncate">{it.label}</div>
                   <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
-                    {estBalade ? (
+                    {estTransport ? (
+                      <><Car className="w-3 h-3" /> {it.detail}</>
+                    ) : estBalade ? (
                       <><MapPin className="w-3 h-3" /> Départ groupe balade</>
                     ) : (
                       <>Scène {it.scene}</>
