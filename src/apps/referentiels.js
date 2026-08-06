@@ -569,7 +569,7 @@ export const JALONS_LOGISTIQUES = [
   {
     jour: "Samedi 15/08",
     jalons: [
-      { heure: "11:00", label: "sécurisation traversée route", detail: "Mise en place casse-vitesse" },
+      { heure: "11:00", label: "Sécurisation traversée route", detail: "Mise en place casse-vitesse" },
       { heure: "12:00", label: "Ouverture des portes public", detail: "Contrôle accès en place" },
       { heure: "20:50", label: "Eclairage site", detail: "Allumage mats thermiques" },
       { heure: "21:00", label: "sécurisation traversée route", detail: "Retrait casse-vitesse" },
@@ -579,7 +579,7 @@ export const JALONS_LOGISTIQUES = [
     jour: "Dimanche 16/08",
     jalons: [
       { heure: "08:00", label: "Eclairage site", detail: "Extinction mats thermiques" },
-      { heure: "09:00", label: "sécurisation traversée route", detail: "Mise en place casse-vitesse" },
+      { heure: "09:00", label: "Sécurisation traversée route", detail: "Mise en place casse-vitesse" },
       { heure: "10:00", label: "Ouverture des portes public", detail: "Contrôle accès en place" },
       { heure: "20:50", label: "Eclairage site", detail: "Allumage mats thermiques" },
       { heure: "21:00", label: "sécurisation traversée route", detail: "Retrait casse-vitesse" },
