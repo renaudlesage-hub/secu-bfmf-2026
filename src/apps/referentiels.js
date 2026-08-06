@@ -27,13 +27,13 @@ export const ROLES = [
   "Team parking",
   "Team sanitaires",
   "Technique",
+  "Trésorier",
   "Logistique",
 
  // --- Secours & sûreté ---
  "Volante",
  "Sécurité privée",
  "Médical / secouriste",
-
  "Autre",
 ];
 
@@ -127,10 +127,8 @@ export const POINTS_GPS = {
       être unique et stable (c'est la clé de correspondance).
 --------------------------------------------------------------------- */
 export const CHAUFFEURS = [
-  { id: "ch1", nom: "Chauffeur 1", tel: "0470 00 00 01", vehicule: "Monospace 7 places" },
-  { id: "ch2", nom: "Chauffeur 2", tel: "0470 00 00 02", vehicule: "Break" },
-  { id: "ch3", nom: "Chauffeur 3", tel: "0470 00 00 03", vehicule: "Minibus 9 places" },
-  { id: "ch4", nom: "Chauffeur 4", tel: "0470 00 00 04", vehicule: "Camionnette" },
+  { id: "ch1", nom: "Valentin", tel: "0471 01 20 66", vehicule: "Ferribus" },
+  { id: "ch2", nom: "Valentin", tel: "0471 01 20 66", vehicule: "Vitara" },
 ];
 
  /* ------------------------- ANNUAIRE DE CRISE -------------------------
@@ -419,6 +417,7 @@ export const SECTEURS_PARCOURS = [
 export const CABINET_MEDICAL = {
  nom: "Cabinet médical Sneessens - Lambotte",
  gps: "50.39875, 5.60932",
+ tél : "086 40 13 50",
  note: "≈ 2 km du site — hors urgence vitale (112 en priorité)",
 };
 
@@ -550,6 +549,40 @@ export const PROGRAMMATION = [
       { heure: "21:30", scene: "2", artiste: "Chose" },
       { heure: "22:20", scene: "1", artiste: "Dyna, Lewis & The Soul Caravan" },
       { heure: "23:35", scene: "1", artiste: "Zénobe & Gaston" },
+    ],
+  },
+];
+
+
+/* --- Jalons logistiques importants ---------------------------------
+   Étapes clés du dispositif à faire figurer dans le planning à côté des
+   départs balade et des concerts : montage, briefings, ouverture des
+   portes, relèves, démontage, etc.
+   Un tableau par jour (même ordre que HORAIRES / PROGRAMMATION).
+   >>> À COMPLÉTER avec les vrais horaires. Champs :
+       heure  "HH:MM"
+       label  intitulé court du jalon
+       detail (optionnel) précision affichée sous l'intitulé
+   Les jalons après minuit (démontage nocturne) : mettre l'heure réelle
+   (ex "01:30") — le planning les range correctement en fin de journée. */
+export const JALONS_LOGISTIQUES = [
+  {
+    jour: "Samedi 15/08",
+    jalons: [
+      { heure: "11:00", label: "sécurisation traversée route", detail: "Mise en place casse-vitesse" },
+      { heure: "12:00", label: "Ouverture des portes public", detail: "Contrôle accès en place" },
+      { heure: "20:50", label: "Eclairage site", detail: "Allumage mats thermiques" },
+      { heure: "21:00", label: "sécurisation traversée route", detail: "Retrait casse-vitesse" },
+    ],
+  },
+  {
+    jour: "Dimanche 16/08",
+    jalons: [
+      { heure: "08:00", label: "Eclairage site", detail: "Extinction mats thermiques" },
+      { heure: "09:00", label: "sécurisation traversée route", detail: "Mise en place casse-vitesse" },
+      { heure: "10:00", label: "Ouverture des portes public", detail: "Contrôle accès en place" },
+      { heure: "20:50", label: "Eclairage site", detail: "Allumage mats thermiques" },
+      { heure: "21:00", label: "sécurisation traversée route", detail: "Retrait casse-vitesse" },
     ],
   },
 ];

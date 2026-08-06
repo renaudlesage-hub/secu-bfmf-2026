@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { CalendarDays, Footprints, Music, Clock, MapPin } from "lucide-react";
-import { HORAIRES, PROGRAMMATION } from "./referentiels";
+import { CalendarDays, Footprints, Music, Clock, MapPin, Wrench } from "lucide-react";
+import { HORAIRES, PROGRAMMATION, JALONS_LOGISTIQUES } from "./referentiels";
 
 /* ---------------------------------------------------------------------
    APP PLANNING WEEK-END — BFMF 2026
@@ -34,10 +34,11 @@ export default function Planning() {
     return () => clearInterval(t);
   }, []);
 
-  // Construit la timeline fusionnée d'un jour (balades + concerts triés)
+  // Construit la timeline fusionnée d'un jour (balades + concerts + jalons triés)
   function timelineDuJour(idx) {
     const h = HORAIRES[idx];
     const prog = PROGRAMMATION[idx];
+    const jal = JALONS_LOGISTIQUES[idx];
     const items = [];
 
     (h?.departs || []).forEach((d) => {
@@ -45,6 +46,9 @@ export default function Planning() {
     });
     (prog?.concerts || []).forEach((c) => {
       items.push({ type: "concert", heure: c.heure, label: c.artiste, scene: c.scene });
+    });
+    (jal?.jalons || []).forEach((j) => {
+      items.push({ type: "jalon", heure: j.heure, label: j.label, detail: j.detail });
     });
 
     return items.sort((a, b) => minutesTri(a.heure) - minutesTri(b.heure));
@@ -126,7 +130,7 @@ export default function Planning() {
             >
               <span className="font-display text-sm">{j}</span>
               <span className="text-[10px] font-mono text-slate-500">
-                {HORAIRES[i].departs.length} balades · {PROGRAMMATION[i].concerts.length} concerts
+                {HORAIRES[i].departs.length} balades · {PROGRAMMATION[i].concerts.length} concerts · {(JALONS_LOGISTIQUES[i]?.jalons || []).length} jalons
               </span>
             </button>
           ))}
@@ -137,29 +141,38 @@ export default function Planning() {
           {items.map((it, i) => {
             const st = statutItem(items, i, jours[jourActif]);
             const estBalade = it.type === "balade";
+            const estJalon = it.type === "jalon";
+            // Anneau/fond du bloc selon le type (l'état "en cours" prime).
+            const ringBg = st === "encours"
+              ? "ring-emerald-400/50 bg-emerald-400/[0.06]"
+              : estJalon
+              ? "ring-violet-400/25 bg-violet-400/[0.04]"
+              : estBalade
+              ? "ring-amber-400/20 bg-amber-400/[0.03]"
+              : "ring-white/10 bg-[#151b23]";
+            // Pastille icône selon le type.
+            const pastille = estJalon
+              ? "bg-violet-400/10 text-violet-300"
+              : estBalade
+              ? "bg-amber-400/10 text-amber-300"
+              : "bg-sky-400/10 text-sky-300";
             return (
               <div
                 key={i}
                 className={`rounded-xl p-3 ring-1 flex items-center gap-3 transition-opacity ${
                   st === "passe" ? "opacity-40" : ""
-                } ${
-                  st === "encours"
-                    ? "ring-emerald-400/50 bg-emerald-400/[0.06]"
-                    : estBalade
-                    ? "ring-amber-400/20 bg-amber-400/[0.03]"
-                    : "ring-white/10 bg-[#151b23]"
-                }`}
+                } ${ringBg}`}
               >
                 <div className="font-mono text-sm font-bold text-slate-200 w-14 shrink-0 text-right">{it.heure}</div>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                  estBalade ? "bg-amber-400/10 text-amber-300" : "bg-sky-400/10 text-sky-300"
-                }`}>
-                  {estBalade ? <Footprints className="w-4 h-4" /> : <Music className="w-4 h-4" />}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${pastille}`}>
+                  {estJalon ? <Wrench className="w-4 h-4" /> : estBalade ? <Footprints className="w-4 h-4" /> : <Music className="w-4 h-4" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm text-slate-100 font-medium truncate">{it.label}</div>
                   <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
-                    {estBalade ? (
+                    {estJalon ? (
+                      <>{it.detail ? it.detail : "Jalon logistique"}</>
+                    ) : estBalade ? (
                       <><MapPin className="w-3 h-3" /> Départ groupe balade</>
                     ) : (
                       <>Scène {it.scene}</>
