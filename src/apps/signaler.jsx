@@ -201,7 +201,7 @@ export default function Signaler() {
             <CheckCircle2 className="w-16 h-16 text-emerald-300 mx-auto" />
             <div className="font-display text-2xl text-emerald-200">MERCI !</div>
             <div className="text-sm text-slate-300 leading-relaxed">
-              L'equipe sanitaire est prevenue et passera des que possible.
+              L'équipe sanitaire est prévenue et passera dès que possible.
               <br />Bon festival !
             </div>
           </div>
