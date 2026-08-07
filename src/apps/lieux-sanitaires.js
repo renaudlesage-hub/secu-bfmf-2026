@@ -11,7 +11,7 @@ export const LIEUX = [
   { id: "Uri-e1", nom: "Urinoir Etape 1", zone: "Etape 1", equip: "urinoir" },
   { id: "lm-e1", nom: "Lave-mains Etape 1", zone: "Etape 1", equip: "lave-mains" },
   { id: "wc-e2", nom: "WC Etape 2", zone: "Etape 2", equip: "wc" },
-  { id: "pb-e2", nom: "Poubelles Etape 2, zone: "Etape 2", equip: "poubelle" },
+  { id: "pb-e2", nom: "Poubelles Etape 2", zone: "Etape 2", equip: "poubelle" },
   { id: "Uri-e2", nom: "Urinoir Etape 2", zone: "Etape 2", equip: "urinoir" },
   { id: "lm-e2", nom: "Lave-mains Etape 2", zone: "Etape 2", equip: "lave-mains" },
   { id: "wc-e3", nom: "WC Etape 3", zone: "Etape 3", equip: "wc" },
