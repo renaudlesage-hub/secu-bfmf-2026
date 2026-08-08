@@ -556,8 +556,8 @@ export const PROGRAMMATION = [
 
 /* --- Jalons logistiques importants ---------------------------------
    Étapes clés du dispositif à faire figurer dans le planning à côté des
-   départs balade et des concerts : montage, briefings, ouverture des
-   portes, relèves, démontage, etc.
+   départs balade, des concerts et des transports : montage, briefings,
+   ouverture des portes, relèves, démontage, etc.
    Un tableau par jour (même ordre que HORAIRES / PROGRAMMATION).
    >>> À COMPLÉTER avec les vrais horaires. Champs :
        heure  "HH:MM"

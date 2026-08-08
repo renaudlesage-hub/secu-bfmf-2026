@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { CalendarDays, Footprints, Music, Clock, MapPin, Car } from "lucide-react";
-import { HORAIRES, PROGRAMMATION, STATUT_ATTRIBUEE, STATUT_EN_COURS } from "./referentiels";
+import { CalendarDays, Footprints, Music, Clock, MapPin, Car, Wrench } from "lucide-react";
+import { HORAIRES, PROGRAMMATION, JALONS_LOGISTIQUES, STATUT_ATTRIBUEE, STATUT_EN_COURS } from "./referentiels";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 
 const SB_HEADERS = {
@@ -79,10 +79,12 @@ export default function Planning() {
     return () => { stop = true; clearInterval(t); };
   }, []);
 
-  // Construit la timeline fusionnée d'un jour (balades + concerts + transports triés)
+  // Construit la timeline fusionnée d'un jour :
+  // balades + concerts + jalons logistiques + transports planifiés, triés.
   function timelineDuJour(idx) {
     const h = HORAIRES[idx];
     const prog = PROGRAMMATION[idx];
+    const jal = JALONS_LOGISTIQUES[idx];
     const items = [];
 
     (h?.departs || []).forEach((d) => {
@@ -90,6 +92,9 @@ export default function Planning() {
     });
     (prog?.concerts || []).forEach((c) => {
       items.push({ type: "concert", heure: c.heure, label: c.artiste, scene: c.scene });
+    });
+    (jal?.jalons || []).forEach((j) => {
+      items.push({ type: "jalon", heure: j.heure, label: j.label, detail: j.detail });
     });
     // Transports attribués + actifs dont le jour correspond au jour affiché,
     // et qui ont une heure de RDV exploitable.
@@ -189,6 +194,7 @@ export default function Planning() {
               <span className="font-display text-sm">{j}</span>
               <span className="text-[10px] font-mono text-slate-500">
                 {HORAIRES[i].departs.length} balades · {PROGRAMMATION[i].concerts.length} concerts
+                {(JALONS_LOGISTIQUES[i]?.jalons || []).length > 0 && ` · ${(JALONS_LOGISTIQUES[i]?.jalons || []).length} jalons`}
                 {transports.filter((t) => JOUR_TRANSPORT_VERS_PLANNING[t.jour] === i && t.heure).length > 0 &&
                   ` · ${transports.filter((t) => JOUR_TRANSPORT_VERS_PLANNING[t.jour] === i && t.heure).length} transports`}
               </span>
@@ -202,14 +208,19 @@ export default function Planning() {
             const st = statutItem(items, i, jours[jourActif]);
             const estBalade = it.type === "balade";
             const estTransport = it.type === "transport";
+            const estJalon = it.type === "jalon";
             const ringBg = st === "encours"
               ? "ring-emerald-400/50 bg-emerald-400/[0.06]"
+              : estJalon
+              ? "ring-violet-400/25 bg-violet-400/[0.04]"
               : estTransport
               ? "ring-teal-400/25 bg-teal-400/[0.04]"
               : estBalade
               ? "ring-amber-400/20 bg-amber-400/[0.03]"
               : "ring-white/10 bg-[#151b23]";
-            const pastille = estTransport
+            const pastille = estJalon
+              ? "bg-violet-400/10 text-violet-300"
+              : estTransport
               ? "bg-teal-400/10 text-teal-300"
               : estBalade
               ? "bg-amber-400/10 text-amber-300"
@@ -223,12 +234,14 @@ export default function Planning() {
               >
                 <div className="font-mono text-sm font-bold text-slate-200 w-14 shrink-0 text-right">{it.heure}</div>
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${pastille}`}>
-                  {estTransport ? <Car className="w-4 h-4" /> : estBalade ? <Footprints className="w-4 h-4" /> : <Music className="w-4 h-4" />}
+                  {estJalon ? <Wrench className="w-4 h-4" /> : estTransport ? <Car className="w-4 h-4" /> : estBalade ? <Footprints className="w-4 h-4" /> : <Music className="w-4 h-4" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm text-slate-100 font-medium truncate">{it.label}</div>
                   <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
-                    {estTransport ? (
+                    {estJalon ? (
+                      <>{it.detail ? it.detail : "Jalon logistique"}</>
+                    ) : estTransport ? (
                       <><Car className="w-3 h-3" /> {it.detail}</>
                     ) : estBalade ? (
                       <><MapPin className="w-3 h-3" /> Départ groupe balade</>
