@@ -26,6 +26,7 @@ const APPS_LIST = [
   { id: "console-cm", name: "Console medias (CM)", cat: "qg" },
   { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg" },
   { id: "radios", name: "Parc & attributions radio", cat: "qg" },
+  { id: "cles", name: "Clefier — clés & emprunts", cat: "qg" },
   { id: "balade", name: "Suivi balade & parcours (QG)", cat: "qg" },
   { id: "planning", name: "Planning du week-end", cat: "qg" },
   { id: "recherche", name: "Personne recherchee", cat: "qg", alerte: true },

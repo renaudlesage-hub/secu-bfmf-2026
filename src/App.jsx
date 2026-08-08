@@ -16,6 +16,7 @@ import AppLogistique from "./apps/logistique";
 import StocksBar from "./apps/StocksBar";
 import Jauge from "./apps/jauge";
 import GestionRadios from "./apps/radios";
+import GestionCles from "./apps/cles";
 import AppVolante from "./apps/volante";
 import Sanitaire from "./apps/sanitaire";
 import Balade from "./apps/balade";
@@ -61,6 +62,7 @@ const COMPOSANTS = {
   stocks: StocksBar,
   jauge: Jauge,
   radios: GestionRadios,
+  cles: GestionCles,
   volante: AppVolante,
   sanitaire: Sanitaire,
   balade: Balade,
