@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { RADIO_PLAN, RADIO_MATERIEL, RADIO_EXCEPTION, POSTES_RADIO } from "./referentiels";
 import {
   Radio, User, CheckCircle2, AlertTriangle, Settings2, BatteryFull,
-  Clock, RefreshCw, Download, Search,
+  Clock, RefreshCw, Download, Search, Trash2,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 
@@ -161,6 +161,18 @@ export default function GestionRadios() {
       : a));
   }
 
+  // Supprime une radio du parc (erreur de saisie, radio retirée du service).
+  // Confirmation renforcée si elle est encore en service.
+  async function supprimerRadio(id) {
+    const r = attributions.find((a) => a.id === id);
+    if (!r) return;
+    const msg = r.statut === "En service"
+      ? `${r.serial} est EN SERVICE (${r.assigneA}). Supprimer quand même du parc ?`
+      : `Supprimer ${r.serial} du parc ?`;
+    if (!window.confirm(msg)) return;
+    await persist(attributions.filter((a) => a.id !== id));
+  }
+
   function exportCSV() {
     const esc = (s) => (/[";\n]/.test(s || "") ? '"' + String(s).replace(/"/g, '""') + '"' : (s || ""));
     const lignes = [["Serie", "Assignee a", "Canal", "Statut", "Sortie", "Retour", "Attribuee par"].join(";")];
@@ -274,6 +286,9 @@ export default function GestionRadios() {
                     ) : (
                       <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> En charge</span>
                     )}
+                    <button onClick={() => supprimerRadio(attr.id)} className="text-slate-600 hover:text-red-300 transition-colors" title="Supprimer du parc">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
