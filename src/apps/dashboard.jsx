@@ -1279,7 +1279,7 @@ export default function DashboardQG() {
                 <h3 className="font-display text-xs text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Droplets className="w-4 h-4 text-cyan-400" /> Moniteur Sanitaire
                 </h3>
-                <span className="font-mono text-xxs bg-cyan-500/10 text-cyan-400 px-1.5 rounded border border-cyan-500/20">{sanActifs.length} Actives</span>
+                <a href="#sanitaire" className="font-mono text-[10px] text-cyan-300 hover:text-cyan-200 hover:underline">Ouvrir l'app →</a>
               </div>
 
               <div className="space-y-2 overflow-y-auto pr-1 flex-1">
