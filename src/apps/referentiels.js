@@ -127,8 +127,14 @@ export const POINTS_GPS = {
       être unique et stable (c'est la clé de correspondance).
 --------------------------------------------------------------------- */
 export const CHAUFFEURS = [
-  { id: "ch1", nom: "Valentin", tel: "0471 01 20 66", vehicule: "Ferribus" },
-  { id: "ch2", nom: "Valentin", tel: "0471 01 20 66", vehicule: "Vitara" },
+  { id: "ch1", nom: "Valentin", tel: "0471 01 20 66" },
+];
+
+// Véhicules disponibles, indépendants des chauffeurs. Au moment d'attribuer
+// un transport, on choisit un chauffeur ET un véhicule séparément.
+export const VEHICULES = [
+  { id: "veh1", nom: "Ferribus", note: "" },
+  { id: "veh2", nom: "Vitara", note: "" },
 ];
 
  /* ------------------------- ANNUAIRE DE CRISE -------------------------

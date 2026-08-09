@@ -4,7 +4,7 @@ import {
   Plus, X, Check, ArrowRight, Trash2, TriangleAlert, Truck, Users, Navigation, Pencil,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
-import { STATUTS, STATUT_INITIAL, STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU, CHAUFFEURS } from "./referentiels";
+import { STATUTS, STATUT_INITIAL, STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU, CHAUFFEURS, VEHICULES } from "./referentiels";
 
 /* ---------------------------------------------------------------------
    TRANSPORT DE PERSONNES -- BFMF 2026
@@ -171,10 +171,10 @@ export default function Transport() {
   }
 
   // Circuit CHAUFFEUR : la demande reste dans transport, vue par l'app chauffeur.
-  async function attribuerChauffeur(id, chauffeur) {
+  async function attribuerChauffeur(id, chauffeur, vehicule) {
     const h = nowHM();
     const fusion = await kvMerge(KEY_TRANSPORT, (liste) =>
-      liste.map((d) => d.id === id ? { ...d, statut: STATUT_ATTRIBUEE, cible: "chauffeur", chauffeur, heureAttribution: h } : d));
+      liste.map((d) => d.id === id ? { ...d, statut: STATUT_ATTRIBUEE, cible: "chauffeur", chauffeur, vehicule: vehicule || "", heureAttribution: h } : d));
     if (fusion) { setDemandes(fusion); setSyncError(false); } else setSyncError(true);
   }
 
@@ -338,7 +338,7 @@ export default function Transport() {
               <CarteDemande
                 key={d.id}
                 d={d}
-                onAttribuerChauffeur={(chauffeur) => attribuerChauffeur(d.id, chauffeur)}
+                onAttribuerChauffeur={(chauffeur, vehicule) => attribuerChauffeur(d.id, chauffeur, vehicule)}
                 onAttribuerVolante={() => attribuerVolante(d.id)}
                 onAvancer={() => avancer(d.id)}
                 onSupprimer={() => supprimer(d.id)}
@@ -365,6 +365,7 @@ export default function Transport() {
 /* ---- Carte d'une demande de transport ---- */
 function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, onSupprimer, onModifier, ouvert, onToggle }) {
   const [chauffeurInput, setChauffeurInput] = useState("");
+  const [vehiculeInput, setVehiculeInput] = useState("");
   const nm = natureMeta(d.nature);
   const st = statutStyle(d.statut);
   const vm = volumeMeta(d.volume);
@@ -405,10 +406,15 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
               </div>
             )}
             {d.chauffeur && (
-              <div className="col-span-2 flex items-center gap-2 text-slate-300">
+              <div className="col-span-2 flex items-center gap-2 text-slate-300 flex-wrap">
                 {d.cible === "volante" ? <Users className="w-3.5 h-3.5 text-cyan-400" /> : <Car className="w-3.5 h-3.5 text-slate-500" />}
                 {d.cible === "volante" ? "Confié à : " : "Chauffeur : "}
                 <strong className="font-normal text-slate-100">{d.chauffeur}</strong>
+                {d.vehicule && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-mono px-1.5 py-0.5 rounded bg-indigo-400/10 text-indigo-200 ring-1 ring-indigo-400/25">
+                    <Car className="w-3 h-3" /> {d.vehicule}
+                  </span>
+                )}
               </div>
             )}
             <div className="col-span-2 text-[11px] text-slate-500">
@@ -459,25 +465,37 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
                   <Users className="w-4 h-4" /> Attribuer à l'équipe volante
                 </button>
                 {/* Circuit 2 : confier à un chauffeur extérieur (app chauffeur).
-                    Liste déroulante des profils : évite les fautes de frappe
-                    qui casseraient le lien avec l'app chauffeur. */}
-                <div className="flex items-center gap-1.5">
-                  <select
-                    value={chauffeurInput}
-                    onChange={(e) => setChauffeurInput(e.target.value)}
-                    className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white"
-                  >
-                    <option value="">Choisir un chauffeur…</option>
-                    {CHAUFFEURS.map((c) => (
-                      <option key={c.id} value={c.nom}>{c.nom}{c.vehicule ? ` — ${c.vehicule}` : ""}</option>
-                    ))}
-                  </select>
+                    Chauffeur ET véhicule sont choisis séparément (un chauffeur
+                    peut prendre différents véhicules selon la mission). */}
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <select
+                      value={chauffeurInput}
+                      onChange={(e) => setChauffeurInput(e.target.value)}
+                      className="min-w-0 bg-black/40 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white"
+                    >
+                      <option value="">Chauffeur…</option>
+                      {CHAUFFEURS.map((c) => (
+                        <option key={c.id} value={c.nom}>{c.nom}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={vehiculeInput}
+                      onChange={(e) => setVehiculeInput(e.target.value)}
+                      className="min-w-0 bg-black/40 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white"
+                    >
+                      <option value="">Véhicule…</option>
+                      {VEHICULES.map((v) => (
+                        <option key={v.id} value={v.nom}>{v.nom}</option>
+                      ))}
+                    </select>
+                  </div>
                   <button
-                    onClick={() => chauffeurInput.trim() && onAttribuerChauffeur(chauffeurInput.trim())}
+                    onClick={() => chauffeurInput.trim() && onAttribuerChauffeur(chauffeurInput.trim(), vehiculeInput.trim())}
                     disabled={!chauffeurInput.trim()}
-                    className="text-xs font-mono px-3 py-1.5 rounded bg-indigo-500/20 text-indigo-200 ring-1 ring-indigo-500/40 disabled:opacity-40 shrink-0"
+                    className="w-full text-xs font-mono px-3 py-1.5 rounded bg-indigo-500/20 text-indigo-200 ring-1 ring-indigo-500/40 disabled:opacity-40"
                   >
-                    Attribuer
+                    Attribuer au chauffeur
                   </button>
                 </div>
               </div>

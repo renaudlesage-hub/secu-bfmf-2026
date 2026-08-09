@@ -194,7 +194,7 @@ export default function Chauffeur() {
             >
               <option value="">Sélectionnez votre nom…</option>
               {CHAUFFEURS.map((c) => (
-                <option key={c.id} value={c.nom}>{c.nom}{c.vehicule ? ` — ${c.vehicule}` : ""}</option>
+                <option key={c.id} value={c.nom}>{c.nom}</option>
               ))}
             </select>
             <button

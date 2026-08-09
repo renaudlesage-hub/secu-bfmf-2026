@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { RADIO_PLAN, RADIO_MATERIEL, RADIO_EXCEPTION, POSTES_RADIO } from "./referentiels";
 import {
   Radio, User, CheckCircle2, AlertTriangle, Settings2, BatteryFull,
-  Clock, RefreshCw, Download, Search, Trash2,
+  Clock, RefreshCw, Download, Search, Trash2, Repeat,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 
@@ -102,6 +102,11 @@ export default function GestionRadios() {
   const [formCanal, setFormCanal] = useState(CANAUX[0]);
   const [filtre, setFiltre] = useState("");
   const [now, setNow] = useState(new Date());
+  // Ré-attribution d'une radio rendue (principe de l'app clés) : on rouvre
+  // une attribution sur une radio déjà retournée, sans re-saisir le série.
+  const [reattribPour, setReattribPour] = useState(null); // { id, serial }
+  const [reUser, setReUser] = useState("");
+  const [reCanal, setReCanal] = useState(CANAUX[0]);
 
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
 
@@ -159,6 +164,18 @@ export default function GestionRadios() {
     await persist(attributions.map((a) => a.id === id
       ? { ...a, statut: "Retournée (en charge)", heureRetour: nowHM(), rendueA: monNom() }
       : a));
+  }
+
+  // Ré-attribue une radio rendue : la ligne repart "En service" avec un
+  // nouveau porteur et canal, sans re-saisir le numéro de série (comme
+  // "Prêter" une clé rendue dans l'app clés).
+  async function confirmerReattribution() {
+    if (!reattribPour || !reUser.trim()) return;
+    const next = attributions.map((a) => a.id === reattribPour.id
+      ? { ...a, assigneA: reUser.trim(), canal: reCanal, statut: "En service", heure: nowHM(), heureRetour: null, rendueA: null, parQui: monNom() }
+      : a);
+    setReattribPour(null); setReUser(""); setReCanal(CANAUX[0]);
+    await persist(next);
   }
 
   // Supprime une radio du parc (erreur de saisie, radio retirée du service).
@@ -284,7 +301,12 @@ export default function GestionRadios() {
                         Marquer retour
                       </button>
                     ) : (
-                      <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3 h-3" /> En charge</span>
+                      <button
+                        onClick={() => { setReattribPour({ id: attr.id, serial: attr.serial }); setReUser(""); setReCanal(attr.canal || CANAUX[0]); }}
+                        className="flex items-center gap-1 px-2 py-1 rounded bg-sky-500/15 text-sky-200 ring-1 ring-sky-400/30 hover:bg-sky-500/25 transition-colors"
+                        title="Ré-attribuer cette radio">
+                        <Repeat className="w-3 h-3" /> Ré-attribuer
+                      </button>
                     )}
                     <button onClick={() => supprimerRadio(attr.id)} className="text-slate-600 hover:text-red-300 transition-colors" title="Supprimer du parc">
                       <Trash2 className="w-3.5 h-3.5" />
@@ -396,6 +418,39 @@ export default function GestionRadios() {
           </div>
         </div>
       </main>
+
+      {/* Modale de ré-attribution : redonner une radio rendue à quelqu'un */}
+      {reattribPour && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setReattribPour(null)}>
+          <div className="bg-[#141a22] rounded-xl ring-1 ring-white/15 w-full max-w-sm p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display tracking-wide text-slate-100 flex items-center gap-2">
+              <Repeat className="w-5 h-5 text-sky-300" /> Ré-attribuer la radio
+            </h2>
+            <div className="text-[11px] font-mono text-slate-400 bg-black/20 rounded px-2.5 py-1.5">
+              <span className="text-sky-300">{reattribPour.serial}</span> · radio rendue, remise en service
+            </div>
+            <div>
+              <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1">Attribuée à *</label>
+              <input autoFocus value={reUser} onChange={(e) => setReUser(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") confirmerReattribution(); }}
+                placeholder="Nom / rôle du porteur" className={inputCls} />
+            </div>
+            <div>
+              <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-1">Canal</label>
+              <select value={reCanal} onChange={(e) => setReCanal(e.target.value)} className={inputCls}>
+                {CANAUX.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setReattribPour(null)} className="px-4 py-2 rounded-lg text-sm text-slate-400 ring-1 ring-white/10 hover:text-slate-200">Annuler</button>
+              <button onClick={confirmerReattribution} disabled={!reUser.trim()}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-sky-500/25 text-sky-100 ring-1 ring-sky-400/50 disabled:opacity-40">
+                Remettre en service
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
