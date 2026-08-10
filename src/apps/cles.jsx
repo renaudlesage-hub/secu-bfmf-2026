@@ -76,7 +76,7 @@ export default function GestionCles() {
   // Formulaire d'encodage.
   const [fNom, setFNom] = useState("");
   const [fLocal, setFLocal] = useState("");
-  const [fNote, setFNote] = useState("");
+  const [fClou, setFClou] = useState("");
 
   // Emprunt : à qui, pour la clé en cours d'attribution.
   const [empruntPour, setEmpruntPour] = useState(null); // { id }
@@ -109,7 +109,7 @@ export default function GestionCles() {
       ref: prochaineRef(cles),
       nom: fNom.trim(),
       local: fLocal.trim(),
-      note: fNote.trim(),
+      clou: fClou.trim(),
       statut: "Disponible",
       empruntePar: null,
       heureEmprunt: null,
@@ -117,7 +117,7 @@ export default function GestionCles() {
       parQui: monNom(),
       creeeLe: nowHM(),
     };
-    setFNom(""); setFLocal(""); setFNote("");
+    setFNom(""); setFLocal(""); setFClou("");
     await persist([...cles, cle]);
   }
 
@@ -148,9 +148,9 @@ export default function GestionCles() {
 
   function exportCSV() {
     const esc = (s) => (/[";\n]/.test(s || "") ? '"' + String(s).replace(/"/g, '""') + '"' : (s || ""));
-    const lignes = [["Ref", "Cle", "Local", "Statut", "Empruntee par", "Heure emprunt", "Rendue a", "Note", "Par"].join(";")];
+    const lignes = [["Ref", "Cle", "Local", "N° clou", "Statut", "Empruntee par", "Heure emprunt", "Rendue a", "Par"].join(";")];
     cles.forEach((c) => {
-      lignes.push([c.ref, esc(c.nom), esc(c.local), c.statut, esc(c.empruntePar || ""), c.heureEmprunt || "", c.rendueLe || "", esc(c.note || ""), esc(c.parQui || "")].join(";"));
+      lignes.push([c.ref, esc(c.nom), esc(c.local), esc(c.clou || c.note || ""), c.statut, esc(c.empruntePar || ""), c.heureEmprunt || "", c.rendueLe || "", esc(c.parQui || "")].join(";"));
     });
     const blob = new Blob(["\uFEFF" + lignes.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -236,8 +236,13 @@ export default function GestionCles() {
                     <div key={c.id} className={`rounded-lg px-3 py-2.5 ring-1 flex items-center gap-3 ${sortie ? "ring-amber-400/30 bg-amber-400/[0.05]" : "ring-white/10 bg-black/20"}`}>
                       <span className="font-mono text-xs font-bold text-amber-300 w-12 shrink-0">{c.ref}</span>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm text-slate-100 font-medium truncate">
-                          {c.nom}{c.local ? <span className="text-slate-500 font-normal"> · {c.local}</span> : null}
+                        <div className="text-sm text-slate-100 font-medium truncate flex items-center gap-1.5">
+                          <span className="truncate">{c.nom}{c.local ? <span className="text-slate-500 font-normal"> · {c.local}</span> : null}</span>
+                          {(c.clou || c.note) && (
+                            <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-300 ring-1 ring-amber-400/20">
+                              clou {c.clou || c.note}
+                            </span>
+                          )}
                         </div>
                         <div className="text-[10px] font-mono mt-0.5">
                           {sortie ? (
@@ -245,7 +250,6 @@ export default function GestionCles() {
                           ) : (
                             <span className="text-emerald-400">Disponible{c.rendueLe ? ` · rendue ${c.rendueLe}` : ""}</span>
                           )}
-                          {c.note ? <span className="text-slate-600"> · {c.note}</span> : null}
                         </div>
                       </div>
                       {sortie ? (
@@ -283,7 +287,7 @@ export default function GestionCles() {
             <form onSubmit={encoderCle} className="space-y-2">
               <input value={fNom} onChange={(e) => setFNom(e.target.value)} placeholder="Nom / désignation (ex : Cadenas régie)" className={inputCls} required />
               <input value={fLocal} onChange={(e) => setFLocal(e.target.value)} placeholder="Local / accès (ex : Container backstage)" className={inputCls} />
-              <input value={fNote} onChange={(e) => setFNote(e.target.value)} placeholder="Note (optionnel)" className={inputCls} />
+              <input value={fClou} onChange={(e) => setFClou(e.target.value)} placeholder="N° de clou sur le panneau (ex : 12)" className={inputCls} />
               <button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 rounded font-bold text-xs text-white py-2 transition-colors inline-flex items-center justify-center gap-1.5">
                 <Plus className="w-4 h-4" /> ENCODER LA CLÉ
               </button>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Shield, Truck, HeartPulse, Search, ChevronDown, ChevronRight,
-  LayoutDashboard, X, Globe, ShieldAlert, Users,
+  LayoutDashboard, X, Globe, ShieldAlert, Users, ClipboardList,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------
@@ -11,7 +11,8 @@ import {
 ------------------------------------------------------------------ */
 
 const CATEGORIES = {
-  qg: { label: "Commandement & QG", icon: Shield, color: "text-amber-400" },
+  qg: { label: "Commandement & Sécurité", icon: Shield, color: "text-amber-400" },
+  gestion: { label: "Gestion QG", icon: ClipboardList, color: "text-indigo-400" },
   logistique: { label: "Logistique & Regulation", icon: Truck, color: "text-sky-400" },
   rh: { label: "Ressources humaines", icon: Users, color: "text-violet-400" },
   terrain: { label: "Secours & Terrain", icon: HeartPulse, color: "text-cyan-400" },
@@ -23,17 +24,18 @@ const APPS_LIST = [
   { id: "dashboard", name: "Tableau de bord QG", cat: "qg" },
   { id: "maincourante", name: "Main courante QG", cat: "qg" },
   { id: "cartographie", name: "Map Ops — cartographie", cat: "qg" },
-  { id: "console-cm", name: "Console medias (CM)", cat: "qg" },
+  // { id: "console-cm", name: "Console medias (CM)", cat: "qg" }, // masquée — non utilisée pour BFMF 2026
   { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg" },
-  { id: "radios", name: "Parc & attributions radio", cat: "qg" },
-  { id: "cles", name: "Clefier — clés & emprunts", cat: "qg" },
   { id: "balade", name: "Suivi balade & parcours (QG)", cat: "qg" },
-  { id: "planning", name: "Planning du week-end", cat: "qg" },
   { id: "recherche", name: "Personne recherchee", cat: "qg", alerte: true },
+
+  { id: "radios", name: "Parc & attributions radio", cat: "gestion" },
+  { id: "cles", name: "Clefier — clés & emprunts", cat: "gestion" },
+  { id: "planning", name: "Planning du week-end", cat: "gestion" },
+  { id: "transport", name: "Transport de personnes", cat: "gestion" },
 
   // Pole Logistique & Regulation
   { id: "logistique", name: "Missions logistiques", cat: "logistique" },
-  { id: "transport", name: "Transport de personnes", cat: "logistique" },
   { id: "stocks", name: "Stocks bar (plaine + etapes)", cat: "logistique" },
   { id: "jauge", name: "Jauge plaine / acces", cat: "logistique" },
 
@@ -55,7 +57,7 @@ const APPS_LIST = [
 
 export default function MenuApps({ currentApp, onChangeApp, onClose }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [openCats, setOpenCats] = useState({ qg: true, logistique: true, rh: true, terrain: true, liendirect: false });
+  const [openCats, setOpenCats] = useState({ qg: true, gestion: true, logistique: true, rh: true, terrain: true, liendirect: false });
 
   const toggleCat = (cat) => setOpenCats((prev) => ({ ...prev, [cat]: !prev[cat] }));
 
