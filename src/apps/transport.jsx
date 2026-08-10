@@ -366,6 +366,9 @@ export default function Transport() {
 function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, onSupprimer, onModifier, ouvert, onToggle }) {
   const [chauffeurInput, setChauffeurInput] = useState("");
   const [vehiculeInput, setVehiculeInput] = useState("");
+  // Ré-attribution d'une demande déjà attribuée à un chauffeur : ré-affiche
+  // les sélecteurs, pré-remplis avec les valeurs actuelles, pour corriger.
+  const [modifAttrib, setModifAttrib] = useState(false);
   const nm = natureMeta(d.nature);
   const st = statutStyle(d.statut);
   const vm = volumeMeta(d.volume);
@@ -455,26 +458,35 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
 
           {/* Actions selon le statut (cycle QG) */}
           <div className="flex flex-wrap gap-2 items-center">
-            {d.statut === STATUT_INITIAL && (
+            {/* Bloc d'attribution : à la création (STATUT_INITIAL) OU en
+                ré-attribution d'une demande déjà confiée à un chauffeur. */}
+            {(d.statut === STATUT_INITIAL || modifAttrib) && (
               <div className="w-full space-y-2">
-                {/* Circuit 1 : confier à l'équipe volante (app volante existante) */}
-                <button
-                  onClick={onAttribuerVolante}
-                  className="w-full flex items-center justify-center gap-2 text-xs font-mono font-semibold px-3 py-2 rounded bg-cyan-500/20 text-cyan-200 ring-1 ring-cyan-500/40 hover:bg-cyan-500/30 transition-colors"
-                >
-                  <Users className="w-4 h-4" /> Attribuer à l'équipe volante
-                </button>
+                {/* Circuit 1 : confier à l'équipe volante (seulement à la création) */}
+                {d.statut === STATUT_INITIAL && (
+                  <button
+                    onClick={onAttribuerVolante}
+                    className="w-full flex items-center justify-center gap-2 text-xs font-mono font-semibold px-3 py-2 rounded bg-cyan-500/20 text-cyan-200 ring-1 ring-cyan-500/40 hover:bg-cyan-500/30 transition-colors"
+                  >
+                    <Users className="w-4 h-4" /> Attribuer à l'équipe volante
+                  </button>
+                )}
                 {/* Circuit 2 : confier à un chauffeur extérieur (app chauffeur).
                     Chauffeur ET véhicule sont choisis séparément (un chauffeur
                     peut prendre différents véhicules selon la mission). */}
                 <div className="space-y-1.5">
+                  {modifAttrib && (
+                    <div className="text-[10px] font-mono text-indigo-300/80">
+                      Ré-attribution — chauffeur actuel : {d.chauffeur || "—"}{d.vehicule ? ` · ${d.vehicule}` : ""}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-1.5">
                     <select
                       value={chauffeurInput}
                       onChange={(e) => setChauffeurInput(e.target.value)}
                       className="min-w-0 bg-black/40 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white"
                     >
-                      <option value="">Chauffeur…</option>
+                      <option value="">{modifAttrib && d.chauffeur ? d.chauffeur + " (actuel)" : "Chauffeur…"}</option>
                       {CHAUFFEURS.map((c) => (
                         <option key={c.id} value={c.nom}>{c.nom}</option>
                       ))}
@@ -484,26 +496,55 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
                       onChange={(e) => setVehiculeInput(e.target.value)}
                       className="min-w-0 bg-black/40 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white"
                     >
-                      <option value="">Véhicule…</option>
+                      <option value="">{modifAttrib && d.vehicule ? d.vehicule + " (actuel)" : "Véhicule…"}</option>
                       {VEHICULES.map((v) => (
                         <option key={v.id} value={v.nom}>{v.nom}</option>
                       ))}
                     </select>
                   </div>
-                  <button
-                    onClick={() => chauffeurInput.trim() && onAttribuerChauffeur(chauffeurInput.trim(), vehiculeInput.trim())}
-                    disabled={!chauffeurInput.trim()}
-                    className="w-full text-xs font-mono px-3 py-1.5 rounded bg-indigo-500/20 text-indigo-200 ring-1 ring-indigo-500/40 disabled:opacity-40"
-                  >
-                    Attribuer au chauffeur
-                  </button>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => {
+                        // En ré-attribution, si un champ est laissé vide, on garde la valeur actuelle.
+                        const ch = chauffeurInput.trim() || (modifAttrib ? (d.chauffeur || "") : "");
+                        const ve = vehiculeInput.trim() || (modifAttrib ? (d.vehicule || "") : "");
+                        if (!ch) return;
+                        onAttribuerChauffeur(ch, ve);
+                        setChauffeurInput(""); setVehiculeInput(""); setModifAttrib(false);
+                      }}
+                      disabled={!modifAttrib && !chauffeurInput.trim()}
+                      className="flex-1 text-xs font-mono px-3 py-1.5 rounded bg-indigo-500/20 text-indigo-200 ring-1 ring-indigo-500/40 disabled:opacity-40"
+                    >
+                      {modifAttrib ? "Enregistrer la ré-attribution" : "Attribuer au chauffeur"}
+                    </button>
+                    {modifAttrib && (
+                      <button
+                        onClick={() => { setModifAttrib(false); setChauffeurInput(""); setVehiculeInput(""); }}
+                        className="text-xs font-mono px-3 py-1.5 rounded text-slate-400 ring-1 ring-white/10 hover:text-slate-200"
+                      >
+                        Annuler
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
-            {d.statut === STATUT_ATTRIBUEE && (
-              <button onClick={onAvancer} className="text-xs font-mono px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/40">
-                Départ (passer en cours)
-              </button>
+            {d.statut === STATUT_ATTRIBUEE && !modifAttrib && (
+              <>
+                <button onClick={onAvancer} className="text-xs font-mono px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/40">
+                  Départ (passer en cours)
+                </button>
+                {/* Ré-attribuer : seulement si c'est un chauffeur (pas l'équipe volante). */}
+                {d.cible === "chauffeur" && (
+                  <button
+                    onClick={() => { setModifAttrib(true); setChauffeurInput(""); setVehiculeInput(""); }}
+                    className="flex items-center gap-1 text-xs font-mono px-3 py-1.5 rounded bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-400/30 hover:bg-indigo-500/25 transition-colors"
+                    title="Changer le chauffeur ou le véhicule"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Ré-attribuer
+                  </button>
+                )}
+              </>
             )}
             {d.statut === STATUT_EN_COURS && (
               <button onClick={onAvancer} className="text-xs font-mono px-3 py-1.5 rounded bg-emerald-600/30 text-emerald-100 ring-1 ring-emerald-500/50">
@@ -515,12 +556,16 @@ function CarteDemande({ d, onAttribuerChauffeur, onAttribuerVolante, onAvancer, 
                 Terminé{d.heureArrivee ? ` à ${d.heureArrivee}` : ""}.
               </span>
             )}
-            <button onClick={onModifier} className="ml-auto flex items-center gap-1 text-[11px] font-mono text-slate-500 hover:text-indigo-300 transition-colors" title="Modifier cette demande">
-              <Pencil className="w-3.5 h-3.5" /> Modifier
-            </button>
-            <button onClick={onSupprimer} className="text-slate-600 hover:text-red-300" title="Supprimer">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            {!modifAttrib && (
+              <>
+                <button onClick={onModifier} className="ml-auto flex items-center gap-1 text-[11px] font-mono text-slate-500 hover:text-indigo-300 transition-colors" title="Modifier cette demande">
+                  <Pencil className="w-3.5 h-3.5" /> Modifier
+                </button>
+                <button onClick={onSupprimer} className="text-slate-600 hover:text-red-300" title="Supprimer">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

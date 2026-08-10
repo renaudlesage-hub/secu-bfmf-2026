@@ -5,6 +5,16 @@ import {
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 import { STATUT_ATTRIBUEE, STATUT_EN_COURS, STATUT_RESOLU, CHAUFFEURS } from "./referentiels";
 
+// Étapes intermédiaires d'une course, pendant le statut "En cours".
+// Pour chaque étape : l'état affiché (badge) et le libellé du bouton qui
+// fait passer à la SUIVANTE. La dernière (depose) termine la course.
+const ETAPES = {
+  en_route: { badge: "En route vers la prise en charge", bouton: "Personnes chargées", couleur: "text-sky-300", dot: "bg-sky-400" },
+  charge:   { badge: "Personnes à bord",                  bouton: "En route retour",    couleur: "text-amber-300", dot: "bg-amber-400" },
+  retour:   { badge: "Sur le retour",                     bouton: "Déposé à destination", couleur: "text-violet-300", dot: "bg-violet-400" },
+  depose:   { badge: "Personnes déposées",                bouton: "Terminer la course", couleur: "text-emerald-300", dot: "bg-emerald-400" },
+};
+
 /* ---------------------------------------------------------------------
    APP CHAUFFEUR — BFMF 2026 (chauffeurs extérieurs)
    Vue terrain légère, comme l'équipe sanitaire : ouverte par lien direct,
@@ -115,14 +125,30 @@ export default function Chauffeur() {
     try { localStorage.removeItem(CHOIX_CHAUFFEUR_KEY); } catch (e) {}
   }
 
-  // Avance une course : Attribuee -> En cours (départ) -> Resolue (arrivée).
+  // Avance une course par ÉTAPES détaillées, tout en gardant le statut
+  // principal (Attribuee/En cours/Resolue) compatible avec transport/planning.
+  //   Attribuée --[En route]--> En cours (etape "en_route")
+  //   en_route  --[Chargé]-----> etape "charge"
+  //   charge    --[Retour]------> etape "retour"
+  //   retour    --[Déposé]------> etape "depose"
+  //   depose    --[Terminer]----> Resolue
   async function avancer(id) {
     const h = nowHM();
     const fusion = await kvMerge(KEY_TRANSPORT, (liste) =>
       liste.map((d) => {
         if (d.id !== id) return d;
-        if (d.statut === STATUT_ATTRIBUEE) return { ...d, statut: STATUT_EN_COURS, heureDepart: h };
-        if (d.statut === STATUT_EN_COURS) return { ...d, statut: STATUT_RESOLU, heureArrivee: h };
+        // Départ depuis "Attribuee" : on entre en course, première étape.
+        if (d.statut === STATUT_ATTRIBUEE) {
+          return { ...d, statut: STATUT_EN_COURS, etape: "en_route", heureDepart: h, heureEnRoute: h };
+        }
+        if (d.statut === STATUT_EN_COURS) {
+          const et = d.etape || "en_route";
+          if (et === "en_route") return { ...d, etape: "charge", heureCharge: h };
+          if (et === "charge")   return { ...d, etape: "retour", heureRetour: h };
+          if (et === "retour")   return { ...d, etape: "depose", heureDepose: h };
+          // depose -> on termine la course.
+          return { ...d, statut: STATUT_RESOLU, etape: "termine", heureArrivee: h };
+        }
         return d;
       }));
     if (fusion) {
@@ -148,6 +174,8 @@ export default function Chauffeur() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap');
         .font-display { font-family: 'Oswald', sans-serif; }
+        @keyframes pulseSlow { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+        .pulse-slow { animation: pulseSlow 1.8s ease-in-out infinite; }
       `}</style>
 
       {/* En-tête simple */}
@@ -333,18 +361,30 @@ function CarteCourse({ d, onAvancer }) {
       </div>
       {d.note && <div className="mt-2 text-[11px] text-slate-300 bg-white/[0.02] rounded p-2 leading-snug">{d.note}</div>}
 
-      {/* Action : Départ -> Arrivée */}
+      {/* Action : progression par étapes détaillées */}
       <div className="mt-3">
         {d.statut === STATUT_ATTRIBUEE && (
           <button onClick={onAvancer} className="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-display text-base tracking-wide flex items-center justify-center gap-2 transition-colors">
-            <Car className="w-5 h-5" /> C'est parti (départ)
+            <Car className="w-5 h-5" /> En route (départ)
           </button>
         )}
-        {enCours && (
-          <button onClick={onAvancer} className="w-full py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-display text-base tracking-wide flex items-center justify-center gap-2 transition-colors">
-            <Check className="w-5 h-5" /> Arrivé à destination
-          </button>
-        )}
+        {enCours && (() => {
+          const et = d.etape || "en_route";
+          const info = ETAPES[et] || ETAPES.en_route;
+          return (
+            <div className="space-y-2">
+              {/* État courant bien visible */}
+              <div className={`flex items-center gap-2 justify-center text-sm font-mono ${info.couleur}`}>
+                <span className={`w-2 h-2 rounded-full ${info.dot} pulse-slow`} />
+                {info.badge}
+              </div>
+              {/* Bouton vers l'étape suivante */}
+              <button onClick={onAvancer} className="w-full py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-display text-base tracking-wide flex items-center justify-center gap-2 transition-colors">
+                <ArrowRight className="w-5 h-5" /> {info.bouton}
+              </button>
+            </div>
+          );
+        })()}
         {termine && (
           <div className="text-center py-2 text-emerald-300/80 text-sm flex items-center justify-center gap-1.5">
             <Check className="w-4 h-4" /> Course terminée{d.heureArrivee ? ` à ${d.heureArrivee}` : ""}

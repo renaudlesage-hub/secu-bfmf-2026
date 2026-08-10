@@ -161,6 +161,15 @@ const KEY_TRANSPORT = "bfmf2026-transport";
 // Doit rester aligné avec la table JOURS de transport.jsx.
 const JOURS_COURT = { j0: "Ven 14/08", j1: "Sam 15/08", j2: "Dim 16/08", j3: "Lun 17/08", j4: "Mar 18/08" };
 const labelJour = (j) => JOURS_COURT[j] || j || "";
+
+// Étapes détaillées d'une course chauffeur (alignées avec chauffeur.jsx) :
+// badge d'état pour le suivi PC pendant le statut "En cours".
+const ETAPES_TRSP = {
+  en_route: { label: "En route", couleur: "text-sky-300", dot: "bg-sky-400" },
+  charge:   { label: "Personnes à bord", couleur: "text-amber-300", dot: "bg-amber-400" },
+  retour:   { label: "Sur le retour", couleur: "text-violet-300", dot: "bg-violet-400" },
+  depose:   { label: "Déposées", couleur: "text-emerald-300", dot: "bg-emerald-400" },
+};
 const KEY_CONSIGNE = "bfmf2026-volante-consigne";
 const KEY_METEO = "bfmf2026-meteo";
 const KEY_MEDIAS = "bfmf2026-medias-live";
@@ -1212,48 +1221,91 @@ export default function DashboardQG() {
               <div className="flex-1 overflow-y-auto">
               {(() => {
                 const actifs = transport.filter((t) => t && t.statut !== "Resolue");
+                // Courses en cours (chauffeur parti) : on montre leur ÉTAPE.
+                const enCourse = actifs
+                  .filter((t) => t.statut === "En cours")
+                  .sort((a, b) => (a.jour + (a.heure || "")).localeCompare(b.jour + (b.heure || "")));
                 const prochains = actifs
                   .filter((t) => t.statut === "A traiter" || t.statut === "Attribuee")
                   .sort((a, b) => (a.jour + (a.heure || "")).localeCompare(b.jour + (b.heure || "")));
-                return prochains.length === 0 ? (
-                  <div className="text-[11px] text-slate-500 text-center py-4">Aucun transfert en attente.</div>
-                ) : (
-                  <div className="space-y-2">
-                    {prochains.map((t) => (
-                      <div key={t.id} className="bg-black/20 px-2.5 py-2 rounded border border-white/5">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-[11px] text-slate-100 truncate flex-1 min-w-0 font-medium">{t.qui} ×{t.nb} — {t.vers}</span>
-                          <span className="font-mono text-[10px] text-slate-400 shrink-0 text-right">
-                            {labelJour(t.jour)}{t.heure ? ` · ${t.heure}` : ""}
-                          </span>
+                if (enCourse.length === 0 && prochains.length === 0) {
+                  return <div className="text-[11px] text-slate-500 text-center py-4">Aucun transfert en cours ni en attente.</div>;
+                }
+                return (
+                  <div className="space-y-3">
+                    {/* En course : suivi de l'étape en temps réel */}
+                    {enCourse.length > 0 && (
+                      <div>
+                        <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-300/70 mb-1.5">En course ({enCourse.length})</div>
+                        <div className="space-y-2">
+                          {enCourse.map((t) => {
+                            const et = ETAPES_TRSP[t.etape] || ETAPES_TRSP.en_route;
+                            return (
+                              <div key={t.id} className="bg-emerald-400/[0.05] px-2.5 py-2 rounded border border-emerald-400/20">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="text-[11px] text-slate-100 truncate flex-1 min-w-0 font-medium">{t.qui} ×{t.nb} — {t.vers}</span>
+                                  <span className="font-mono text-[10px] text-slate-400 shrink-0">{labelJour(t.jour)}{t.heure ? ` · ${t.heure}` : ""}</span>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-[10px] font-mono flex items-center gap-1 ${et.couleur}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${et.dot}`} /> {et.label}
+                                  </span>
+                                  {t.chauffeur && (
+                                    <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                                      <Car className="w-3 h-3 text-indigo-400" /> {t.chauffeur}{t.vehicule ? ` · ${t.vehicule}` : ""}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        {t.statut === "Attribuee" ? (
-                          <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                            {t.cible === "volante" ? <Users className="w-3 h-3 text-cyan-400" /> : <Car className="w-3 h-3 text-indigo-400" />}
-                            Confié à {t.chauffeur}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => attribuerTransportVolante(t.id)}
-                              className="text-[10px] font-mono px-2 py-1 rounded bg-cyan-400/10 text-cyan-300 ring-1 ring-cyan-400/30 hover:bg-cyan-400/20 flex items-center gap-1"
-                            >
-                              <Users className="w-3 h-3" /> Volante
-                            </button>
-                            <select
-                              defaultValue=""
-                              onChange={(e) => { if (e.target.value) attribuerTransportChauffeur(t.id, e.target.value); }}
-                              className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-1.5 py-1 text-[10px] text-white"
-                            >
-                              <option value="">Chauffeur…</option>
-                              {CHAUFFEURS.map((c) => (
-                                <option key={c.id} value={c.nom}>{c.nom}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
                       </div>
-                    ))}
+                    )}
+
+                    {/* Prochains transferts : en attente d'attribution ou attribués */}
+                    {prochains.length > 0 && (
+                      <div>
+                        {enCourse.length > 0 && <div className="text-[9px] font-mono uppercase tracking-wider text-slate-500 mb-1.5">À venir ({prochains.length})</div>}
+                        <div className="space-y-2">
+                          {prochains.map((t) => (
+                            <div key={t.id} className="bg-black/20 px-2.5 py-2 rounded border border-white/5">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="text-[11px] text-slate-100 truncate flex-1 min-w-0 font-medium">{t.qui} ×{t.nb} — {t.vers}</span>
+                                <span className="font-mono text-[10px] text-slate-400 shrink-0 text-right">
+                                  {labelJour(t.jour)}{t.heure ? ` · ${t.heure}` : ""}
+                                </span>
+                              </div>
+                              {t.statut === "Attribuee" ? (
+                                <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                                  {t.cible === "volante" ? <Users className="w-3 h-3 text-cyan-400" /> : <Car className="w-3 h-3 text-indigo-400" />}
+                                  Confié à {t.chauffeur}{t.vehicule ? ` · ${t.vehicule}` : ""}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => attribuerTransportVolante(t.id)}
+                                    className="text-[10px] font-mono px-2 py-1 rounded bg-cyan-400/10 text-cyan-300 ring-1 ring-cyan-400/30 hover:bg-cyan-400/20 flex items-center gap-1"
+                                  >
+                                    <Users className="w-3 h-3" /> Volante
+                                  </button>
+                                  <select
+                                    defaultValue=""
+                                    onChange={(e) => { if (e.target.value) attribuerTransportChauffeur(t.id, e.target.value); }}
+                                    className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-1.5 py-1 text-[10px] text-white"
+                                  >
+                                    <option value="">Chauffeur…</option>
+                                    {CHAUFFEURS.map((c) => (
+                                      <option key={c.id} value={c.nom}>{c.nom}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
