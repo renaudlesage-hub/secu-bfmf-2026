@@ -24,6 +24,7 @@ import {
   QrCode,
   Printer,
   Trash2,
+  CalendarDays,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------
