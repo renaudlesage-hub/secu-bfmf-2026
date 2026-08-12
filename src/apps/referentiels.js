@@ -607,8 +607,8 @@ export const JALONS_ARTISTES = [
   {
     jour: "Samedi 15/08",
     jalons: [
-      { heure: "14:00", label: "Arrivée artiste — Scène 1", detail: "Accueil + loge" },
-      { heure: "15:30", label: "Balance / soundcheck", detail: "Scène 1" },
+      { heure: "16:00", label: "Arrivée - The Bathrobes", detail: "6 personnes" },
+      { heure: "18:30", label: "Arrivée Clarence Pinko", detail: "10 personnes - 4 voitures" },
       { heure: "18:00", label: "Catering artistes", detail: "Backstage" },
     ],
   },
