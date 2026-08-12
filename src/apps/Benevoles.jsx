@@ -198,6 +198,13 @@ export default function GestionBenevoles() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => { window.location.hash = "planning"; }}
+              className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-violet-400/30 bg-violet-400/10 text-violet-300 hover:bg-violet-400/20 transition-colors"
+              title="Ouvrir le planning du week-end"
+            >
+              <CalendarDays className="w-4 h-4" /> <span className="hidden sm:inline">Planning</span>
+            </button>
+            <button
               onClick={() => { window.location.hash = "stocks"; }}
               className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-sky-400/30 bg-sky-400/10 text-sky-300 hover:bg-sky-400/20 transition-colors"
               title="Ouvrir les stocks bar (plaine + étapes)"

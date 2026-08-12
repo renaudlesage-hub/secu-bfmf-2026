@@ -189,6 +189,13 @@ export default function StocksBar() {
           {/* Boutons d'actions globaux */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
+              onClick={() => { window.location.hash = "planning"; }}
+              className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-violet-400/30 bg-violet-400/10 text-violet-300 hover:bg-violet-400/20 transition-colors"
+              title="Ouvrir le planning du week-end"
+            >
+              <CalendarDays className="w-4 h-4" /> <span className="hidden sm:inline">Planning</span>
+            </button>
+            <button
               onClick={() => { window.location.hash = "logistique"; }}
               className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1.5 rounded ring-1 ring-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20 transition-colors"
               title="Ouvrir les missions logistiques"

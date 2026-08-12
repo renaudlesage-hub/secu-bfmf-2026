@@ -596,6 +596,32 @@ export const JALONS_LOGISTIQUES = [
 ];
 
 
+/* --- Jalons GESTION ARTISTE ----------------------------------------
+   Jalons liés à l'accueil et au suivi des artistes : arrivées, balances
+   (soundcheck), catering, passages scène, départs, etc.
+   Même structure que JALONS_LOGISTIQUES (un tableau par jour, même ordre).
+   Affichés dans le planning avec un style dédié (rose, icône micro).
+   >>> À COMPLÉTER avec les vrais horaires artistes.
+       heure "HH:MM" · label intitulé court · detail (optionnel) */
+export const JALONS_ARTISTES = [
+  {
+    jour: "Samedi 15/08",
+    jalons: [
+      { heure: "14:00", label: "Arrivée artiste — Scène 1", detail: "Accueil + loge" },
+      { heure: "15:30", label: "Balance / soundcheck", detail: "Scène 1" },
+      { heure: "18:00", label: "Catering artistes", detail: "Backstage" },
+    ],
+  },
+  {
+    jour: "Dimanche 16/08",
+    jalons: [
+      { heure: "13:00", label: "Arrivée artiste — Scène 2", detail: "Accueil + loge" },
+      { heure: "14:30", label: "Balance / soundcheck", detail: "Scène 2" },
+    ],
+  },
+];
+
+
 /* --- Fréquentation de reference (dossier § 4.1) ---------------------- */
 export const FREQUENTATION = {
  groupesParJour: 3,
