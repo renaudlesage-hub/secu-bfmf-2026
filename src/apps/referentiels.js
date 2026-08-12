@@ -354,10 +354,10 @@ export const REGLE_OR = "PROTEGER -> ALERTER (112 puis PMR333 si vital) -> SECOU
   le plus proche, pour guider une reconnaissance rapide.
 -------------------------------------------------------------------- */
 export const RESSOURCES_EAU = [
- { type: "Tridivision",     gps: "50.38257, 5.61757", repere: "Site — 96 m de l'entrée" },
+ { type: "Tridivision + 2 lignes d'attaque 45mm",     gps: "50.38279, 5.61623", repere: "Site — 30 m de l'entrée" },
  { type: "Bouche incendie", gps: "50.38281, 5.61920", repere: "Site — 214 m" },
  { type: "Bouche incendie", gps: "50.38385, 5.61412", repere: "Site — 219 m" },
- { type: "Bouche incendie", gps: "50.38391, 5.61419", repere: "Site — 220 m" },
+ { type: "Bouche incendie + stand-pipe + ligne 70mm", gps: "50.38391, 5.61419", repere: "Site — 220 m" },
  { type: "Bouche incendie", gps: "50.38388, 5.61408", repere: "Site — 223 m" },
  { type: "Bouche incendie", gps: "50.38205, 5.62006", repere: "Site — 274 m" },
  { type: "Bouche incendie", gps: "50.38214, 5.62095", repere: "Site — 336 m" },

@@ -164,7 +164,7 @@ const MOYENS_ORGA = [
       + `${DEA.length - 1} autres DEA dans un rayon de 4,5 km. Emplacements ci-dessous.`,
   },
   { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site et par groupe de marcheurs. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières." },
-  { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
+  { titre: "Sécurité privée", detail: "MAXIMUM SECURITY, 15/08 : 2 agents de 20h00 à 03h30, 16/08 : 2 agents de 20h00 à 01h30. Site surveillé par un maître-chien en nuit, canal PMR15." },
   { titre: "Équipe volante organisateur", detail: "3 véhicules 4x4 chacun pourvu d'un extincteur poudre 5kg." },
   { titre: "Accompagnateurs balade", detail: "4 personnes de l'organisation par groupe (dossier § 4.2), briefées sécurité. 3 groupes par jour d'environ 300 personnes." },
 ];
