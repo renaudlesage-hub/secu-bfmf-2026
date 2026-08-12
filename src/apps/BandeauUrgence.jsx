@@ -404,7 +404,7 @@ export default function BandeauUrgence() {
           className={`w-full flex items-center justify-center gap-2 py-2.5 font-mono text-xs font-bold tracking-wider shadow-2xl transition-colors ${
             ouvert
               ? "rounded-b-xl ring-1 ring-red-500/40 bg-red-500/20 text-red-100"
-              : "rounded-xl ring-1 ring-red-500/50 bg-red-500/15 text-red-200 active:bg-red-500/25"
+              : "rounded-xl ring-1 ring-red-500/50 bg-red-500/15 text-red-200 active:bg-red-500/25 mr-24"
           }`}
         >
           <LifeBuoy className="w-4 h-4" />
