@@ -608,9 +608,9 @@ export const JALONS_ARTISTES = [
     jour: "Samedi 15/08",
     jalons: [
       { heure: "16:00", label: "Arrivée - The Bathrobes", detail: "6 personnes" },
-      { heure: "18:30", label: "Arrivée Clarence Pinko", detail: "10 personnes - 4 voitures : " },
+      { heure: "18:30", label: "Arrivée Clarence Pinko", detail: "10 personnes - 4 voitures : 1BBV265, 2BRY849, 1DHF991, 1SJV112 " },
       { heure: "19:00", label: "Arrivée Pamela", detail: "16 personnes - van 9 places" },
-      { heure: "16:00", label: "Arriée Whoisinnocent", detail: "" },
+      { heure: "16:00", label: "Arrivée Whoisinnocent", detail: "" },
       { heure: "19:30", label: "Arrivée Julie Rains", detail: "2 personnes - 1 voiture 2GDT451" },
       { heure: "20:30", label: "Arrivée Cheap Jewels", detail: "4 personnes - 1 voiture AM606NH" },
       { heure: "10:00", label: "Arrivée François Bijoux", detail: "2 personnes - 1 voiture" },
