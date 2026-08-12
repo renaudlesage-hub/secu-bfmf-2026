@@ -299,8 +299,11 @@ export default function BandeauUrgence() {
       )}
 
     <div className="sticky bottom-0 left-0 right-0 z-40 pointer-events-none">
-      {/* pl-16 sur mobile : laisse la place au bouton menu (bas a gauche) */}
-      <div className="max-w-3xl mx-auto pl-16 pr-2 md:px-2 pb-2 pointer-events-auto">
+      {/* pl-16 : place pour le bouton menu (bas gauche).
+          pr-24 : place pour le bouton REX (bas droite) — évite le chevauchement.
+          Le padding réduit l'espace intérieur sans faire déborder (contrairement
+          à une marge sur un élément w-full). */}
+      <div className="max-w-3xl mx-auto pl-16 pr-24 pb-2 pointer-events-auto">
         {ouvert && (
           <div className="rounded-t-xl ring-1 ring-red-500/40 bg-[#141a22] shadow-2xl max-h-[70vh] overflow-y-auto">
             <div className="p-3 space-y-3">
@@ -404,7 +407,7 @@ export default function BandeauUrgence() {
           className={`w-full flex items-center justify-center gap-2 py-2.5 font-mono text-xs font-bold tracking-wider shadow-2xl transition-colors ${
             ouvert
               ? "rounded-b-xl ring-1 ring-red-500/40 bg-red-500/20 text-red-100"
-              : "rounded-xl ring-1 ring-red-500/50 bg-red-500/15 text-red-200 active:bg-red-500/25 mr-24"
+              : "rounded-xl ring-1 ring-red-500/50 bg-red-500/15 text-red-200 active:bg-red-500/25"
           }`}
         >
           <LifeBuoy className="w-4 h-4" />
