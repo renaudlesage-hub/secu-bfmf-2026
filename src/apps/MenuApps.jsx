@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import {
   Shield, Truck, HeartPulse, Search, ChevronDown, ChevronRight,
   LayoutDashboard, X, Globe, ShieldAlert, Users, ClipboardList,
+  BookText, MapPin, Footprints, UserSearch, Radio, KeyRound, CalendarDays,
+  Car, Package, Boxes, Gauge, Bike, Landmark, LifeBuoy, Droplets,
+  Map, Stethoscope, Lightbulb,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------
@@ -21,38 +24,39 @@ const CATEGORIES = {
 
 const APPS_LIST = [
   // Pole Commandement & QG
-  { id: "dashboard", name: "Tableau de bord QG", cat: "qg" },
-  { id: "maincourante", name: "Main courante QG", cat: "qg" },
-  { id: "cartographie", name: "Map Ops — cartographie", cat: "qg" },
-  // { id: "console-cm", name: "Console medias (CM)", cat: "qg" }, // masquée — non utilisée pour BFMF 2026
-  { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg" },
-  { id: "balade", name: "Suivi balade & parcours (QG)", cat: "qg" },
-  { id: "recherche", name: "Personne recherchee", cat: "qg", alerte: true },
+  { id: "dashboard", name: "Tableau de bord QG", cat: "qg", icon: LayoutDashboard },
+  { id: "maincourante", name: "Main courante QG", cat: "qg", icon: BookText },
+  { id: "cartographie", name: "Map Ops — cartographie", cat: "qg", icon: MapPin },
+  // { id: "console-cm", name: "Console medias (CM)", cat: "qg", icon: Globe }, // masquée — non utilisée pour BFMF 2026
+  { id: "fichereflexe", name: "Fiche reflexe secu", cat: "qg", icon: LifeBuoy },
+  { id: "balade", name: "Suivi balade & parcours (QG)", cat: "qg", icon: Footprints },
+  { id: "recherche", name: "Personne recherchee", cat: "qg", alerte: true, icon: UserSearch },
 
-  { id: "radios", name: "Parc & attributions radio", cat: "gestion" },
-  { id: "cles", name: "Clefier — clés & emprunts", cat: "gestion" },
-  { id: "planning", name: "Planning du week-end", cat: "gestion" },
-  { id: "transport", name: "Transport de personnes", cat: "gestion" },
+  { id: "radios", name: "Parc & attributions radio", cat: "gestion", icon: Radio },
+  { id: "cles", name: "Clefier — clés & emprunts", cat: "gestion", icon: KeyRound },
+  { id: "planning", name: "Planning du week-end", cat: "gestion", icon: CalendarDays },
+  { id: "transport", name: "Transport de personnes", cat: "gestion", icon: Car },
+  { id: "rex", name: "Retours d'expérience (REX)", cat: "gestion", icon: Lightbulb },
 
   // Pole Logistique & Regulation
-  { id: "logistique", name: "Missions logistiques", cat: "logistique" },
-  { id: "stocks", name: "Stocks bar (plaine + etapes)", cat: "logistique" },
-  { id: "jauge", name: "Jauge plaine / acces", cat: "logistique" },
+  { id: "logistique", name: "Missions logistiques", cat: "logistique", icon: Truck },
+  { id: "stocks", name: "Stocks bar (plaine + etapes)", cat: "logistique", icon: Boxes },
+  { id: "jauge", name: "Jauge plaine / acces", cat: "logistique", icon: Gauge },
 
   // Pole Ressources humaines
-  { id: "equipe-benevoles", name: "Benevoles (planning / contacts)", cat: "rh" },
+  { id: "equipe-benevoles", name: "Benevoles (planning / contacts)", cat: "rh", icon: Users },
 
   // Pole Secours & Terrain
-  { id: "volante", name: "Equipe volante", cat: "terrain" },
+  { id: "volante", name: "Equipe volante", cat: "terrain", icon: Bike },
 
   // Acces directs : ouverts par lien ou QR, sans menu (bandeaux conserves).
   // Depuis le QG, le bouton RETOUR du navigateur ramene au menu.
-  { id: "balade-light", name: "Balade — accompagnateur", cat: "liendirect" },
-  { id: "chauffeur", name: "Chauffeur — mes courses", cat: "liendirect" },
-  { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "liendirect" },
-  { id: "pcops", name: "PC-Ops / Autorité (lien direct)", cat: "liendirect" },
-  { id: "sos", name: "SOS participant (public)", cat: "liendirect" },
-  { id: "signaler", name: "Signalement sanitaire (public)", cat: "liendirect" },
+  { id: "balade-light", name: "Balade — accompagnateur", cat: "liendirect", icon: Footprints },
+  { id: "chauffeur", name: "Chauffeur — mes courses", cat: "liendirect", icon: Car },
+  { id: "sanitaire", name: "Equipe sanitaire (QR blocs)", cat: "liendirect", icon: Droplets },
+  { id: "pcops", name: "PC-Ops / Autorité (lien direct)", cat: "liendirect", icon: Landmark },
+  { id: "sos", name: "SOS participant (public)", cat: "liendirect", icon: ShieldAlert },
+  { id: "signaler", name: "Signalement sanitaire (public)", cat: "liendirect", icon: Droplets },
 ];
 
 export default function MenuApps({ currentApp, onChangeApp, onClose }) {
@@ -117,11 +121,13 @@ export default function MenuApps({ currentApp, onChangeApp, onClose }) {
                       S'ouvrent SANS le menu interne. Liens directs / QR à diffuser aux équipes et festivaliers.
                     </div>
                   )}
-                  {catApps.map((app) => (
+                  {catApps.map((app) => {
+                    const AppIcon = app.icon;
+                    return (
                     <button
                       key={app.id}
                       onClick={() => onChangeApp(app.id)}
-                      className={`w-full text-left px-2 py-1.5 rounded text-xs transition-all tracking-wide ${
+                      className={`w-full text-left px-2 py-1.5 rounded text-xs transition-all tracking-wide flex items-center gap-2 ${
                         currentApp === app.id
                           ? "bg-sky-500/10 text-sky-400 font-medium border border-sky-500/20 shadow-sm"
                           : estLienDirect
@@ -129,9 +135,11 @@ export default function MenuApps({ currentApp, onChangeApp, onClose }) {
                           : "text-slate-400 hover:bg-white/[0.02] hover:text-slate-200"
                       }`}
                     >
-                      {app.name}
+                      {AppIcon && <AppIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />}
+                      <span className="truncate">{app.name}</span>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

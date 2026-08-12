@@ -4,6 +4,7 @@ import MenuApps from "./apps/MenuApps";
 import BandeauGeneral from "./apps/bandeau-general";
 import BandeauUrgence from "./apps/BandeauUrgence";
 import IndicateurReseau from "./apps/IndicateurReseau";
+import BoutonRex from "./apps/BoutonRex";
 
 // Importations de l'ensemble des modules du dossier apps
 import DashboardQG from "./apps/dashboard";
@@ -17,6 +18,7 @@ import StocksBar from "./apps/StocksBar";
 import Jauge from "./apps/jauge";
 import GestionRadios from "./apps/radios";
 import GestionCles from "./apps/cles";
+import RexQG from "./apps/rex";
 import AppVolante from "./apps/volante";
 import Sanitaire from "./apps/sanitaire";
 import Balade from "./apps/balade";
@@ -63,6 +65,7 @@ const COMPOSANTS = {
   jauge: Jauge,
   radios: GestionRadios,
   cles: GestionCles,
+  rex: RexQG,
   volante: AppVolante,
   sanitaire: Sanitaire,
   balade: Balade,
@@ -119,6 +122,7 @@ export default function App() {
         <BandeauGeneral />
         <Comp />
         {APPS_TERRAIN.includes(currentApp) && <BandeauUrgence />}
+        <BoutonRex />
       </div>
     );
   }
@@ -176,6 +180,7 @@ export default function App() {
         <BandeauGeneral />
         <Comp />
         {APPS_TERRAIN.includes(currentApp) && <BandeauUrgence />}
+        <BoutonRex />
       </div>
     </div>
   );
