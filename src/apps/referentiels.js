@@ -355,7 +355,7 @@ export const REGLE_OR = "PROTEGER -> ALERTER (112 puis PMR333 si vital) -> SECOU
 -------------------------------------------------------------------- */
 export const RESSOURCES_EAU = [
  { type: "Tridivision + 2 lignes d'attaque 45mm",     gps: "50.38279, 5.61623", repere: "Site — 30 m de l'entrée" },
- { type: "Bouche incendie", gps: "50.38281, 5.61920", repere: "Site — 214 m" },
+ { type: "Bouche incendie - Col de cygne SWDE - eau sanitaire", gps: "50.38281, 5.61920", repere: "Site — 214 m" },
  { type: "Bouche incendie", gps: "50.38385, 5.61412", repere: "Site — 219 m" },
  { type: "Bouche incendie + stand-pipe + ligne 70mm", gps: "50.38391, 5.61419", repere: "Site — 220 m" },
  { type: "Bouche incendie", gps: "50.38388, 5.61408", repere: "Site — 223 m" },
