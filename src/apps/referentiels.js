@@ -103,7 +103,7 @@ export const POINTS_GPS = {
  "Site zone logistique": { lat: 50.3845, lon: 5.6195, km: 0, segment: "Stockage technique / Énergie" },
  "Parking public": { lat: 50.3815, lon: 5.6182, km: 0, segment: "Zone Stationnement Public" },
  "Parking artistes": { lat: 50.3848, lon: 5.6198, km: 0, segment: "Zone Accès Contrôlé Artistes" },
- "Point 0": { lat: 50.3835, lon: 5.6215, km: 0, segment: "Secteur Départ" },
+ "Point 0": { lat: 50.38225, lon: 5.61668, km: 0, segment: "Secteur Départ" },
  "Parcours Balade secteur A": { lat: 50.3821, lon: 5.6167, km: 0.5, segment: "Sentier départ forêt" },
  "PRV#4": { lat: 50.38218,  lon: 5.63599, km: 0.9, segment: "Accès Étape 1 / Scène 1" },
  "Etape 1": { lat: 50.37858, lon: 5.6279, km: 0.9, segment: "Ravitaillement 1" },
@@ -128,6 +128,7 @@ export const POINTS_GPS = {
 --------------------------------------------------------------------- */
 export const CHAUFFEURS = [
   { id: "ch1", nom: "Valentin", tel: "0471 01 20 66" },
+  { id: "ch2", nom: "Renaud", tel: "0494 22 29 33" },
 ];
 
 // Véhicules disponibles, indépendants des chauffeurs. Au moment d'attribuer
@@ -147,7 +148,7 @@ export const ANNUAIRE = [
  { nom: "Police", num: "101", note: "" },
  { nom: "Directeur d'événement", num: "0477 99 48 42", note: "Jérôme Grosjean", mail: "jerome.grosjean@bucolique.be" },
  { nom: "Coordinateur sécurité", num: "0494 22 29 33", note: "Renaud Lesage", mail: "renaud.lesage@bucolique.be" },
- { nom: "Bourgmestre", num: "0477 63 81 88", note: "Ch. Verdin" },
+ { nom: "Bourgmestre", num: "0477 63 81 88", note: "Christian Verdin" },
  { nom: "Coordinatrice PlanU Ferrières", num: "086 400 90 51", note: "C. Seynaeve" },
  { nom: "Dispatching IILE/Hemeco (en intervention)", num: "04 279 13 52", note: "Hemeco" },
  { nom: "Back-up 112 (en cas de panne)", num: "0471 51 31 56", note: "" },

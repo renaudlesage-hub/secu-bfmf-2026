@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Droplets, Clock, RefreshCw, CheckCircle2, CircleDot, MapPin,
-  TriangleAlert, QrCode, Printer, X, Trash2,
+  TriangleAlert, QrCode, Printer, X, Trash2, Mic,
 } from "lucide-react";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../config";
 import { LIEUX, KEY_SANITAIRE } from "./lieux-sanitaires";
+import { JALONS_ARTISTES } from "./referentiels";
 
 /* ---------------------------------------------------------------------
    ÉQUIPE SANITAIRE — BFMF 2026
@@ -188,6 +189,14 @@ export default function Sanitaire() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
+              onClick={() => setVue(vue === "artistes" ? "liste" : "artistes")}
+              className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${
+                vue === "artistes" ? "ring-pink-400/50 bg-pink-400/15 text-pink-200" : "ring-white/20 text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Mic className="w-3.5 h-3.5" /> Artistes & parkings
+            </button>
+            <button
               onClick={() => setVue(vue === "qr" ? "liste" : "qr")}
               className={`flex items-center gap-1.5 text-[11px] font-mono px-2.5 py-1.5 rounded ring-1 transition-colors ${
                 vue === "qr" ? "ring-sky-400/50 bg-sky-400/15 text-sky-200" : "ring-white/20 text-slate-400 hover:text-slate-200"
@@ -206,7 +215,47 @@ export default function Sanitaire() {
         </div>
       </header>
 
-      {vue === "qr" ? (
+      {vue === "artistes" ? (
+        <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+          <div className="rounded-lg bg-pink-400/[0.06] ring-1 ring-pink-400/20 px-3 py-2.5 text-[11px] text-pink-100/90 leading-relaxed">
+            <span className="font-semibold">Accueil artistes & parkings.</span> L'équipe sanitaire gère aussi
+            l'accueil des artistes et les parkings. Voici les jalons artistes du planning — mêmes horaires que le QG.
+          </div>
+
+          {JALONS_ARTISTES.map((jour, idx) => {
+            const items = (jour.jalons || []).slice().sort((a, b) => a.heure.localeCompare(b.heure));
+            return (
+              <div key={idx} className="space-y-2">
+                <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-pink-400" /> {jour.jour}
+                  <span className="text-slate-600">· {items.length} jalon{items.length > 1 ? "s" : ""}</span>
+                </div>
+                {items.length === 0 ? (
+                  <div className="text-[11px] text-slate-500 pl-3">Aucun jalon artiste ce jour.</div>
+                ) : (
+                  items.map((j, k) => (
+                    <div key={k} className="rounded-lg px-3 py-2.5 ring-1 ring-pink-400/20 bg-pink-400/[0.03] flex items-center gap-3">
+                      <div className="font-mono text-sm font-bold text-slate-200 w-14 shrink-0 text-right">{j.heure}</div>
+                      <div className="w-8 h-8 rounded-lg bg-pink-400/10 text-pink-300 flex items-center justify-center shrink-0">
+                        <Mic className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm text-slate-100 font-medium">{j.label}</div>
+                        {j.detail && <div className="text-[11px] text-slate-400 font-mono mt-0.5">{j.detail}</div>}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            );
+          })}
+
+          <div className="text-[10px] font-mono text-slate-600 leading-relaxed pt-1">
+            Ces jalons sont ceux du planning (source : QG). Lecture seule ici. Pour toute modification,
+            passer par l'app Planning.
+          </div>
+        </main>
+      ) : vue === "qr" ? (
         <main className="max-w-3xl mx-auto p-4 print-root">
           <div className="flex items-center justify-between mb-4 no-print">
             <div className="text-sm text-slate-300">

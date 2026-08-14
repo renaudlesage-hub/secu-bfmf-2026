@@ -44,7 +44,7 @@ import CartographiePcops from "./cartographie";
    localisation, gravité, et situation crowd management du parcours.
    Aucune action possible depuis cette vue : l'engagement reste au QG.
 --------------------------------------------------------------------- */
-
+// tests
 const SB_HEADERS = {
   apikey: SUPABASE_ANON_KEY,
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -92,8 +92,8 @@ const DOCUMENTS = [
   },
   {
     titre: "Plan d'implantation / plan de site",
-    desc: "À COMPLÉTER : coller ici le lien de partage Drive.",
-    url: "",
+    desc: "Implantations et disposition extincteurs.",
+    url: "https://drive.google.com/file/d/1Q_6lzHCX3qj22QeTSdTy-lQLJSazjEKl/view?usp=sharing",
   },
   {
     titre: "Carte opérationnelle « Buco 2026 »",
@@ -139,8 +139,12 @@ const POINT_RENCONTRE = {
 };
 
 const RISQUES_SITE = [
-  { titre: "Foodtrucks — bonbonnes de gaz", detail: "À COMPLÉTER : nombre, emplacement, vanne de coupure, distance aux scènes." },
-  { titre: "Alimentation électrique / groupes électrogènes", detail: "Les scènes de la balade sont alimentées par GROUPES ÉLECTROGÈNES (dossier § 11) — pas de raccordement réseau, donc pas de réception électrique SECT sur ces points. Site principal : réception électrique par SECT agréé. À COMPLÉTER : emplacement exact, puissance, organe de coupure générale (qui, où)." },
+  {
+   titre: "Foodtrucks — bonbonnes de gaz",
+   detail: "voir dossier partagé",
+   url: `https://drive.google.com/drive/folders/12E0YKXYcW__2Xrq9a9r4et1BNQBCfN-9?usp=sharing`,
+  },
+  { titre: "Alimentation électrique via groupe électrogène, réceptionné par un SECT agréé. Présence d'une remorque" },
   { titre: "Structures scéniques", detail: "Balade : installations < 250 m² au sol, aucun risque de chute ≥ 2 m (pas de réception mécanique). Site principal : réception mécanique par SECT agréé. À COMPLÉTER : hauteur, PV de montage, seuil de vent d'arrêt (km/h)." },
   { titre: "Public — jauge et évacuation", detail: "À COMPLÉTER : capacité plaine, largeur des sorties, points de rassemblement." },
   { titre: "Parcours balade — 6,5 km", detail: "Boisé, non éclairé. Aucun éclairage de secours sur les lieux de concert de la balade (milieux ouverts, dossier § 11). Jusqu'à plusieurs centaines de personnes réparties sur le tracé. Accès secours par les PRV#4 à #7." },
@@ -164,7 +168,7 @@ const MOYENS_ORGA = [
       + `${DEA.length - 1} autres DEA dans un rayon de 4,5 km. Emplacements ci-dessous.`,
   },
   { titre: "Poste de secours / secouristes", detail: "1 secouriste (dossier § 10). 1 trousse de secours par site et par groupe de marcheurs. 1 DEA sur le site du festival, mis à disposition par la Commune de Ferrières." },
-  { titre: "Sécurité privée", detail: "MAXIMUM SECURITY, 15/08 : 2 agents de 20h00 à 03h30, 16/08 : 2 agents de 20h00 à 01h30. Site surveillé par un maître-chien en nuit, canal PMR15." },
+  { titre: "Sécurité privée", detail: "À COMPLÉTER : société, nombre d'agents, chef de poste, canal PMR15." },
   { titre: "Équipe volante organisateur", detail: "3 véhicules 4x4 chacun pourvu d'un extincteur poudre 5kg." },
   { titre: "Accompagnateurs balade", detail: "4 personnes de l'organisation par groupe (dossier § 4.2), briefées sécurité. 3 groupes par jour d'environ 300 personnes." },
 ];
@@ -547,7 +551,9 @@ export default function PcOps() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+      <main className="max-w-6xl mx-auto px-4 py-4 space-y-4">
+        {/* Les bandeaux permanents (crise, recherche) et onglets restent en
+            pleine largeur ; seul le contenu du dossier passe en colonnes. */}
         {sbError && (
           <div className="rounded-md bg-amber-400/10 ring-1 ring-amber-400/30 text-amber-300 text-xs px-3 py-2">
             Liaison donnees indisponible — la situation affichee peut etre obsolete.
@@ -564,7 +570,7 @@ export default function PcOps() {
             consigne ?") et partirait sans nom (pas de profil cote autorite).
         ------------------------------------------------------------------ */}
         {crise && (
-          <section className="rounded-lg ring-2 ring-red-500/70 bg-red-500/15 p-4">
+          <section className="max-w-3xl rounded-lg ring-2 ring-red-500/70 bg-red-500/15 p-4">
             <div className="flex items-center gap-2 mb-1">
               <Megaphone className="w-4 h-4 text-red-300 pulse-slow" />
               <h2 className="font-display tracking-wide text-sm text-red-200 uppercase">Consigne générale diffusée par le QG</h2>
@@ -578,7 +584,7 @@ export default function PcOps() {
         )}
 
         {recherches.map((r) => (
-          <div key={r.id} className="rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100 flex items-start gap-2">
+          <div key={r.id} className="max-w-3xl rounded-lg ring-1 ring-amber-400/50 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-100 flex items-start gap-2">
             <UserSearch className="w-4 h-4 shrink-0 mt-0.5 text-amber-300" />
             <div>
               <span className="font-semibold uppercase">Recherche {r.categorie} en cours</span> — depuis {r.heure}
@@ -873,12 +879,13 @@ function Kpi({ label, value, accent }) {
    ONGLET DOSSIER — documents de reference, annuaire, points fixes.
    Contenu statique : reste consultable meme si la liaison Supabase tombe.
 ===================================================================== */
-
 function Dossier() {
   return (
-    <div className="space-y-4">
+    /* 1 colonne sur mobile, 2 colonnes sur grand écran (lg+). Chaque section
+       porte break-inside-avoid + mb-4 pour ne pas être coupée entre colonnes. */
+    <div className="columns-1 lg:columns-2 gap-4">
       {/* Documents */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4 break-inside-avoid mb-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
           <FileText className="w-4 h-4 text-sky-300" /> DOCUMENTS DE RÉFÉRENCE
         </h2>
@@ -916,7 +923,7 @@ function Dossier() {
       </section>
 
       {/* Annuaire de crise */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4 break-inside-avoid mb-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
           <PhoneCall className="w-4 h-4 text-slate-500" /> ANNUAIRE DE CRISE
         </h2>
@@ -936,7 +943,7 @@ function Dossier() {
       </section>
 
       {/* Plan radio */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4 break-inside-avoid mb-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
           <Radio className="w-4 h-4 text-slate-500" /> PLAN RADIO
         </h2>
@@ -1009,7 +1016,7 @@ function Dossier() {
       </section>
 
       {/* Points de rendez-vous secours */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4 break-inside-avoid mb-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-1">
           <MapIcon className="w-4 h-4 text-slate-500" /> POINTS DE RENDEZ-VOUS SECOURS (PRV)
         </h2>
@@ -1031,7 +1038,7 @@ function Dossier() {
       </section>
 
       {/* Doctrine */}
-      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4">
+      <section className="bg-[#131a22] rounded-lg ring-1 ring-white/10 p-4 break-inside-avoid mb-4">
         <h2 className="font-display tracking-wide text-sm text-slate-200 flex items-center gap-2 mb-3">
           <LifeBuoy className="w-4 h-4 text-emerald-300" /> DOCTRINE D'ALERTE
         </h2>
